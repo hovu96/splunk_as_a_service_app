@@ -1,0 +1,80 @@
+<dashboard script="cluster.js" stylesheet="cluster.css">
+  <label>Cluster</label>
+  <row>
+    <panel>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group label="Name" help="">
+            <splunk-text-input disabled="disabled" name="name" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+
+          <splunk-control-group label="Authentication Mode" help="">
+            <splunk-radio-input name="auth_mode" value="cert-key" class="cluster_attribute">
+              <option value="cert-key">Cert &amp; Key</option>
+              <option value="user-token">User Token</option>
+              <option value="aws-iam">AWS IAM</option>
+            </splunk-radio-input>
+          </splunk-control-group>
+
+          <splunk-control-group label="Cluster Base URL" help="" class="mode_cert_key mode_user_token">
+            <splunk-text-input name="cluster_url" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+
+          <splunk-control-group label="Cluster Certificate Authority" help="" class="mode_cert_key">
+            <splunk-text-area name="cluster_ca" class="cluster_attribute">
+            </splunk-text-area>
+          </splunk-control-group>
+
+          <splunk-control-group label="Client Certificate" help="" class="mode_cert_key">
+            <splunk-text-area name="client_cert" class="cluster_attribute">
+            </splunk-text-area>
+          </splunk-control-group>
+
+          <splunk-control-group label="Client Key" help="" class="mode_cert_key">
+            <splunk-text-area name="client_key" class="cluster_attribute">
+            </splunk-text-area>
+          </splunk-control-group>
+
+          <splunk-control-group label="User Token" help="" style="display: none;" class="mode_user_token">
+            <splunk-text-area name="user_token" class="cluster_attribute">
+            </splunk-text-area>
+          </splunk-control-group>
+
+          <splunk-control-group label="EKS Cluster Name" help="" style="display: none;" class="mode_aws_iam">
+            <splunk-text-input name="aws_cluster_name" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+
+          <splunk-control-group label="AWS Access Key ID" help="" style="display: none;" class="mode_aws_iam">
+            <splunk-text-input name="aws_access_key_id" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+
+          <splunk-control-group label="AWS Secret Access Key" help="" style="display: none;" class="mode_aws_iam">
+            <splunk-text-input type="password" name="aws_secret_access_key" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+
+          <splunk-control-group label="AWS Region Name" help="" style="display: none;" class="mode_aws_iam">
+            <splunk-text-input name="aws_region_name" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+
+        </div>
+      </html>
+    </panel>
+  </row>
+  <row id="saveRow">
+    <panel>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group label="" help="">
+            <button id="setupButton" class="btn btn-primary">Save</button>
+          </splunk-control-group>
+        </div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

@@ -1,0 +1,18 @@
+<dashboard>
+  <label>Infrastructure</label>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>index="em_meta" sourcetype="kube:objects:nodes" 
+| dedup metadata.uid 
+| rename metadata.name as node_name metadata.labels.failure-domain.beta.kubernetes.io/zone as zone metadata.labels.beta.kubernetes.io/instance-type as instance_type
+| table node_name zone instance_type</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

@@ -1,0 +1,29 @@
+<dashboard>
+  <label>Apps</label>
+  <row>
+    <panel>
+      <html>
+        <table>
+          <tr>
+            <th>Name</th>
+            <th>Search Head Deployer</th>
+            <th>Indexer Cluster Master</th>
+            <th>Deployment Server</th>
+          </tr>
+          <tr>
+            <td>my_name 1</td>
+            <td>yes</td>
+            <td>no</td>
+            <td>yes</td>
+          </tr>
+          <tr>
+            <td>my_name 2</td>
+            <td>no</td>
+            <td>yes</td>
+            <td>no</td>
+          </tr>
+        </table>
+      </html>
+    </panel>
+  </row>
+</dashboard>

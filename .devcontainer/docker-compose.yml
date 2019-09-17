@@ -1,0 +1,24 @@
+---
+#-------------------------------------------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
+#-------------------------------------------------------------------------------------------------------------
+
+# docker run --rm -it -p 8000:8000 -e "SPLUNK_START_ARGS=--accept-license" -e "SPLUNK_PASSWORD=helloworld" -v "${PWD}:/opt/splunk/etc/apps/splunk_as_a_service:rw" splunk/splunk
+
+version: "3"
+services:
+  # Update this to the name of the service you want to work with in your docker-compose.yml file
+  splunk_as_a_service:
+    image: splunk/splunk
+    ports:
+      - 8000:8000
+
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_PASSWORD=helloworld
+
+    volumes:
+      - ..:/opt/splunk/etc/apps/splunk_as_a_service
+      # Uncomment the next line to use Docker from inside the container. See https://aka.ms/vscode-remote/samples/docker-in-docker-compose for details.
+      - /var/run/docker.sock:/var/run/docker.sock

@@ -1,0 +1,26 @@
+[clusters]
+access = read : [ saas_admin ], write : [ saas_admin ]
+export = none
+
+[defaults]
+access = read : [ saas_admin ], write : [ saas_admin ]
+export = none
+
+[views/configure]
+access = read : [ saas_admin ]
+export = none
+
+[views/clusters]
+access = read : [ saas_power ]
+export = none
+
+[views/cluster]
+access = read : [ saas_power ]
+export = none
+
+[views/stack_create]
+access = read : [ saas_power ]
+export = none
+
+[views/internal_usage]
+access = read : [ saas_admin ]

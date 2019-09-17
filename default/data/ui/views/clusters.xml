@@ -1,0 +1,18 @@
+<dashboard script="clusters.js" stylesheet="clusters.css">
+  <label>Clusters</label>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>| rest splunk_server=local services/saas/clusters | table name status error</query>
+          <refresh>10s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_self">cluster?name=$row.name$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</dashboard>

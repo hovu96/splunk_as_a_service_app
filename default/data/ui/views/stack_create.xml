@@ -1,0 +1,163 @@
+<form script="stack_create.js" stylesheet="stack_create.css">
+    <label>Create Stack</label>
+    <description>Specify how Splunk should be deployed.</description>
+    <row id="wizard_row">
+        <html>
+            <div id="step-control-wizard"></div>
+        </html>
+    </row>
+    <row depends="$step-cluster$">
+        <panel>
+            <title>Target Cluster</title>
+            <html>
+                <div class="deployment-options form-horizontal">
+                    <splunk-control-group class="fix-label" label="Select Cluster" help="">	
+                        <splunk-search-dropdown class="option" name="cluster" search="| rest splunk_server=local services/saas/clusters" value-field="name" label-field="name">
+                        </splunk-search-dropdown>
+                    </splunk-control-group>
+                    <splunk-control-group class="help" label="" help="">	
+                        <p>
+                            Select the Cluster you want to distribute the Splunk Stack to. In case
+                            you cannot find the Cluster in the list above, simply
+                            <a href="cluster">add your Cluster</a>.
+                        </p>
+                    </splunk-control-group>
+                </div>
+            </html>
+        </panel>
+    </row>
+    <row depends="$step-topology$">
+        <panel>
+            <title>Splunk Topology</title>
+            <html>
+                <div class="deployment-options form-horizontal">
+                    <splunk-control-group label="Deployment Type" help="">	
+                        <splunk-radio-input class="option" name="deployment_type">
+                            <option value="standlone">Standalone</option>
+                            <option value="distributed">Distributed</option>
+                        </splunk-radio-input>
+                    </splunk-control-group>
+                    <splunk-control-group class="deployment_type standlone" label="" help="">
+                        <p>
+                            A standlone deployment consist of a Splunk instance acting as multiple roles (e.g. Search Head, Indexer).
+                            It are limited in handling large volume of data, serving large number of users/searches and don't provide
+                            high availability.
+                        </p>
+                    </splunk-control-group>
+                    <splunk-control-group class="deployment_type distributed" label="" help="">
+                        <p>
+                            A distributed deployment concists of dedicated Splunk instances per role (e.g. Search Heads, Indexers, Deployer, Cluster Master). 
+                            It can handle large volume of data, serve large number of users/searches and provides high availability.
+                        </p>
+                    </splunk-control-group>
+                    <splunk-control-group class="deployment_type distributed" label="Number of Indexers" help="">	
+                        <splunk-text-input class="option" name="indexer_count" value="2">
+                        </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group class="deployment_type distributed help" label="" help="">
+                        <p>
+                            Indexers receive data and service search jobs coming from Search Heads.
+                            Indexers replicate data, so that they maintain multiple copies of the data
+                            to promote high availability and disaster recovery.
+                        </p>
+                    </splunk-control-group>
+                    <splunk-control-group class="deployment_type distributed" label="Number of Search Heads" help="">	
+                        <splunk-text-input class="option" name="search_head_count" value="3">	
+                        </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group class="deployment_type distributed help" label="" help="">	
+                        <p>
+                            Search Heads serve as a central resource for searching.
+                            They replicate configurations, apps, searches, search artifacts to promote high availability.
+                        </p>
+                    </splunk-control-group>
+                    <splunk-control-group class="deployment_type distributed" label="Data Fabric Search" help="">	
+                        <splunk-radio-input class="option" name="data_fabric_search" value="0">
+                            <option value="0">Disabled</option>
+                            <option value="1">Enabled</option>
+                        </splunk-radio-input>
+                    </splunk-control-group>
+                    <splunk-control-group class="data_fabric_search 1 deployment_type distributed" label="Number of Spark Workers" help="">	
+                        <splunk-text-input class="option" name="spark_worker_count" value="2">	
+                        </splunk-text-input>
+                    </splunk-control-group>
+                </div>
+            </html>
+        </panel>
+    </row>
+    <row depends="$step-naming$">
+        <panel>
+            <title>Stack Naming</title>
+            <html>
+                <div class="deployment-options form-horizontal">
+                    <splunk-control-group label="Title" help="">	
+                        <splunk-text-input class="option" name="title" value="">	
+                        </splunk-text-input>
+                    </splunk-control-group>
+                </div>
+            </html>
+        </panel>
+    </row>
+    <row depends="$step-license$">
+        <panel>
+            <title>Splunk Licenses</title>
+            <html>
+                <div class="deployment-options form-horizontal">
+                    <splunk-control-group label="License Master Mode" help="">	
+                        <splunk-radio-input class="option" name="license_master_mode" value="0">
+                            <option value="url">URL</option>
+                            <option value="file">File</option>
+                        </splunk-radio-input>
+                    </splunk-control-group>
+                    <splunk-control-group class="license_master_mode url" label="License Master URL" help="">
+                        <splunk-text-input name="license_master_url" class="option">
+                        </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group class="license_master_mode file" label="Splunk Enterprise" help="">	
+                        <splunk-text-area class="license option" name="enterprise_license" style="height: 200px;">	
+                        </splunk-text-area>
+                    </splunk-control-group>
+                </div>
+            </html>
+        </panel>
+    </row>
+    <row depends="$step-resources$">
+        <panel>
+            <title>Infrastructure Resources</title>
+            <html>
+                <div class="deployment-options form-horizontal">
+                    <splunk-control-group label="CPU per Instance" help="">	
+                        <splunk-text-input class="option" name="cpu_per_instance" value="4">	
+                        </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group label="Memory per Instance" help="">	
+                        <splunk-text-input class="option" name="memory_per_instance" value="4Gi">	
+                        </splunk-text-input>
+                    </splunk-control-group>
+                </div>
+            </html>
+        </panel>
+    </row>
+    <row depends="$step-summary$">
+        <panel>
+            <title>Stack configuration summary</title>
+            <html>
+                <table class="table-bordered table table-striped" style="min-width: 10%;">
+                    <tr>
+                        <td>Cluster</td>
+                        <td>$option_cluster$</td>
+                    </tr>
+                    <tr>
+                        <td>Memory per Instance</td>
+                        <td>$option_memory_per_instance$</td>
+                    </tr>
+                </table>
+            </html>
+        </panel>
+    </row>
+    <row depends="$step-summary$" id="deploy_row">
+        <html>
+            <button id="deploy-button" class="btn btn-primary">Deploy Now</button>
+        </html>
+    </row>
+</form>

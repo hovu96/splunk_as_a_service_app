@@ -1,0 +1,13 @@
+.action-button {
+    float: left;
+    margin-right: 10px;
+} 
+
+table.credentials td.name {
+    font-weight: bold;
+    padding-right: 2em;
+} 
+
+table.credentials td.value {
+    font-family: 'Courier New', Courier, monospace;
+} 

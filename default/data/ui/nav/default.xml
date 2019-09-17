@@ -1,0 +1,21 @@
+<nav>
+    <view name="clusters" />
+    <view name="stacks" default="true" />
+    <view name="apps" />
+    <view name="activity" />
+    <view name="chargeback" />
+    <view name="health" />
+    <view name="infrastructure" />
+    <view name="configure" />
+    <collection label="Other">
+        <view name="internal_usage" />
+        <collection label="Search">
+            <view name="search" />
+            <view name="analysis_workspace" />
+            <view name="datasets" />
+            <view name="reports" />
+            <view name="alerts" />
+            <view name="dashboards" />
+        </collection>
+    </collection>
+</nav>

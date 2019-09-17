@@ -1,0 +1,47 @@
+<dashboard script="configure.js" stylesheet="configure.css">
+  <label>Configure</label>
+  <row>
+    <panel>
+      <title>Defaults</title>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group class="fix-label" label="Select Cluster" help="">	
+            <splunk-search-dropdown class="setup_option" name="default_cluster" search="| rest splunk_server=local services/saas/clusters" value-field="name" label-field="name">
+            </splunk-search-dropdown>
+          </splunk-control-group>
+          <splunk-control-group label="License Master Mode" help="">	
+              <splunk-radio-input class="setup_option" name="default_license_master_mode" value="0">
+                  <option value="url">URL</option>
+                  <option value="file">File</option>
+              </splunk-radio-input>
+          </splunk-control-group>
+          <splunk-control-group label="License Master URL" help="" class="default_license_master_mode url">
+            <splunk-text-input name="default_license_master_url" class="setup_option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group label="Indexer Server" help="">
+            <splunk-text-input name="default_indexer_server" class="setup_option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group label="Deployment Type" help="">	
+              <splunk-radio-input class="setup_option" name="default_deployment_type">
+                  <option value="standlone">Standalone</option>
+                  <option value="distributed">Distributed</option>
+              </splunk-radio-input>
+          </splunk-control-group>
+        </div>
+      </html>
+    </panel>
+  </row>
+  <row id="saveRow">
+    <panel>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group label="" help="">
+            <button id="setupButton" class="btn btn-primary">Save</button>
+          </splunk-control-group>
+        </div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

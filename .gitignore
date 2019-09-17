@@ -1,0 +1,9 @@
+*.pyc
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+local
+metadata/local.meta
+.DS_Store
+local
+metadata/local.meta

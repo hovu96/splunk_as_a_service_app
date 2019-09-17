@@ -1,0 +1,18 @@
+#addButton {
+    float: left;
+    margin-right: 10px;
+}
+
+/*#topPanel > .dashboard-panel{
+    background-color: transparent;
+}*/
+
+.modal-dialog .close{
+    display: none;
+}
+
+.control-group{
+    margin-bottom: 20px;
+    display: block;
+}
+

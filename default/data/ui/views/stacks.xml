@@ -1,0 +1,34 @@
+<form script="stacks.js" stylesheet="stacks.css">
+  <label>Stacks</label>
+  <description>List of all Splunk stacks managed by this app.</description>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="cluster" searchWhenChanged="true">
+      <label>Cluster</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>| rest splunk_server=local services/saas/clusters | table name</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>| rest splunk_server=local services/saas/stacks | table id title status cluster | search cluster="$cluster$"</query>
+          <refresh>20s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_self">stack?id=$row.id$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</form>
