@@ -1,3 +1,215 @@
-<dashboard>
+<form>
   <label>Chargeback</label>
-</dashboard>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="cluster" searchWhenChanged="true">
+      <label>Cluster</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>| rest splunk_server=local services/saas/clusters | table name</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="dropdown" token="cost_per_gb" searchWhenChanged="true">
+      <label>Cost for GB</label>
+      <choice value="0.1">¢ 10</choice>
+      <choice value="0.5">¢ 50</choice>
+      <choice value="1">$ 1</choice>
+      <choice value="5">$ 5</choice>
+      <choice value="10">$ 10</choice>
+      <choice value="20">$ 20</choice>
+      <choice value="50">$ 50</choice>
+      <choice value="100">$ 100</choice>
+      <default>5</default>
+      <initialValue>5</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Today</title>
+      <chart>
+        <title>Costs per Hour</title>
+        <search>
+          <query>| tstats sum(usage.gb) as gb from datamodel=license_usage.usage where usage.cluster="$cluster$" by usage.stack _time span=1h
+| rename usage.* as * 
+| eval license_cost = gb * $cost_per_gb$
+| eval cost = license_cost
+| eval cost = round(cost,4)
+| timechart span=1h sum(cost) by stack</query>
+          <earliest>@d</earliest>
+          <latest>@d+1d</latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>1m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Dollars</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisY.scale">log</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+      <chart>
+        <title>Total Costs</title>
+        <search>
+          <query>| tstats sum(usage.gb) as gb from datamodel=license_usage.usage where usage.cluster="$cluster$" by usage.stack
+| rename usage.* as * 
+| eval license_cost = gb * $cost_per_gb$
+| eval cost = license_cost
+| eval cost = round(cost)
+| xyseries stack stack cost</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Dollars</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">log</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>This Month</title>
+      <chart>
+        <title>Costs per Hour</title>
+        <search>
+          <query>| tstats sum(usage.gb) as gb from datamodel=license_usage.usage where usage.cluster="$cluster$" by usage.stack _time span=1d
+| rename usage.* as * 
+| eval license_cost = gb * $cost_per_gb$
+| eval cost = license_cost
+| eval cost = round(cost,4)
+| timechart span=1d sum(cost) by stack</query>
+          <earliest>@mon</earliest>
+          <latest>@mon+1mon</latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>10m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Dollars</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisY.scale">log</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+      <chart>
+        <title>Total Costs</title>
+        <search>
+          <query>| tstats sum(usage.gb) as gb from datamodel=license_usage.usage where usage.cluster="$cluster$" by usage.stack
+| rename usage.* as * 
+| eval license_cost = gb * $cost_per_gb$
+| eval cost = license_cost
+| eval cost = round(cost)
+| xyseries stack stack cost</query>
+          <earliest>@mon</earliest>
+          <latest>@mon+1mon</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Dollars</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">log</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>This Year</title>
+      <table>
+        <search>
+          <query>| tstats sum(usage.gb) as gb from datamodel=license_usage.usage where usage.cluster="$cluster$" by _time span=1mon
+| rename usage.* as * 
+| eval license_cost = gb * $cost_per_gb$
+| eval cost = license_cost
+| eval cost = round(cost)
+| eval month = strftime(_time, "%B %Y")
+| table month cost</query>
+          <earliest>@year</earliest>
+          <latest>@mon+1mon</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="number" field="cost">
+          <option name="precision">0</option>
+          <option name="unit">$</option>
+          <option name="unitPosition">before</option>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>

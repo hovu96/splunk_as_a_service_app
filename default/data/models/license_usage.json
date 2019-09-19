@@ -1,0 +1,138 @@
+{
+    "modelName": "license_usage",
+    "displayName": "License Usage",
+    "description": "",
+    "objectSummary": {
+        "Event-Based": 1,
+        "Transaction-Based": 0,
+        "Search-Based": 0
+    },
+    "objects": [
+        {
+            "objectName": "usage",
+            "displayName": "Usage",
+            "parentName": "BaseEvent",
+            "comment": "",
+            "fields": [
+                {
+                    "fieldName": "stack_id",
+                    "owner": "usage",
+                    "type": "string",
+                    "fieldSearch": "stack_id=*",
+                    "required": true,
+                    "multivalue": false,
+                    "hidden": false,
+                    "editable": true,
+                    "displayName": "stack_id",
+                    "comment": ""
+                },
+                {
+                    "fieldName": "cluster",
+                    "owner": "usage",
+                    "type": "string",
+                    "fieldSearch": "cluster=*",
+                    "required": true,
+                    "multivalue": false,
+                    "hidden": false,
+                    "editable": true,
+                    "displayName": "cluster",
+                    "comment": ""
+                },
+                {
+                    "fieldName": "stack",
+                    "owner": "usage",
+                    "type": "string",
+                    "fieldSearch": "stack=*",
+                    "required": true,
+                    "multivalue": false,
+                    "hidden": false,
+                    "editable": true,
+                    "displayName": "stack",
+                    "comment": ""
+                },
+                {
+                    "fieldName": "_time",
+                    "owner": "BaseEvent",
+                    "type": "timestamp",
+                    "fieldSearch": "",
+                    "required": false,
+                    "multivalue": false,
+                    "hidden": false,
+                    "editable": true,
+                    "displayName": "_time",
+                    "comment": ""
+                },
+                {
+                    "fieldName": "host",
+                    "owner": "BaseEvent",
+                    "type": "string",
+                    "fieldSearch": "",
+                    "required": false,
+                    "multivalue": false,
+                    "hidden": true,
+                    "editable": true,
+                    "displayName": "host",
+                    "comment": ""
+                },
+                {
+                    "fieldName": "source",
+                    "owner": "BaseEvent",
+                    "type": "string",
+                    "fieldSearch": "",
+                    "required": false,
+                    "multivalue": false,
+                    "hidden": true,
+                    "editable": true,
+                    "displayName": "source",
+                    "comment": ""
+                },
+                {
+                    "fieldName": "sourcetype",
+                    "owner": "BaseEvent",
+                    "type": "string",
+                    "fieldSearch": "",
+                    "required": false,
+                    "multivalue": false,
+                    "hidden": true,
+                    "editable": true,
+                    "displayName": "sourcetype",
+                    "comment": ""
+                }
+            ],
+            "calculations": [
+                {
+                    "outputFields": [
+                        {
+                            "fieldName": "gb",
+                            "owner": "usage",
+                            "type": "number",
+                            "fieldSearch": "gb=*",
+                            "required": true,
+                            "multivalue": false,
+                            "hidden": false,
+                            "editable": true,
+                            "displayName": "gb",
+                            "comment": ""
+                        }
+                    ],
+                    "calculationID": "1tgc64ywlz7i",
+                    "owner": "usage",
+                    "editable": true,
+                    "comment": "",
+                    "calculationType": "Eval",
+                    "expression": "b/1024/1024/1024"
+                }
+            ],
+            "constraints": [
+                {
+                    "search": "index=_internal stack_id=* source=*license_usage.log type=Usage cluster=\"*\"",
+                    "owner": "usage"
+                }
+            ],
+            "lineage": "usage"
+        }
+    ],
+    "objectNameList": [
+        "usage"
+    ]
+}
