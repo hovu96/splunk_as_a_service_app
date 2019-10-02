@@ -43,7 +43,7 @@ class UpCommand(OperatorCommand):
 
     def wait_until_pod_created(self, timeout=60*15):
         expected_number_of_instances = 0
-        if self.config["deployment_type"] == "standlone":
+        if self.config["deployment_type"] == "standalone":
             expected_number_of_instances += 1
         elif self.config["deployment_type"] == "distributed":
             search_head_count = int(self.config["search_head_count"])
@@ -71,7 +71,7 @@ class UpCommand(OperatorCommand):
         return False
 
     def create_load_balancers(self):
-        if self.config["deployment_type"] == "standlone":
+        if self.config["deployment_type"] == "standalone":
             services.create_load_balancers(
                 self.core_api,
                 self.stack_id,

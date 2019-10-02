@@ -33,25 +33,25 @@
                 <div class="deployment-options form-horizontal">
                     <splunk-control-group label="Deployment Type" help="">	
                         <splunk-radio-input class="option" name="deployment_type">
-                            <option value="standlone">Standalone</option>
+                            <option value="standalone">Standalone</option>
                             <option value="distributed">Distributed</option>
                         </splunk-radio-input>
                     </splunk-control-group>
-                    <splunk-control-group class="deployment_type standlone" label="" help="">
+                    <splunk-control-group class="deployment_type standalone help" label="" help="">
                         <p>
-                            A standlone deployment consist of a Splunk instance acting as multiple roles (e.g. Search Head, Indexer).
+                            A standalone deployment consist of a Splunk instance acting as multiple roles (e.g. Search Head, Indexer).
                             It are limited in handling large volume of data, serving large number of users/searches and don't provide
                             high availability.
                         </p>
                     </splunk-control-group>
-                    <splunk-control-group class="deployment_type distributed" label="" help="">
+                    <splunk-control-group class="deployment_type distributed help" label="" help="">
                         <p>
                             A distributed deployment concists of dedicated Splunk instances per role (e.g. Search Heads, Indexers, Deployer, Cluster Master). 
                             It can handle large volume of data, serve large number of users/searches and provides high availability.
                         </p>
                     </splunk-control-group>
                     <splunk-control-group class="deployment_type distributed" label="Number of Indexers" help="">	
-                        <splunk-text-input class="option" name="indexer_count" value="2">
+                        <splunk-text-input class="option" name="indexer_count">
                         </splunk-text-input>
                     </splunk-control-group>
                     <splunk-control-group class="deployment_type distributed help" label="" help="">
@@ -61,8 +61,18 @@
                             to promote high availability and disaster recovery.
                         </p>
                     </splunk-control-group>
+                    <splunk-control-group label="Indexer Scaling Mode" help="" class="deployment_type distributed">	
+                        <splunk-radio-input class="option" name="indexer_scaling_mode">
+                            <option value="manual">Manual</option>
+                            <option value="auto">Auto</option>
+                        </splunk-radio-input>
+                    </splunk-control-group>
+                    <splunk-control-group label="Maximum Number of Indexers" help="" class="deployment_type distributed indexer_scaling_mode auto">
+                        <splunk-text-input name="max_indexer_count" class="option">
+                        </splunk-text-input>
+                    </splunk-control-group>
                     <splunk-control-group class="deployment_type distributed" label="Number of Search Heads" help="">	
-                        <splunk-text-input class="option" name="search_head_count" value="3">	
+                        <splunk-text-input class="option" name="search_head_count">	
                         </splunk-text-input>
                     </splunk-control-group>
                     <splunk-control-group class="deployment_type distributed help" label="" help="">	
@@ -70,6 +80,16 @@
                             Search Heads serve as a central resource for searching.
                             They replicate configurations, apps, searches, search artifacts to promote high availability.
                         </p>
+                    </splunk-control-group>
+                    <splunk-control-group label="Search Head Scaling Mode" help="" class="deployment_type distributed">	
+                        <splunk-radio-input class="option" name="search_head_scaling_mode">
+                            <option value="manual">Manual</option>
+                            <option value="auto">Auto</option>
+                        </splunk-radio-input>
+                    </splunk-control-group>
+                    <splunk-control-group label="Maximum Number of Search Head" help="" class="deployment_type distributed search_head_scaling_mode auto">
+                        <splunk-text-input name="max_search_head_count" class="option">
+                        </splunk-text-input>
                     </splunk-control-group>
                     <splunk-control-group class="deployment_type distributed" label="Data Fabric Search" help="">	
                         <splunk-radio-input class="option" name="data_fabric_search" value="0">

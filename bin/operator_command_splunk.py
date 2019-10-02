@@ -44,7 +44,7 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
                      }
                  }
              }
-        if self.config["deployment_type"]=="standlone":
+        if self.config["deployment_type"]=="standalone":
             topology = {
                 "standalones": 1,
             }
@@ -78,7 +78,8 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
                     "enableDFS": str2bool(self.config["data_fabric_search"]),
                     "licenseUrl": "/mnt/licenses/enterprise.lic",
                     "topology": topology,
-                    "splunkImage": "splunk/splunk:edge",
+                    #"splunkImage": "splunk/splunk:edge",
+                    "splunkImage": "splunk/splunk:redhat",
                     "resources": {
                         "splunkCpuRequest": self.config["cpu_per_instance"],
                         "splunkCpuLimit": self.config["cpu_per_instance"],

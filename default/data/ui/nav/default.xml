@@ -3,6 +3,7 @@
     <view name="stacks" default="true" />
     <view name="apps" />
     <view name="activity" />
+    <view name="capacity" />
     <view name="chargeback" />
     <view name="health" />
     <view name="infrastructure" />

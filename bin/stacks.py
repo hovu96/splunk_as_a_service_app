@@ -120,7 +120,7 @@ class StackHandler(BaseRestHandler):
             core_api, stack_id, services.standalone_role)
         if hostnames:
             result.update({
-                "standlone_endpoint": ["http://%s" % hostname for hostname in hostnames],
+                "standalone_endpoint": ["http://%s" % hostname for hostname in hostnames],
             })
         hostnames = services.get_load_balancer_hostnames(
             core_api, stack_id, services.indexer_role)

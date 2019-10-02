@@ -38,7 +38,7 @@ class OperatorCommandApps(OperatorCommandBase, object):
         self.install_deployment_server_apps()
 
     def install_indexer_apps(self):
-        if self.config["deployment_type"] == "standlone":
+        if self.config["deployment_type"] == "standalone":
             standalone_pods = self.core_api.list_namespaced_pod(
                 namespace="default",
                 label_selector="app=splunk,for=%s,type=standalone" % self.stack_id,
