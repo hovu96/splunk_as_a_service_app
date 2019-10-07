@@ -39,7 +39,7 @@
 | eval license_cost = gb * $cost_per_gb$
 | eval cost = license_cost
 | eval cost = round(cost,4)
-| timechart span=1h sum(cost) by stack</query>
+| timechart span=1m sum(cost) by stack</query>
           <earliest>@d</earliest>
           <latest>@d+1d</latest>
           <sampleRatio>1</sampleRatio>
@@ -51,6 +51,7 @@
         <option name="charting.axisTitleY.visibility">visible</option>
         <option name="charting.axisY.scale">log</option>
         <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
         <option name="charting.drilldown">none</option>
         <option name="charting.legend.mode">standard</option>
         <option name="charting.legend.placement">bottom</option>
@@ -114,7 +115,7 @@
 | eval license_cost = gb * $cost_per_gb$
 | eval cost = license_cost
 | eval cost = round(cost,4)
-| timechart span=1d sum(cost) by stack</query>
+| timechart span=1h sum(cost) by stack</query>
           <earliest>@mon</earliest>
           <latest>@mon+1mon</latest>
           <sampleRatio>1</sampleRatio>
@@ -126,6 +127,7 @@
         <option name="charting.axisTitleY.visibility">visible</option>
         <option name="charting.axisY.scale">log</option>
         <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
         <option name="charting.drilldown">none</option>
         <option name="charting.legend.mode">standard</option>
         <option name="charting.legend.placement">bottom</option>
