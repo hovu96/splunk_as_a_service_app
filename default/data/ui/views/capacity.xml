@@ -91,5 +91,67 @@
         <option name="trellis.size">medium</option>
       </chart>
     </panel>
+    <panel>
+      <title>Search Heads</title>
+      <chart>
+        <title>CPU</title>
+        <search>
+          <query>| mstats avg(_value) as usage WHERE metric_name="kube.pod.cpu.usage_rate" AND "index"="em_metrics" BY pod-name span=auto
+| append [
+| mstats avg(_value) as request WHERE metric_name="kube.pod.cpu.request" AND index="em_metrics" BY name span=auto
+| rename name as pod-name
+]
+| rex field=pod-name "^splunk-(?&lt;stack_id&gt;[0-9|a-f]+)-(?&lt;role&gt;.+)-(?&lt;id&gt;.+)" 
+| where isnotnull(stack_id) and isnotnull(role) and isnotnull(id)
+| lookup stacks _key as stack_id OUTPUT title as stack cluster deployment_type
+| search cluster="*"
+| where (deployment_type=="standalone" and role=="standalone" and id==0) or (deployment_type=="distributed" and role=="search-head")
+| stats avg(usage) as usage min(request) as request by _time pod-name stack
+| streamstats limit=0 last(request) as request2 last(usage) as usage2 by pod-name
+| eval request = coalesce(request,request2)
+| eval usage = coalesce(usage,usage2)
+| fields - request2 usage2
+| eval usage_pct = (usage / request) * 100
+| timechart max(usage_pct) as usage by stack</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>1m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
   </row>
 </form>
