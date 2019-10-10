@@ -21,6 +21,7 @@ cluster_fields = set([
     "aws_secret_access_key",
     "aws_region_name",
     "storage_class",
+    "default_splunk_image"
 ])
 
 cluster_status_connected = "connected"

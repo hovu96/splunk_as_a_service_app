@@ -68,8 +68,7 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
             "enableDFS": str2bool(self.config["data_fabric_search"]),
             "licenseUrl": "/mnt/licenses/enterprise.lic",
             "topology": topology,
-            # "splunkImage": "splunk/splunk:edge",
-            "splunkImage": "splunk/splunk:redhat",
+            "splunkImage": self.cluster_config.default_splunk_image,
             "resources": {
                 "splunkCpuRequest": self.config["cpu_per_instance"],
                 "splunkCpuLimit": self.config["cpu_per_instance"],

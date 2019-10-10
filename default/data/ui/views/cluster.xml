@@ -86,6 +86,24 @@
       </html>
     </panel>
   </row>
+  <row>
+    <panel>
+      <title>Images</title>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group label="Splunk" help="">
+            <splunk-text-input name="default_splunk_image" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group class="help" label="" help="">	
+              <p>
+                  Container image to use for Splunk instances.
+              </p>
+          </splunk-control-group>
+        </div>
+      </html>
+    </panel>
+  </row>
   <row id="saveRow">
     <panel>
       <html>
