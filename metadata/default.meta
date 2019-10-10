@@ -24,3 +24,7 @@ export = none
 
 [views/internal_usage]
 access = read : [ saas_admin ]
+
+[datamodels/license_usage]
+access = read : [ saas_user ]
+export = none
