@@ -20,6 +20,7 @@ cluster_fields = set([
     "aws_access_key_id",
     "aws_secret_access_key",
     "aws_region_name",
+    "storage_class",
 ])
 
 cluster_status_connected = "connected"

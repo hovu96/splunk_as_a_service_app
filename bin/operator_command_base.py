@@ -25,6 +25,10 @@ class OperatorCommandBase(object):
         self.stacks = self.service.kvstore["stacks"].data
         self.config = self.stacks.query_by_id(self.stack_id)
 
+        cluster_name = self.config["cluster"]
+        clusters = service.confs.create("clusters")
+        self.cluster_config = clusters[cluster_name]
+
     def stop(self):
         operator_controller.stop_command(
             self.service, self.stack_id, self.command)

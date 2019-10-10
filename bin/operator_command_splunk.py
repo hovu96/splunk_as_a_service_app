@@ -12,6 +12,7 @@ import operator_controller
 from operator_command_base import OperatorCommandBase
 import errors
 
+
 class OperatorCommandSplunk(OperatorCommandBase, object):
 
     def get_splunk(self):
@@ -32,30 +33,74 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
         def str2bool(v):
             return v.lower() in ("yes", "true", "t", "1")
         splunk_defaults = {}
-        if self.config["license_master_mode"]=="url":
-             splunk_defaults["splunk"] = {
-                 "conf":{
-                     "server":{
-                         "content":{
-                             "license":{
-                                 "master_uri": self.config["license_master_url"],
-                             }
-                         }
-                     }
-                 }
-             }
-        if self.config["deployment_type"]=="standalone":
+        if self.config["license_master_mode"] == "url":
+            splunk_defaults["splunk"] = {
+                "conf": {
+                    "server": {
+                        "content": {
+                            "license": {
+                                "master_uri": self.config["license_master_url"],
+                            }
+                        }
+                    }
+                }
+            }
+        if self.config["deployment_type"] == "standalone":
             topology = {
                 "standalones": 1,
             }
-        elif self.config["deployment_type"]=="distributed":
+        elif self.config["deployment_type"] == "distributed":
             topology = {
                 "indexers": int(self.config["indexer_count"]),
                 "searchHeads": int(self.config["search_head_count"]),
                 "sparkWorkers": int(self.config["spark_worker_count"]),
             }
         else:
-            raise errors.ApplicationError("Unknown deployment type: '%s'"%(self.config["deployment_type"]))
+            raise errors.ApplicationError(
+                "Unknown deployment type: '%s'" % (self.config["deployment_type"]))
+        spec = {
+            "splunkVolumes": [{
+                "name": "licenses",
+                        "configMap": {
+                            "name": self.stack_id
+                        }
+            }],
+            "enableDFS": str2bool(self.config["data_fabric_search"]),
+            "licenseUrl": "/mnt/licenses/enterprise.lic",
+            "topology": topology,
+            # "splunkImage": "splunk/splunk:edge",
+            "splunkImage": "splunk/splunk:redhat",
+            "resources": {
+                "splunkCpuRequest": self.config["cpu_per_instance"],
+                "splunkCpuLimit": self.config["cpu_per_instance"],
+                "splunkMemoryRequest": self.config["memory_per_instance"],
+                "splunkMemoryLimit": self.config["memory_per_instance"],
+                "sparkCpuRequest": self.config["cpu_per_instance"],
+                "sparkCpuLimit": self.config["cpu_per_instance"],
+                "sparkMemoryRequest": self.config["memory_per_instance"],
+                "sparkMemoryLimit": self.config["memory_per_instance"],
+            },
+            "defaults": yaml.dump(splunk_defaults),
+            # "affinity": {
+            #    "nodeAffinity": {
+            #        "requiredDuringSchedulingIgnoredDuringExecution": {
+            #            "nodeSelectorTerms": [
+            #                {
+            #                    "matchExpressions": [
+            #                        {
+            #                            "key": "role",
+            #                            "operator": "In",
+            #                            "values": ["splunk"],
+            #                        },
+            #                    ],
+            #                }
+            #            ],
+            #        }
+            #    }
+            # }
+        }
+        if "storage_class" in self.cluster_config and self.cluster_config.storage_class:
+            spec["storageClassName"] = self.cluster_config.storage_class
         self.custom_objects_api.create_namespaced_custom_object(
             group="enterprise.splunk.com",
             version="v1alpha1",
@@ -68,47 +113,7 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
                     "name": self.stack_id,
                     "finalizers": ["enterprise.splunk.com/delete-pvc"]
                 },
-                "spec": {
-                    "splunkVolumes": [{
-                        "name": "licenses",
-                        "configMap": {
-                            "name": self.stack_id
-                        }
-                    }],
-                    "enableDFS": str2bool(self.config["data_fabric_search"]),
-                    "licenseUrl": "/mnt/licenses/enterprise.lic",
-                    "topology": topology,
-                    #"splunkImage": "splunk/splunk:edge",
-                    "splunkImage": "splunk/splunk:redhat",
-                    "resources": {
-                        "splunkCpuRequest": self.config["cpu_per_instance"],
-                        "splunkCpuLimit": self.config["cpu_per_instance"],
-                        "splunkMemoryRequest": self.config["memory_per_instance"],
-                        "splunkMemoryLimit": self.config["memory_per_instance"],
-                        "sparkCpuRequest": self.config["cpu_per_instance"],
-                        "sparkCpuLimit": self.config["cpu_per_instance"],
-                        "sparkMemoryRequest": self.config["memory_per_instance"],
-                        "sparkMemoryLimit": self.config["memory_per_instance"],
-                    },
-                    "defaults": yaml.dump(splunk_defaults),
-                    # "affinity": {
-                    #    "nodeAffinity": {
-                    #        "requiredDuringSchedulingIgnoredDuringExecution": {
-                    #            "nodeSelectorTerms": [
-                    #                {
-                    #                    "matchExpressions": [
-                    #                        {
-                    #                            "key": "role",
-                    #                            "operator": "In",
-                    #                            "values": ["splunk"],
-                    #                        },
-                    #                    ],
-                    #                }
-                    #            ],
-                    #        }
-                    #    }
-                    # }
-                }
+                "spec": spec,
             },
         )
 
@@ -121,4 +126,3 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
             plural="splunkenterprises",
             body=kubernetes.V1DeleteOptions(),
         )
-

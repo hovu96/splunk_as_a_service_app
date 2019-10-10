@@ -1,7 +1,8 @@
 <dashboard script="cluster.js" stylesheet="cluster.css">
-  <label>Cluster</label>
+  <label>Cluster Settings</label>
   <row>
     <panel>
+      <title>Connection</title>
       <html>
         <div class="form-horizontal">
           <splunk-control-group label="Name" help="">
@@ -62,6 +63,25 @@
             </splunk-text-input>
           </splunk-control-group>
 
+        </div>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Storage</title>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group label="Storage Class" help="">
+            <splunk-text-input name="storage_class" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group class="help" label="" help="">	
+              <p>
+                  Name of storage class to use for persistent volume claims.
+                  Leave empty to use default storage class.
+              </p>
+          </splunk-control-group>
         </div>
       </html>
     </panel>
