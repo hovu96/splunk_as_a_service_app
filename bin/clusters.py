@@ -142,6 +142,7 @@ class ClusterHandler(BaseClusterHandler):
         validate_cluster(self.service, cluster_record)
         cluster = self.clusters[self.cluster_name]
         cluster_record.status = cluster_status_connected
+        cluster_record.error = ""
         cluster.submit(cluster_record)
 
     def handle_DELETE(self):
