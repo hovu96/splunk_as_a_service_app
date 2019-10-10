@@ -143,6 +143,7 @@
         <option name="charting.axisTitleX.visibility">collapsed</option>
         <option name="charting.axisTitleY.text">Dollars</option>
         <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisY.minimumNumber">0</option>
         <option name="charting.axisY.scale">log</option>
         <option name="charting.chart">line</option>
         <option name="charting.chart.nullValueMode">connect</option>
@@ -175,6 +176,7 @@
         <option name="charting.axisX.abbreviation">none</option>
         <option name="charting.axisX.scale">linear</option>
         <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.minimumNumber">0</option>
         <option name="charting.axisY.scale">log</option>
         <option name="charting.axisY2.abbreviation">none</option>
         <option name="charting.axisY2.enabled">0</option>
@@ -229,7 +231,8 @@
         <option name="charting.axisX.abbreviation">none</option>
         <option name="charting.axisX.scale">linear</option>
         <option name="charting.axisY.abbreviation">none</option>
-        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.axisY.scale">log</option>
         <option name="charting.axisY2.abbreviation">none</option>
         <option name="charting.axisY2.enabled">0</option>
         <option name="charting.axisY2.scale">inherit</option>
