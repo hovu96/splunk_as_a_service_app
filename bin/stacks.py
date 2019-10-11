@@ -98,12 +98,13 @@ class StackHandler(BaseRestHandler):
             result.update({
                 "search_head_endpoint": ["http://%s" % hostname for hostname in hostnames],
             })
-        hostnames = services.get_load_balancer_hostnames(
-            core_api, stack_id, services.license_master_role)
-        if hostnames:
-            result.update({
-                "license_master_endpoint": ["http://%s" % hostname for hostname in hostnames],
-            })
+        if stack["license_master_mode"] == "file":
+            hostnames = services.get_load_balancer_hostnames(
+                core_api, stack_id, services.license_master_role)
+            if hostnames:
+                result.update({
+                    "license_master_endpoint": ["http://%s" % hostname for hostname in hostnames],
+                })
         hostnames = services.get_load_balancer_hostnames(
             core_api, stack_id, services.cluster_master_role)
         if hostnames:
