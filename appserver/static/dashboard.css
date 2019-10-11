@@ -38,3 +38,8 @@ splunk-control-group.help p {
    /*font-style: italic;*/
    color: gray;
 }
+
+.action-button {
+    float: left;
+    margin-right: 10px;
+} 

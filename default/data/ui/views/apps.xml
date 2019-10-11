@@ -1,26 +1,23 @@
-<dashboard>
+<dashboard script="apps.js" stylesheet="apps.css">
   <label>Apps</label>
-  <row>
+  <row id="apps_row">
     <panel>
       <html>
-        <table>
+        <table class="table-bordered table table-striped">
           <tr>
-            <th>Name</th>
-            <th>Search Head Deployer</th>
-            <th>Indexer Cluster Master</th>
-            <th>Deployment Server</th>
+            <th>App Name</th>
+            <th>Version</th>
+            <th>Splunk Stacks</th>
           </tr>
           <tr>
-            <td>my_name 1</td>
-            <td>yes</td>
-            <td>no</td>
-            <td>yes</td>
+            <td>Palo Alto Networks App for Splunk</td>
+            <td>6.1.1</td>
+            <td>Test Environment<br/>Another Use Case</td>
           </tr>
           <tr>
-            <td>my_name 2</td>
-            <td>no</td>
-            <td>yes</td>
-            <td>no</td>
+            <td>Splunk Machine Learning Toolkit</td>
+            <td>4.4.1</td>
+            <td>Another Use Case<br/>ML Test Stack</td>
           </tr>
         </table>
       </html>
