@@ -7,6 +7,7 @@ import splunklib.client
 import os
 import services
 import tempfile
+import app_deployment
 
 
 class OperatorCommandApps(OperatorCommandBase, object):
@@ -48,7 +49,8 @@ class OperatorCommandApps(OperatorCommandBase, object):
                                 (len(standalone_pods)))
             else:
                 pod = standalone_pods[0]
-                path = self.tar_app(pod, "indexer_base")
+                path = app_deployment.tar_app(
+                    self.core_api, self.config, pod, "indexer_base")
                 self.install_local_app(pod, path, "indexer_base")
         elif self.config["deployment_type"] == "distributed":
             cluster_master_pods = self.core_api.list_namespaced_pod(
@@ -60,7 +62,8 @@ class OperatorCommandApps(OperatorCommandBase, object):
                                 (len(cluster_master_pods)))
             else:
                 pod = cluster_master_pods[0]
-                self.copy_app(pod, "indexer_base", "master-apps")
+                app_deployment.copy_app(
+                    self.core_api, self.config, pod, "indexer_base", "master-apps")
                 self.apply_cluster_bundle()
 
     def install_local_app(self, pod, pod_local_path, name):
@@ -103,79 +106,8 @@ class OperatorCommandApps(OperatorCommandBase, object):
                             (len(deployer_pods)))
         elif len(deployer_pods) == 1:
             pod = deployer_pods[0]
-            self.copy_app(pod, "search_head_base", "shcluster/apps")
+            app_deployment.copy_app(
+                self.core_api, self.config, pod, "search_head_base", "shcluster/apps")
 
     def install_deployment_server_apps(self):
         pass
-
-    def render_app(self, source_dir, target_dir):
-        import shutil
-
-        def recursive_overwrite(src, dest, ignore=None):
-            if os.path.isdir(src):
-                if not os.path.isdir(dest):
-                    os.makedirs(dest)
-                files = os.listdir(src)
-                if ignore is not None:
-                    ignored = ignore(src, files)
-                else:
-                    ignored = set()
-                for f in files:
-                    if f not in ignored:
-                        recursive_overwrite(os.path.join(src, f),
-                                            os.path.join(dest, f),
-                                            ignore)
-            else:
-                if src.endswith(".conf"):
-                    with open(src, "r") as src_file:
-                        with open(dest, "w") as dest_file:
-                            for line in src_file:
-                                line = line.replace(
-                                    "$saas.stack.indexer_server$",
-                                    self.config["indexer_server"]
-                                )
-                                dest_file.write(line)  # +"\n")
-                else:
-                    shutil.copyfile(src, dest)
-        recursive_overwrite(source_dir, target_dir)
-
-    def tar_app(self, pod, app_name):
-        target_path = "/tmp/splunk-app.tar"
-        logging.info("installing app '%s' into '%s' of '%s' ..." %
-                     (app_name, target_path, pod.metadata.name))
-        temp_dir = tempfile.mkdtemp()
-        try:
-            app_path = os.path.join(os.path.dirname(
-                os.path.dirname(__file__)), "apps", app_name)
-            self.render_app(app_path, temp_dir)
-            kubernetes_utils.tar_directory_to_pod(
-                core_api=self.core_api,
-                pod=pod.metadata.name,
-                namespace="default",
-                local_path=temp_dir,
-                remote_path=target_path,
-            )
-            return target_path
-        finally:
-            import shutil
-            shutil.rmtree(temp_dir, ignore_errors=True)
-
-    def copy_app(self, pod, app_name, target_parent_name):
-        logging.info("installing app '%s' into '%s' of '%s' ..." %
-                     (app_name, target_parent_name, pod.metadata.name))
-        temp_dir = tempfile.mkdtemp()
-        try:
-            app_path = os.path.join(os.path.dirname(
-                os.path.dirname(__file__)), "apps", app_name)
-            self.render_app(app_path, temp_dir)
-            kubernetes_utils.copy_directory_to_pod(
-                core_api=self.core_api,
-                pod=pod.metadata.name,
-                namespace="default",
-                local_path=temp_dir,
-                remote_path="/opt/splunk/etc/%s/%s/" % (
-                    target_parent_name, app_name),
-            )
-        finally:
-            import shutil
-            shutil.rmtree(temp_dir, ignore_errors=True)
