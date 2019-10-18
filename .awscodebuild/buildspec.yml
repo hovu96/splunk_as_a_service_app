@@ -5,12 +5,11 @@ phases:
     runtime-versions:
       docker: 18
       python: 3.7
+  pre_build:
+    commands:
+      - docker image pull splunk/splunk:latest
   build:
     commands:
       - pwd
-      - python --version
-      - docker version
-      - set
-      - docker image pull splunk/splunk:latest
     finally:
       - echo finally
