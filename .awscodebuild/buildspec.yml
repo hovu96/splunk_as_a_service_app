@@ -10,5 +10,7 @@ phases:
       - pwd
       - python --version
       - docker version
+      - set
+      - docker image pull splunk/splunk:latest
     finally:
       - echo finally
