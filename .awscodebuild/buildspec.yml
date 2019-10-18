@@ -12,5 +12,6 @@ phases:
   build:
     commands:
       - until docker logs --tail 100 $SPLUNK_CID 2>&1 | grep -m 1 "Ansible playbook complete"; do sleep 1 ; done
+      - python ./tests/
     finally:
       - docker rm -fv $SPLUNK_CID
