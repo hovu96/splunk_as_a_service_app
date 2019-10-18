@@ -1,0 +1,9 @@
+version: 0.2
+
+phases:
+  build:
+    run-as: Linux-user-name
+    commands:
+      - echo test
+    finally:
+      - echo finally
