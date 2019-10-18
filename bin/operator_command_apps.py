@@ -13,9 +13,9 @@ import app_deployment
 class OperatorCommandApps(OperatorCommandBase, object):
 
     def create_service_for_load_balancer(self, role):
-        hostnames = services.get_load_balancer_hostnames(
+        hosts = services.get_load_balancer_hosts(
             self.core_api, self.stack_id, role)
-        if len(hostnames) == 0:
+        if len(hosts) == 0:
             raise Exception(
                 "could not get hostname for load balancer for role %s " % (role))
         secrets = self.core_api.read_namespaced_secret(
@@ -26,7 +26,7 @@ class OperatorCommandApps(OperatorCommandBase, object):
         service = splunklib.client.Service(
             port=8089,
             scheme="https",
-            host=hostnames[0],
+            host=hosts[0],
             username="admin",
             password=password
         )

@@ -92,42 +92,42 @@ class StackHandler(BaseRestHandler):
         from kubernetes import client as kubernetes
         core_api = kubernetes.CoreV1Api(api_client)
 
-        hostnames = services.get_load_balancer_hostnames(
+        hosts = services.get_load_balancer_hosts(
             core_api, stack_id, services.search_head_role)
-        if hostnames:
+        if hosts:
             result.update({
-                "search_head_endpoint": ["http://%s" % hostname for hostname in hostnames],
+                "search_head_endpoint": ["http://%s" % hostname for hostname in hosts],
             })
         if stack["license_master_mode"] == "file":
-            hostnames = services.get_load_balancer_hostnames(
+            hosts = services.get_load_balancer_hosts(
                 core_api, stack_id, services.license_master_role)
-            if hostnames:
+            if hosts:
                 result.update({
-                    "license_master_endpoint": ["http://%s" % hostname for hostname in hostnames],
+                    "license_master_endpoint": ["http://%s" % hostname for hostname in hosts],
                 })
-        hostnames = services.get_load_balancer_hostnames(
+        hosts = services.get_load_balancer_hosts(
             core_api, stack_id, services.cluster_master_role)
-        if hostnames:
+        if hosts:
             result.update({
-                "cluster_master_endpoint": ["http://%s" % hostname for hostname in hostnames],
+                "cluster_master_endpoint": ["http://%s" % hostname for hostname in hosts],
             })
-        hostnames = services.get_load_balancer_hostnames(
+        hosts = services.get_load_balancer_hosts(
             core_api, stack_id, services.deployer_role)
-        if hostnames:
+        if hosts:
             result.update({
-                "deployer_endpoint": ["http://%s" % hostname for hostname in hostnames],
+                "deployer_endpoint": ["http://%s" % hostname for hostname in hosts],
             })
-        hostnames = services.get_load_balancer_hostnames(
+        hosts = services.get_load_balancer_hosts(
             core_api, stack_id, services.standalone_role)
-        if hostnames:
+        if hosts:
             result.update({
-                "standalone_endpoint": ["http://%s" % hostname for hostname in hostnames],
+                "standalone_endpoint": ["http://%s" % hostname for hostname in hosts],
             })
-        hostnames = services.get_load_balancer_hostnames(
+        hosts = services.get_load_balancer_hosts(
             core_api, stack_id, services.indexer_role)
-        if hostnames:
+        if hosts:
             result.update({
-                "indexer_endpoint": ["%s:9997" % hostname for hostname in hostnames],
+                "indexer_endpoint": ["%s:9997" % hostname for hostname in hosts],
             })
         self.send_result(result)
 

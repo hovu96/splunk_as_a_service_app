@@ -176,7 +176,7 @@ def delete_all_load_balancers(core_api, stack_id):
         delete(core_api, lb.metadata.name)
 
 
-def get_load_balancer_hostnames(core_api, stack_id, role):
+def get_load_balancer_hosts(core_api, stack_id, role):
     result = []
     load_balancers = core_api.list_namespaced_service(
         namespace="default",
@@ -193,4 +193,6 @@ def get_load_balancer_hostnames(core_api, stack_id, role):
         for ingress in service.status.load_balancer.ingress:
             if ingress.hostname:
                 result.append(ingress.hostname)
+            if ingress.ip:
+                result.append(ingress.ip)
     return result
