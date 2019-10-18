@@ -8,8 +8,9 @@ phases:
   pre_build:
     commands:
       - docker image pull splunk/splunk:latest
+      - SPLUNK_CID=$(docker run -d -p 8089 -e SPLUNK_START_ARGS=--accept-license -e SPLUNK_PASSWORD=helloworld -v $(pwd):/opt/splunk/etc/apps/splunk_as_a_service:rw splunk/splunk:latest)
   build:
     commands:
-      - pwd
+      - until docker logs --tail 100 $SPLUNK_CID 2>&1 | grep -m 1 "Ansible playbook complete"; do sleep 1 ; done
     finally:
-      - echo finally
+      - docker rm -fv $SPLUNK_CID
