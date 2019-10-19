@@ -18,7 +18,8 @@ phases:
       - ./k3d create --wait --port 36443
       - K3S_CNAME=$(./k3d list) && K3S_CNAME="${K3S_CNAME%\"}" && K3S_CNAME="${K3S_CNAME#\"}" && K3S_CID=$(docker ps -aqf name=${K3S_CNAME})
       - SPLUNK_CID=$(docker run --network=container:$K3S_CID -d -e SPLUNK_START_ARGS=--accept-license -e SPLUNK_PASSWORD=helloworld -v $(pwd):/opt/splunk/etc/apps/splunk_as_a_service:rw splunk/splunk:latest)
-      - export KUBECONFIG=$(cat "$(./k3d get-kubeconfig)")
+      - KUBECONFIG_PATH=$(./k3d get-kubeconfig)
+      - KUBECONFIG=$(cat "${KUBECONFIG_PATH}")
       # sudo mkdir /opt/local-path-provisioner
       # kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
       # kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
