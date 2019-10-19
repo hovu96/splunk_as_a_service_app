@@ -5,13 +5,26 @@ phases:
     runtime-versions:
       docker: 18
       python: 3.7
+    commands:
+      - K3D_VERSION=$(curl -sI https://github.com/zeerorg/k3s-in-docker/releases/latest | grep Location | awk -F"/" '{ printf "%s", $NF }' | tr -d '\r')
+      - K3D_URL=https://github.com/zeerorg/k3s-in-docker/releases/download/$K3D_VERSION/k3d
+      - curl -sSL $K3D_URL --output k3d && chmod +x k3d
+      - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl
   pre_build:
     commands:
-      - docker image pull splunk/splunk:latest
-      - SPLUNK_CID=$(docker run -d -p 8089 -e SPLUNK_START_ARGS=--accept-license -e SPLUNK_PASSWORD=helloworld -v $(pwd):/opt/splunk/etc/apps/splunk_as_a_service:rw splunk/splunk:latest)
   build:
     commands:
-      - until docker logs --tail 100 $SPLUNK_CID 2>&1 | grep -m 1 "Ansible playbook complete"; do sleep 1 ; done
-      - python tests
+      - ./k3d create --wait --port 36443
+      - K3S_CNAME=$(./k3d list) && K3S_CNAME="${K3S_CNAME%\"}" && K3S_CNAME="${K3S_CNAME#\"}" && K3S_CID=$(docker ps -aqf name=${K3S_CNAME})
+      - SPLUNK_CID=$(docker run --network=container:$K3S_CID -d -e SPLUNK_START_ARGS=--accept-license -e SPLUNK_PASSWORD=helloworld -v $(pwd):/opt/splunk/etc/apps/splunk_as_a_service:rw splunk/splunk:latest)
+      - export KUBECONFIG=$(cat "$(./k3d get-kubeconfig)")
+      # sudo mkdir /opt/local-path-provisioner
+      # kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+      # kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+      # - until docker logs --tail 100 $SPLUNK_CID 2>&1 | grep -m 1 "Ansible playbook complete"; do sleep 1 ; done
+      #- ./kubectl version
+      #- python tests
     finally:
+      - ./k3d delete
       - docker rm -fv $SPLUNK_CID
