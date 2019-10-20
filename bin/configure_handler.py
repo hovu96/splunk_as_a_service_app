@@ -13,7 +13,6 @@ class ConfigureHandler(BaseRestHandler):
         "license_master_mode",
         "cluster",
         "deployment_type",
-        "indexer_server",
         "indexer_count",
         "indexer_scaling_mode",
         "max_indexer_count",
@@ -39,34 +38,6 @@ class ConfigureHandler(BaseRestHandler):
         defaults = splunklib.data.record({
             k: params[self.defaults_prefix+k][0] if self.defaults_prefix+k in params else ""
             for k in self.default_fields})
-
-        try:
-            indexer_server_count = 0
-            for server in defaults.indexer_server.split(","):
-                components = server.split(":")
-                if len(components) != 2:
-                    raise errors.ApplicationError(
-                        "Expect format \"<server>:<port>,...\" for indexer server. Got \"%s\"" % (server))
-                hostname = components[0].strip()
-                port = int(components[1].strip())
-                import socket
-                s = socket.socket()
-                try:
-                    s.connect((hostname, port))
-                except Exception as e:
-                    raise errors.ApplicationError(
-                        "Could not connect to indexer server \"%s\": %s" % (server, e))
-                finally:
-                    s.close()
-                indexer_server_count += 1
-            if indexer_server_count == 0:
-                raise errors.ApplicationError(
-                    "Invalid or misssing indexer server")
-        except errors.ApplicationError:
-            raise
-        except Exception:
-            self.logger.info(traceback.format_exc())
-            raise Exception(traceback.format_exc())
 
         self.service.confs["defaults"]["general"].submit(defaults)
 

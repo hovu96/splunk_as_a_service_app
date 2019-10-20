@@ -105,11 +105,6 @@ require([
                     value = "https://" + window.location.hostname + ":8089";
                 }
             }
-            if (name == "default_indexer_server") {
-                if (!value) {
-                    value = "" + window.location.hostname + ":9997";
-                }
-            }
             el.attr('value', value);
         });
     });

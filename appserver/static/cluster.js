@@ -84,6 +84,31 @@ require([
         $(".dashboard-view-controls").append(deleteButton);
     } else {
         titleElement.text("Add " + titleElement.text());
+        const loadingIndicator = Utils.newLoadingIndicator({
+            title: "Loading Defaults ...",
+            subtitle: "Please wait."
+        });
+        endpoint.get('cluster_defaults', {}, function (err, response) {
+            loadingIndicator.hide();
+            if (err) {
+                Utils.showErrorDialog(null, err).footer.append($('<button>Retry</button>').attr({
+                    type: 'button',
+                    class: "btn btn-primary",
+                }).on('click', function () {
+                    window.location.reload();
+                }));
+                return;
+            }
+            $('.cluster_attribute').each(function () {
+                const el = $(this);
+                const name = el.attr("name");
+                var value = response.data[name];
+                if (name == "indexer_server" && !value) {
+                    value = "" + window.location.hostname + ":9997";
+                }
+                el.attr('value', value);
+            });
+        });
     }
 
     $("#setupButton").click(function () {

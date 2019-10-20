@@ -19,10 +19,6 @@
             <splunk-text-input name="default_license_master_url" class="setup_option">
             </splunk-text-input>
           </splunk-control-group>
-          <splunk-control-group label="Indexer Server" help="">
-            <splunk-text-input name="default_indexer_server" class="setup_option">
-            </splunk-text-input>
-          </splunk-control-group>
           <splunk-control-group label="Deployment Type" help="">	
               <splunk-radio-input class="setup_option" name="default_deployment_type">
                   <option value="standalone">Standalone</option>

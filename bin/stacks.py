@@ -43,7 +43,6 @@ class StacksHandler(BaseRestHandler):
             "deployment_type",
             "license_master_mode",
             "license_master_url",
-            "indexer_server",
             "enterprise_license",
             "indexer_count",
             "search_head_count",

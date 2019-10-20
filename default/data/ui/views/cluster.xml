@@ -104,6 +104,25 @@
       </html>
     </panel>
   </row>
+  <row>
+    <panel>
+      <title>Network</title>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group label="Indexer Server" help="">
+            <splunk-text-input name="indexer_server" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group class="help" label="" help="">	
+              <p>
+                  List of Indexers ([hostname]:[port], [hostname]:[port], ...) receiving internal logs from the deployed Splunk instances.
+                  This app searches those logs for monitoring and reporting purposes.
+              </p>
+          </splunk-control-group>
+        </div>
+      </html>
+    </panel>
+  </row>
   <row id="saveRow">
     <panel>
       <html>

@@ -21,7 +21,8 @@ cluster_fields = set([
     "aws_secret_access_key",
     "aws_region_name",
     "storage_class",
-    "default_splunk_image"
+    "default_splunk_image",
+    "indexer_server",
 ])
 
 cluster_status_connected = "connected"
@@ -29,11 +30,25 @@ cluster_status_disconnected = "disconnected"
 cluster_status_unknown = "unknown"
 
 
+def get_cluster_config(service, cluster_name):
+    clusters = service.confs["clusters"]
+    return clusters[cluster_name]
+
+
+def get_cluster_defaults(service):
+    clusters = service.confs["clusters"]
+    defaults = clusters.create("__default__", disabled="1").content
+    clusters.delete("__default__")
+    return {
+        k: defaults[k] if k in defaults else ""
+        for k in cluster_fields
+    }
+
+
 def create_client(service, cluster_name):
     import kubernetes_utils
     from kubernetes import client
-    clusters = service.confs.create("clusters")
-    cluster = clusters[cluster_name]
+    cluster = get_cluster_config(service, cluster_name)
     config = kubernetes_utils.create_client_configuration(cluster)
     api_client = client.ApiClient(config)
     return api_client
@@ -72,6 +87,32 @@ def validate_cluster(service, record):
         raise
     except Exception:
         raise Exception(traceback.format_exc())
+    try:
+        indexer_server_count = 0
+        for server in record.indexer_server.split(","):
+            components = server.split(":")
+            if len(components) != 2:
+                raise errors.ApplicationError(
+                    "Expect format \"<server>:<port>,...\" for indexer server. Got \"%s\"" % (server))
+            hostname = components[0].strip()
+            port = int(components[1].strip())
+            import socket
+            s = socket.socket()
+            try:
+                s.connect((hostname, port))
+            except Exception as e:
+                raise errors.ApplicationError(
+                    "Could not connect to indexer server \"%s\": %s" % (server, e))
+            finally:
+                s.close()
+            indexer_server_count += 1
+        if indexer_server_count == 0:
+            raise errors.ApplicationError(
+                "Invalid or misssing indexer server")
+    except errors.ApplicationError:
+        raise
+    except Exception:
+        raise Exception(traceback.format_exc())
 
 
 class BaseClusterHandler(BaseRestHandler):
@@ -82,8 +123,9 @@ class BaseClusterHandler(BaseRestHandler):
         # return self.service.confs["clusters"]
 
     def create_cluster_record_from_payload(self):
+        defaults = get_cluster_defaults(self.service)
         return splunklib.data.record({
-            k: self.payload[k][0] if k in self.payload else ""
+            k: self.payload[k][0] if k in self.payload else defaults[k] if k in defaults else ""
             for k in cluster_fields if k != name_cluster_field
         })
 
@@ -172,3 +214,10 @@ class CheckClustersHandler(BaseClusterHandler):
                 "error": error,
             }
         self.send_entries([map(c) for c in self.clusters])
+
+
+class ClusterDefaultsHandler(BaseClusterHandler):
+
+    def handle_GET(self):
+        defaults = get_cluster_defaults(self.service)
+        self.send_json_response(defaults)

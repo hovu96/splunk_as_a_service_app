@@ -34,7 +34,7 @@ class UpCommand(OperatorCommand):
             logging.warning("splunk could not complete startup")
             return
 
-        app_deployment.install_base_apps(self.core_api, self.stack_id, self.config)
+        app_deployment.install_base_apps(self.service, self.core_api, self.stack_id, self.config)
 
         logging.info("created")
         self.save_config({
