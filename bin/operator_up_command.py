@@ -4,7 +4,7 @@ import stacks
 from operator_command import OperatorCommand
 import services
 import time
-
+import app_deployment
 
 class UpCommand(OperatorCommand):
     def run(self):
@@ -34,7 +34,7 @@ class UpCommand(OperatorCommand):
             logging.warning("splunk could not complete startup")
             return
 
-        self.install_base_apps()
+        app_deployment.install_base_apps(self.core_api, self.stack_id, self.config)
 
         logging.info("created")
         self.save_config({
