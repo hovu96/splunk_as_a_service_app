@@ -62,6 +62,29 @@ require([
             });
         });
 
+        $(".option[name='cluster']").change(function () {
+            const clusterName = $(this).attr('value');
+            if (!clusterName) return;
+            endpoint.get('cluster/' + clusterName, {}, function (err, response) {
+                if (err) {
+                    Utils.showErrorDialog(null, err).footer.append($('<button>Retry</button>').attr({
+                        type: 'button',
+                        class: "btn btn-primary",
+                    }).on('click', function () {
+                        window.location.reload();
+                    }));
+                    return;
+                }
+                $('.option').each(function () {
+                    const el = $(this);
+                    const name = el.attr("name");
+                    var value = response.data[name];
+                    if (value) {
+                        el.attr('value', value);
+                    }
+                });
+            });
+        });
 
         const setDeploymentOptionsAsTokens = function () {
             $('.deployment-options .option').each(function () {
