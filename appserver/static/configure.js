@@ -15,33 +15,6 @@ require([
 ) {
     var endpoint = Utils.createRestEndpoint();
 
-    const showCompleteDialog = function () {
-        const modal = new Modal("setupDone", {
-            title: "Setup Complete",
-            backdrop: 'static',
-            keyboard: false,
-            destroyOnHide: true,
-            type: 'normal',
-        });
-        modal.body.append($(`
-            <p>
-                You're good to go!
-            </p>
-            `));
-        modal.footer.append($('<button>Continue Setup</button>').attr({
-            type: 'button',
-            'data-dismiss': 'modal',
-            class: "btn",
-        }))
-        modal.footer.append($('<button>').attr({
-            type: 'button',
-        }).addClass('btn btn-primary').text('OK').on('click', function () {
-            window.location.href = "/app/" + appName;
-        }));
-        modal.show();
-        return modal;
-    };
-
     $("#setupButton").click(function () {
         const progressIndicator = Utils.newLoadingIndicator({
             title: "Saving Settings ...",
@@ -57,8 +30,8 @@ require([
         });
 
         endpoint.post('configure', options, function (err, response) {
-            progressIndicator.hide();
             if (err) {
+                progressIndicator.hide();
                 console.log(err.response.headers["x-saas-is-configured"]);
                 const isConfigured = Utils.normalizeBoolean(err.response.headers["x-saas-is-configured"]);
                 const dialog = Utils.showErrorDialog(null, err);
@@ -75,7 +48,7 @@ require([
                     }));
                 }
             } else {
-                showCompleteDialog();
+                window.location.href = "/app/" + appName;
             }
         });
     });
