@@ -119,11 +119,38 @@
                   This app searches those logs for monitoring and reporting purposes.
               </p>
           </splunk-control-group>
-          <splunk-control-group label="License Master URL" help="">
+        </div>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Licensing Defaults</title>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group label="License Master" help="">	
+            <splunk-radio-input name="license_master_mode" class="cluster_attribute">
+              <option value="remote">Use Shared Instance</option>
+              <option value="local">Deploy with Stack</option>
+            </splunk-radio-input>
+          </splunk-control-group>
+          <splunk-control-group class="help license_master_mode local" label="" help="">	
+            <p>
+              This will deploy a dedicated License Master for a each Splunk stack.
+              This requires you to provide a Splunk license when deploying the stacks.
+            </p>
+          </splunk-control-group>
+          <splunk-control-group class="help license_master_mode remote" label="" help="">	
+            <p>
+              Each Splunk instance will use and report to a shared license master.
+              Make sure the Splunk as a Service app has access to the internal logs from the license master for chargeback analytics.
+            </p>
+          </splunk-control-group>
+          <splunk-control-group label="Shared License Master URL" help="" class="license_master_mode remote">
             <splunk-text-input name="license_master_url" class="cluster_attribute">
             </splunk-text-input>
           </splunk-control-group>
-          <splunk-control-group class="help" label="" help="">	
+          <splunk-control-group class="help license_master_mode remote" label="" help="">
             <p>
               URL of the Splunk License Master (https://[hostname]:[port]) to be used by the deployed Splunk instances.
               (only used when Splunk stacks doesn't consist if a License Master itself)

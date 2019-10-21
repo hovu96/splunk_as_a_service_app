@@ -27,11 +27,12 @@ class OperatorCommandLicenses(OperatorCommandBase, object):
             raise
 
     def create_license(self):
+        enterprise_license = self.config["enterprise_license"] if "enterprise_license" in self.config else ""
         self.core_api.create_namespaced_config_map(
             "default",
             kubernetes.V1ConfigMap(
                 data={
-                    "enterprise.lic": self.config["enterprise_license"],
+                    "enterprise.lic": enterprise_license,
                 },
                 api_version="v1",
                 kind="ConfigMap",

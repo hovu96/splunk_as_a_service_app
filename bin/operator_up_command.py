@@ -6,6 +6,7 @@ import services
 import time
 import app_deployment
 
+
 class UpCommand(OperatorCommand):
     def run(self):
         status = self.config["status"]
@@ -17,9 +18,10 @@ class UpCommand(OperatorCommand):
             self.stop()
 
     def create_deployment(self):
-        if not self.license_exists():
-            logging.info("deploying license ...")
-            self.create_license()
+        if self.config["license_master_mode"] == "local":
+            if not self.license_exists():
+                logging.info("deploying license ...")
+                self.create_license()
         if not self.get_splunk():
             logging.info("deploying Splunk ...")
             self.create_splunk()
@@ -34,7 +36,8 @@ class UpCommand(OperatorCommand):
             logging.warning("splunk could not complete startup")
             return
 
-        app_deployment.install_base_apps(self.service, self.core_api, self.stack_id, self.config)
+        app_deployment.install_base_apps(
+            self.service, self.core_api, self.stack_id, self.config)
 
         logging.info("created")
         self.save_config({

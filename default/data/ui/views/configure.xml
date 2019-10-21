@@ -9,12 +9,6 @@
             <splunk-search-dropdown class="setup_option" name="default_cluster" search="| rest splunk_server=local services/saas/clusters" value-field="name" label-field="name">
             </splunk-search-dropdown>
           </splunk-control-group>
-          <splunk-control-group label="License Master Mode" help="">	
-              <splunk-radio-input class="setup_option" name="default_license_master_mode">
-                  <option value="url">URL</option>
-                  <option value="file">File</option>
-              </splunk-radio-input>
-          </splunk-control-group>
           <splunk-control-group label="Deployment Type" help="">	
               <splunk-radio-input class="setup_option" name="default_deployment_type">
                   <option value="standalone">Standalone</option>

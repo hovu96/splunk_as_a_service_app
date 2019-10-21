@@ -9,7 +9,6 @@ import errors
 class ConfigureHandler(BaseRestHandler):
 
     default_fields = set([
-        "license_master_mode",
         "cluster",
         "deployment_type",
         "indexer_count",

@@ -120,16 +120,27 @@
     </row>
     <row depends="$step-license$">
         <panel>
-            <title>Splunk Licenses</title>
+            <title>Licensing</title>
             <html>
                 <div class="deployment-options form-horizontal">
-                    <splunk-control-group label="License Master Mode" help="">	
+                    <splunk-control-group label="License Master" help="">	
                         <splunk-radio-input class="option" name="license_master_mode" value="0">
-                            <option value="url">URL</option>
-                            <option value="file">File</option>
+                            <option value="remote">Use Shared Instance</option>
+                            <option value="local">Deploy with Stack</option>
                         </splunk-radio-input>
                     </splunk-control-group>
-                    <splunk-control-group class="license_master_mode file" label="Splunk Enterprise" help="">	
+                    <splunk-control-group class="help license_master_mode local" label="" help="">	
+                        <p>
+                            This will deploy a dedicated License Master for this stack.
+                        </p>
+                    </splunk-control-group>
+                    <splunk-control-group class="help license_master_mode remote" label="" help="">	
+                        <p>
+                            Each Splunk instance will use and report to a shared license master.
+                            Make sure the Splunk as a Service app has access to the internal logs from the license master for chargeback analytics.
+                        </p>
+                    </splunk-control-group>
+                    <splunk-control-group class="license_master_mode local" label="Splunk Enterprise" help="">	
                         <splunk-text-area class="license option" name="enterprise_license" style="height: 200px;">	
                         </splunk-text-area>
                     </splunk-control-group>

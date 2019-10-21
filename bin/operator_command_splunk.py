@@ -33,7 +33,7 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
         def str2bool(v):
             return v.lower() in ("yes", "true", "t", "1")
         splunk_defaults = {}
-        if self.config["license_master_mode"] == "url":
+        if self.config["license_master_mode"] == "remote":
             splunk_defaults["splunk"] = {
                 "conf": {
                     "server": {
@@ -59,14 +59,8 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
             raise errors.ApplicationError(
                 "Unknown deployment type: '%s'" % (self.config["deployment_type"]))
         spec = {
-            "splunkVolumes": [{
-                "name": "licenses",
-                        "configMap": {
-                            "name": self.stack_id
-                        }
-            }],
+            "splunkVolumes": [],
             "enableDFS": str2bool(self.config["data_fabric_search"]),
-            "licenseUrl": "/mnt/licenses/enterprise.lic",
             "topology": topology,
             "splunkImage": self.cluster_config.default_splunk_image,
             "resources": {
@@ -98,6 +92,22 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
             #    }
             # }
         }
+        if self.config["license_master_mode"] == "local":
+            spec["splunkVolumes"].append({
+                "name": "licenses",
+                "configMap": {
+                    "name": self.stack_id,
+                }
+            })
+            spec["licenseUrl"] = "/mnt/licenses/enterprise.lic"
+        elif self.config["license_master_mode"] == "remote":
+            spec["splunkVolumes"].append({
+                "name": "licenses",
+                "emptyDir": {
+                    "name": self.stack_id,
+                }
+            })
+            spec["licenseUrl"] = "/mnt/licenses/dummy.lic"
         if "storage_class" in self.cluster_config and self.cluster_config.storage_class:
             spec["storageClassName"] = self.cluster_config.storage_class
         self.custom_objects_api.create_namespaced_custom_object(

@@ -52,12 +52,30 @@ class StacksHandler(BaseRestHandler):
             "spark_worker_count",
             "cluster",
         ])
-        payload = parse_qs(self.request['payload'])
+
+        # apply request parameters
+        request_params = parse_qs(self.request['payload'])
+        stack_record.update({
+            k: request_params[k][0]
+            for k in fields_names if k in request_params
+        })
+
+        # apply missing fields from defaults
         stack_record.update(
             {
-                k: payload[k][0] if k in payload
-                else defaults[k] if k in defaults else ""
-                for k in fields_names
+                k: defaults[k]
+                for k in fields_names if k in defaults and k not in stack_record
+            }
+        )
+
+        # apply missing fields from cluster config
+        cluster_name = stack_record["cluster"]
+        cluster_config = clusters.get_cluster_config(
+            self.service, cluster_name)
+        stack_record.update(
+            {
+                k: cluster_config[k]
+                for k in fields_names if k in cluster_config and k not in stack_record
             }
         )
 
@@ -96,7 +114,7 @@ class StackHandler(BaseRestHandler):
             result.update({
                 "search_head_endpoint": ["http://%s" % hostname for hostname in hosts],
             })
-        if stack["license_master_mode"] == "file":
+        if stack["license_master_mode"] == "local":
             hosts = services.get_load_balancer_hosts(
                 core_api, stack_id, services.license_master_role)
             if hosts:
