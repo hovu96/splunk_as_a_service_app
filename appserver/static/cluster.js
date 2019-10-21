@@ -5,7 +5,8 @@ require([
     "/static/app/" + appName + "/modal.js",
     "/static/app/" + appName + "/utils.js",
     "splunkjs/mvc",
-    "splunkjs/ready!"
+    //"splunkjs/ready!",
+    'splunkjs/mvc/simplexml/ready!',
 ], function (
     $,
     Modal,
@@ -36,7 +37,7 @@ require([
                 }));
                 return;
             }
-            $('.cluster_attribute').each(function () {
+            $('.option').each(function () {
                 const el = $(this);
                 const name = el.attr("name");
                 var value = response.data[name];
@@ -99,7 +100,7 @@ require([
                 }));
                 return;
             }
-            $('.cluster_attribute').each(function () {
+            $('.option').each(function () {
                 const el = $(this);
                 const name = el.attr("name");
                 var value = response.data[name];
@@ -121,7 +122,7 @@ require([
         });
 
         var options = {};
-        $('.cluster_attribute').each(function () {
+        $('.option').each(function () {
             var el = $(this);
             var value = el.attr('value');
             if (!value) value = "";
@@ -149,7 +150,7 @@ require([
         });
     });
 
-    const authModeRadioInput = $("splunk-radio-input[name='auth_mode']");
+    /*const authModeRadioInput = $("splunk-radio-input[name='auth_mode']");
     authModeRadioInput.change(function () {
         const authMode = authModeRadioInput.attr("value");
         if (authMode == "cert-key") {
@@ -171,5 +172,5 @@ require([
             console.warn("invalid auth mode: " + authMode)
         }
     });
-    authModeRadioInput.change();
+    authModeRadioInput.change();*/
 });
