@@ -119,6 +119,16 @@
                   This app searches those logs for monitoring and reporting purposes.
               </p>
           </splunk-control-group>
+          <splunk-control-group label="License Master URL" help="">
+            <splunk-text-input name="license_master_url" class="cluster_attribute">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group class="help" label="" help="">	
+            <p>
+              URL of the Splunk License Master (https://[hostname]:[port]) to be used by the deployed Splunk instances.
+              (only used when Splunk stacks doesn't consist if a License Master itself)
+            </p>
+          </splunk-control-group>
         </div>
       </html>
     </panel>

@@ -106,6 +106,9 @@ require([
                 if (name == "indexer_server" && !value) {
                     value = "" + window.location.hostname + ":9997";
                 }
+                if (name == "license_master_url" && !value) {
+                    value = "https://" + window.location.hostname + ":8089";
+                }
                 el.attr('value', value);
             });
         });

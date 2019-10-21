@@ -129,10 +129,6 @@
                             <option value="file">File</option>
                         </splunk-radio-input>
                     </splunk-control-group>
-                    <splunk-control-group class="license_master_mode url" label="License Master URL" help="">
-                        <splunk-text-input name="license_master_url" class="option">
-                        </splunk-text-input>
-                    </splunk-control-group>
                     <splunk-control-group class="license_master_mode file" label="Splunk Enterprise" help="">	
                         <splunk-text-area class="license option" name="enterprise_license" style="height: 200px;">	
                         </splunk-text-area>

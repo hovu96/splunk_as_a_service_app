@@ -100,11 +100,11 @@ require([
             const el = $(this);
             const name = el.attr("name");
             var value = response.data[name];
-            if (name == "default_license_master_url") {
+            /*if (name == "......") {
                 if (!value) {
-                    value = "https://" + window.location.hostname + ":8089";
+                    value = "....";
                 }
-            }
+            }*/
             el.attr('value', value);
         });
     });

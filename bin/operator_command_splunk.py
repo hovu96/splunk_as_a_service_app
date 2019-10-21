@@ -39,7 +39,7 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
                     "server": {
                         "content": {
                             "license": {
-                                "master_uri": self.config["license_master_url"],
+                                "master_uri": self.cluster_config.license_master_url,
                             }
                         }
                     }
