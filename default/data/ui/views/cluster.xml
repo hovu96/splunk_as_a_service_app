@@ -142,6 +142,75 @@
       </html>
     </panel>
   </row>
+  <row>
+    <panel>
+      <title>Topology Defaults</title>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group label="Deployment Type" help="">	
+              <splunk-radio-input class="option" name="deployment_type">
+                  <option value="standalone">Standalone</option>
+                  <option value="distributed">Distributed</option>
+              </splunk-radio-input>
+          </splunk-control-group>
+          <splunk-control-group class="deployment_type standalone help" label="" help="">
+            <p>
+              A standalone deployment consists of a Splunk instance acting as multiple roles (e.g. Search Head, Indexer).
+              It are limited in handling large volume of data, serving large number of users/searches and don't provide
+              high availability.
+            </p>
+          </splunk-control-group>
+          <splunk-control-group class="deployment_type distributed help" label="" help="">
+            <p>
+              A distributed deployment consists of dedicated Splunk instances per role (e.g. Search Heads, Indexers, Deployer, Cluster Master). 
+              It can handle large volume of data, serve large number of users/searches and provides high availability.
+            </p>
+          </splunk-control-group>
+          <splunk-control-group label="Number of Indexers" help="">
+            <splunk-text-input name="indexer_count" class="option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group class="deployment_type distributed help" label="" help="">
+            <p>
+              Indexers receive data and service search jobs coming from Search Heads.
+              Indexers replicate data, so that they maintain multiple copies of the data
+              to promote high availability and disaster recovery.
+            </p>
+          </splunk-control-group>
+          <splunk-control-group label="Indexer Scaling Mode" help="">	
+              <splunk-radio-input class="option" name="indexer_scaling_mode">
+                  <option value="manual">Manual</option>
+                  <option value="auto">Auto</option>
+              </splunk-radio-input>
+          </splunk-control-group>
+          <splunk-control-group label="Maximum Number of Indexers" help="">
+            <splunk-text-input name="max_indexer_count" class="option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group label="Number of Search Heads" help="">
+            <splunk-text-input name="search_head_count" class="option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group class="deployment_type distributed help" label="" help="">	
+            <p>
+              Search Heads serve as a central resource for searching.
+              They replicate configurations, apps, searches, search artifacts to promote high availability.
+            </p>
+          </splunk-control-group>
+          <splunk-control-group label="Search Head Scaling Mode" help="">	
+              <splunk-radio-input class="option" name="search_head_scaling_mode">
+                  <option value="manual">Manual</option>
+                  <option value="auto">Auto</option>
+              </splunk-radio-input>
+          </splunk-control-group>
+          <splunk-control-group label="Maximum Number of Search Head" help="">
+            <splunk-text-input name="max_search_head_count" class="option">
+            </splunk-text-input>
+          </splunk-control-group>
+        </div>
+      </html>
+    </panel>
+  </row>
   <row id="saveRow">
     <panel>
       <html>

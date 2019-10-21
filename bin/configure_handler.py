@@ -10,13 +10,6 @@ class ConfigureHandler(BaseRestHandler):
 
     default_fields = set([
         "cluster",
-        "deployment_type",
-        "indexer_count",
-        "indexer_scaling_mode",
-        "max_indexer_count",
-        "search_head_count",
-        "search_head_scaling_mode",
-        "max_search_head_count",
     ])
     defaults_prefix = "default_"
 

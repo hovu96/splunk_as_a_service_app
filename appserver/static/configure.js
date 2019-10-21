@@ -22,7 +22,7 @@ require([
         });
 
         var options = {};
-        $('.setup_option').each(function () {
+        $('.option').each(function () {
             var el = $(this);
             var value = el.attr('value');
             if (!value) value = "";
@@ -69,7 +69,7 @@ require([
             return;
         }
 
-        $('.setup_option').each(function () {
+        $('.option').each(function () {
             const el = $(this);
             const name = el.attr("name");
             var value = response.data[name];

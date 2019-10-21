@@ -24,7 +24,14 @@ cluster_fields = set([
     "default_splunk_image",
     "indexer_server",
     "license_master_url",
-    "license_master_mode"
+    "license_master_mode",
+    "deployment_type",
+    "indexer_count",
+    "indexer_scaling_mode",
+    "max_indexer_count",
+    "search_head_count",
+    "search_head_scaling_mode",
+    "max_search_head_count",
 ])
 
 cluster_status_connected = "connected"

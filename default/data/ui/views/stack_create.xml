@@ -39,14 +39,14 @@
                     </splunk-control-group>
                     <splunk-control-group class="deployment_type standalone help" label="" help="">
                         <p>
-                            A standalone deployment consist of a Splunk instance acting as multiple roles (e.g. Search Head, Indexer).
+                            A standalone deployment consists of a Splunk instance acting as multiple roles (e.g. Search Head, Indexer).
                             It are limited in handling large volume of data, serving large number of users/searches and don't provide
                             high availability.
                         </p>
                     </splunk-control-group>
                     <splunk-control-group class="deployment_type distributed help" label="" help="">
                         <p>
-                            A distributed deployment concists of dedicated Splunk instances per role (e.g. Search Heads, Indexers, Deployer, Cluster Master). 
+                            A distributed deployment consists of dedicated Splunk instances per role (e.g. Search Heads, Indexers, Deployer, Cluster Master). 
                             It can handle large volume of data, serve large number of users/searches and provides high availability.
                         </p>
                     </splunk-control-group>
