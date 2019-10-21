@@ -1,6 +1,6 @@
 <nav>
-    <view name="clusters" />
-    <view name="stacks" default="true" />
+    <view name="clusters"  default="true" />
+    <view name="stacks" />
     <view name="apps" />
     <view name="activity" />
     <view name="capacity" />
