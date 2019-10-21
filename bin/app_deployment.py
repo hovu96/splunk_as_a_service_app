@@ -117,7 +117,7 @@ def create_client(core_api, stack_id, role):
 def render_app(service, stack_config, source_dir, target_dir):
     import shutil
 
-    cluster_config = clusters.get_cluster_config(service, stack_config.cluster)
+    cluster_config = clusters.get_cluster_config(service, stack_config["cluster"])
 
     def recursive_overwrite(src, dest, ignore=None):
         if os.path.isdir(src):
