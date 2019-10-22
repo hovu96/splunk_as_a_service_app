@@ -17,7 +17,7 @@ class OperatorCommandLicenses(OperatorCommandBase, object):
     def license_exists(self):
         try:
             self.core_api.read_namespaced_config_map(
-                namespace="default",
+                namespace=self.config["namespace"],
                 name=self.stack_id,
             )
             return True
@@ -29,7 +29,7 @@ class OperatorCommandLicenses(OperatorCommandBase, object):
     def create_license(self):
         enterprise_license = self.config["enterprise_license"] if "enterprise_license" in self.config else ""
         self.core_api.create_namespaced_config_map(
-            "default",
+            self.config["namespace"],
             kubernetes.V1ConfigMap(
                 data={
                     "enterprise.lic": enterprise_license,
@@ -38,7 +38,7 @@ class OperatorCommandLicenses(OperatorCommandBase, object):
                 kind="ConfigMap",
                 metadata=kubernetes.V1ObjectMeta(
                     name=self.stack_id,
-                    namespace="default",
+                    namespace=self.config["namespace"],
                 )
             )
         )
@@ -46,5 +46,5 @@ class OperatorCommandLicenses(OperatorCommandBase, object):
     def delete_license(self):
         self.core_api.delete_namespaced_config_map(
             self.stack_id,
-            "default"
+            self.config["namespace"]
         )

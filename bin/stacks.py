@@ -16,6 +16,11 @@ DELETING = "Deleting"
 DELETED = "Deleted"
 
 
+def get_stack_config(service, stack_id):
+    stacks = service.kvstore["stacks"].data
+    return stacks.query_by_id(stack_id)
+
+
 class StacksHandler(BaseRestHandler):
     def handle_GET(self):
         query = self.stacks.query(query=json.dumps({
@@ -51,6 +56,7 @@ class StacksHandler(BaseRestHandler):
             "data_fabric_search",
             "spark_worker_count",
             "cluster",
+            "namespace",
         ])
 
         # apply request parameters
@@ -109,38 +115,38 @@ class StackHandler(BaseRestHandler):
         core_api = kubernetes.CoreV1Api(api_client)
 
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.search_head_role)
+            core_api, stack_id, services.search_head_role, stack["namespace"])
         if hosts:
             result.update({
                 "search_head_endpoint": ["http://%s" % hostname for hostname in hosts],
             })
         if stack["license_master_mode"] == "local":
             hosts = services.get_load_balancer_hosts(
-                core_api, stack_id, services.license_master_role)
+                core_api, stack_id, services.license_master_role, stack["namespace"])
             if hosts:
                 result.update({
                     "license_master_endpoint": ["http://%s" % hostname for hostname in hosts],
                 })
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.cluster_master_role)
+            core_api, stack_id, services.cluster_master_role, stack["namespace"])
         if hosts:
             result.update({
                 "cluster_master_endpoint": ["http://%s" % hostname for hostname in hosts],
             })
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.deployer_role)
+            core_api, stack_id, services.deployer_role, stack["namespace"])
         if hosts:
             result.update({
                 "deployer_endpoint": ["http://%s" % hostname for hostname in hosts],
             })
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.standalone_role)
+            core_api, stack_id, services.standalone_role, stack["namespace"])
         if hosts:
             result.update({
                 "standalone_endpoint": ["http://%s" % hostname for hostname in hosts],
             })
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.indexer_role)
+            core_api, stack_id, services.indexer_role, stack["namespace"])
         if hosts:
             result.update({
                 "indexer_endpoint": ["%s:9997" % hostname for hostname in hosts],

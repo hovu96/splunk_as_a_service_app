@@ -16,7 +16,8 @@ class DownCommand(OperatorCommand):
     def delete_stack(self):
 
         try:
-            services.delete_all_load_balancers(self.core_api, self.stack_id)
+            services.delete_all_load_balancers(
+                self.core_api, self.stack_id, self.config["namespace"])
             if self.get_splunk():
                 self.delete_splunk()
             if self.license_exists():

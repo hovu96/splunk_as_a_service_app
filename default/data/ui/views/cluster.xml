@@ -78,8 +78,17 @@
           </splunk-control-group>
           <splunk-control-group class="help" label="" help="">	
             <p>
-              Name of storage class to use for persistent volume claims.
+              Name of the Kubernetes storage class to use for persistent volume claims.
               Leave empty to use default storage class.
+            </p>
+          </splunk-control-group>
+          <splunk-control-group label="Namespace" help="">
+            <splunk-text-input name="namespace" class="option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group class="help" label="" help="">	
+            <p>
+              Name of Kubernetes namespace to deploy Splunk stacks to.
             </p>
           </splunk-control-group>
           <splunk-control-group label="Splunk Image" help="">

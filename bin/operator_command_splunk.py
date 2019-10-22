@@ -21,7 +21,7 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
                 group="enterprise.splunk.com",
                 version="v1alpha1",
                 plural="splunkenterprises",
-                namespace="default",
+                namespace=self.config["namespace"],
                 name=self.stack_id,
             )
         except kubernetes.rest.ApiException as e:
@@ -113,7 +113,7 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
         self.custom_objects_api.create_namespaced_custom_object(
             group="enterprise.splunk.com",
             version="v1alpha1",
-            namespace="default",
+            namespace=self.config["namespace"],
             plural="splunkenterprises",
             body={
                 "apiVersion": "enterprise.splunk.com/v1alpha1",
@@ -131,7 +131,7 @@ class OperatorCommandSplunk(OperatorCommandBase, object):
             group="enterprise.splunk.com",
             version="v1alpha1",
             name=self.stack_id,
-            namespace="default",
+            namespace=self.config["namespace"],
             plural="splunkenterprises",
             body=kubernetes.V1DeleteOptions(),
         )

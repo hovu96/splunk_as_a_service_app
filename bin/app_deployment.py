@@ -7,18 +7,27 @@ import services
 import base64
 import splunklib
 import clusters
+import stacks
 
 
-def install_base_apps(service, core_api, stack_id, config_config):
-    install_indexer_apps(service, core_api, stack_id, config_config)
-    install_search_head_apps(service, core_api, stack_id, config_config)
-    install_deployment_server_apps(core_api, stack_id, config_config)
+def install_base_apps(service, core_api, stack_id):
+
+    stack_config = stacks.get_stack_config(service, stack_id)
+    cluster_config = clusters.get_cluster_config(
+        service, stack_config["cluster"])
+
+    install_indexer_apps(service, core_api, stack_id,
+                         stack_config, cluster_config)
+    install_search_head_apps(service, core_api, stack_id,
+                             stack_config, cluster_config)
+    install_deployment_server_apps(
+        core_api, stack_id, stack_config, cluster_config)
 
 
-def install_indexer_apps(service, core_api, stack_id, stack_config):
+def install_indexer_apps(service, core_api, stack_id, stack_config, cluster_config):
     if stack_config["deployment_type"] == "standalone":
         standalone_pods = core_api.list_namespaced_pod(
-            namespace="default",
+            namespace=stack_config["namespace"],
             label_selector="app=splunk,for=%s,type=standalone" % stack_id,
         ).items
         if len(standalone_pods) != 1:
@@ -26,12 +35,13 @@ def install_indexer_apps(service, core_api, stack_id, stack_config):
                             (len(standalone_pods)))
         else:
             pod = standalone_pods[0]
-            path = tar_app(service, core_api, stack_config,
+            path = tar_app(service, core_api, cluster_config, stack_config,
                            pod, "indexer_base")
-            install_local_app(core_api, stack_id, pod, path, "indexer_base")
+            install_local_app(core_api, stack_id,
+                              stack_config, pod, path, "indexer_base")
     elif stack_config["deployment_type"] == "distributed":
         cluster_master_pods = core_api.list_namespaced_pod(
-            namespace="default",
+            namespace=stack_config["namespace"],
             label_selector="app=splunk,for=%s,type=cluster-master" % stack_id,
         ).items
         if len(cluster_master_pods) != 1:
@@ -39,13 +49,14 @@ def install_indexer_apps(service, core_api, stack_id, stack_config):
                             (len(cluster_master_pods)))
         else:
             pod = cluster_master_pods[0]
-            copy_app(service, core_api, stack_config, pod,
+            copy_app(service, core_api, cluster_config, stack_config, pod,
                      "indexer_base", "master-apps")
-            apply_cluster_bundle(core_api, stack_id)
+            apply_cluster_bundle(core_api, stack_id, stack_config)
 
 
-def install_local_app(core_api, stack_id, pod, pod_local_path, name):
-    service = create_client(core_api, stack_id, services.standalone_role)
+def install_local_app(core_api, stack_id, stack_config, pod, pod_local_path, name):
+    service = create_client(
+        core_api, stack_id, stack_config, services.standalone_role)
     try:
         service.post(
             "apps/local",
@@ -61,8 +72,9 @@ def install_local_app(core_api, stack_id, pod, pod_local_path, name):
         raise
 
 
-def apply_cluster_bundle(core_api, stack_id):
-    service = create_client(core_api, stack_id, services.cluster_master_role)
+def apply_cluster_bundle(core_api, stack_id, stack_config):
+    service = create_client(
+        core_api, stack_id, stack_config, services.cluster_master_role)
     try:
         service.post("cluster/master/control/default/apply",
                      ignore_identical_bundle=False)
@@ -74,9 +86,9 @@ def apply_cluster_bundle(core_api, stack_id):
             raise
 
 
-def install_search_head_apps(service, core_api, stack_id, stack_config):
+def install_search_head_apps(service, core_api, stack_id, stack_config, cluster_config):
     deployer_pods = core_api.list_namespaced_pod(
-        namespace="default",
+        namespace=stack_config["namespace"],
         label_selector="app=splunk,for=%s,type=deployer" % stack_id,
     ).items
     if len(deployer_pods) > 1:
@@ -84,23 +96,23 @@ def install_search_head_apps(service, core_api, stack_id, stack_config):
                         (len(deployer_pods)))
     elif len(deployer_pods) == 1:
         pod = deployer_pods[0]
-        copy_app(service, core_api, stack_config, pod,
+        copy_app(service, core_api, cluster_config, stack_config, pod,
                  "search_head_base", "shcluster/apps")
 
 
-def install_deployment_server_apps(core_api, stack_id, stack_config):
+def install_deployment_server_apps(core_api, stack_id, stack_config, cluster_config):
     pass
 
 
-def create_client(core_api, stack_id, role):
+def create_client(core_api, stack_id, stack_config, role):
     hosts = services.get_load_balancer_hosts(
-        core_api, stack_id, role)
+        core_api, stack_id, role, stack_config["namespace"])
     if len(hosts) == 0:
         raise Exception(
             "could not get hostname for load balancer for role %s " % (role))
     secrets = core_api.read_namespaced_secret(
         "splunk-%s-secrets" % stack_id,
-        namespace="default",
+        namespace=stack_config["namespace"],
     )
     password = base64.b64decode(secrets.data["password"])
     service = splunklib.client.Service(
@@ -114,10 +126,8 @@ def create_client(core_api, stack_id, role):
     return service
 
 
-def render_app(service, stack_config, source_dir, target_dir):
+def render_app(service, cluster_config, stack_config, source_dir, target_dir):
     import shutil
-
-    cluster_config = clusters.get_cluster_config(service, stack_config["cluster"])
 
     def recursive_overwrite(src, dest, ignore=None):
         if os.path.isdir(src):
@@ -148,7 +158,7 @@ def render_app(service, stack_config, source_dir, target_dir):
     recursive_overwrite(source_dir, target_dir)
 
 
-def tar_app(service, core_api, stack_config, pod, app_name):
+def tar_app(service, core_api, cluster_config, stack_config, pod, app_name):
     target_path = "/tmp/splunk-app.tar"
     logging.info("installing app '%s' into '%s' of '%s' ..." %
                  (app_name, target_path, pod.metadata.name))
@@ -156,11 +166,11 @@ def tar_app(service, core_api, stack_config, pod, app_name):
     try:
         app_path = os.path.join(os.path.dirname(
             os.path.dirname(__file__)), "apps", app_name)
-        render_app(service, stack_config, app_path, temp_dir)
+        render_app(service, cluster_config, stack_config, app_path, temp_dir)
         kubernetes_utils.tar_directory_to_pod(
             core_api=core_api,
             pod=pod.metadata.name,
-            namespace="default",
+            namespace=stack_config["namespace"],
             local_path=temp_dir,
             remote_path=target_path,
         )
@@ -170,18 +180,18 @@ def tar_app(service, core_api, stack_config, pod, app_name):
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def copy_app(service, core_api, stack_config, pod, app_name, target_parent_name):
+def copy_app(service, core_api, cluster_config, stack_config, pod, app_name, target_parent_name):
     logging.info("installing app '%s' into '%s' of '%s' ..." %
                  (app_name, target_parent_name, pod.metadata.name))
     temp_dir = tempfile.mkdtemp()
     try:
         app_path = os.path.join(os.path.dirname(
             os.path.dirname(__file__)), "apps", app_name)
-        render_app(service, stack_config, app_path, temp_dir)
+        render_app(service, cluster_config, stack_config, app_path, temp_dir)
         kubernetes_utils.copy_directory_to_pod(
             core_api=core_api,
             pod=pod.metadata.name,
-            namespace="default",
+            namespace=stack_config["namespace"],
             local_path=temp_dir,
             remote_path="/opt/splunk/etc/%s/%s/" % (
                 target_parent_name, app_name),

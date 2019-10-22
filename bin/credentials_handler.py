@@ -17,7 +17,7 @@ class CredentialsHandler(BaseRestHandler):
         stack = self.stacks.query_by_id(
             stack_id)
         if stack["status"] != stacks.CREATED:
-            raise Exception("state is not '%s'" % stacks.CREATED)
+            raise Exception("State is not '%s'" % stacks.CREATED)
 
         api_client = clusters.create_client(
             self.service, stack["cluster"])
@@ -25,7 +25,7 @@ class CredentialsHandler(BaseRestHandler):
 
         secrets = core_api.read_namespaced_secret(
             "splunk-%s-secrets" % stack_id,
-            namespace="default",
+            namespace=stack["namespace"],
         )
 
         decoded_password = base64.b64decode(secrets.data["password"])

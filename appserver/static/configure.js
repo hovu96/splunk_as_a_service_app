@@ -73,6 +73,7 @@ require([
             const el = $(this);
             const name = el.attr("name");
             var value = response.data[name];
+            //console.log("name: " + name + "    value: " + value);
             /*if (name == "......") {
                 if (!value) {
                     value = "....";

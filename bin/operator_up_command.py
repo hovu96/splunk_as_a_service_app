@@ -37,7 +37,7 @@ class UpCommand(OperatorCommand):
             return
 
         app_deployment.install_base_apps(
-            self.service, self.core_api, self.stack_id, self.config)
+            self.service, self.core_api, self.stack_id)
 
         logging.info("created")
         self.save_config({
@@ -63,7 +63,7 @@ class UpCommand(OperatorCommand):
         t_end = time.time() + timeout
         while time.time() < t_end:
             pods = self.core_api.list_namespaced_pod(
-                namespace="default",
+                namespace=self.config["namespace"],
                 label_selector="app=splunk,for=%s" % self.stack_id,
             ).items
             if len(pods) == expected_number_of_instances:
@@ -79,6 +79,7 @@ class UpCommand(OperatorCommand):
                 self.core_api,
                 self.stack_id,
                 services.standalone_role,
+                self.config["namespace"],
             )
         elif self.config["deployment_type"] == "distributed":
             if int(self.config["search_head_count"]) > 1:
@@ -86,28 +87,33 @@ class UpCommand(OperatorCommand):
                     self.core_api,
                     self.stack_id,
                     services.deployer_role,
+                    self.config["namespace"],
                 )
             if int(self.config["search_head_count"]) > 0:
                 services.create_load_balancers(
                     self.core_api,
                     self.stack_id,
                     services.search_head_role,
+                    self.config["namespace"],
                 )
             services.create_load_balancers(
                 self.core_api,
                 self.stack_id,
                 services.license_master_role,
+                self.config["namespace"],
             )
             if int(self.config["indexer_count"]) > 0:
                 services.create_load_balancers(
                     self.core_api,
                     self.stack_id,
                     services.cluster_master_role,
+                    self.config["namespace"],
                 )
                 services.create_load_balancers(
                     self.core_api,
                     self.stack_id,
                     services.indexer_role,
+                    self.config["namespace"],
                 )
         #getaddrinfo(host, port, 0, SOCK_STREAM)
 
@@ -116,7 +122,7 @@ class UpCommand(OperatorCommand):
         t_end = time.time() + timeout
         while time.time() < t_end:
             pods = self.core_api.list_namespaced_pod(
-                namespace="default",
+                namespace=self.config["namespace"],
                 label_selector="app=splunk,for=%s" % self.stack_id,
             ).items
             number_of_pods_completed = 0
@@ -140,7 +146,7 @@ class UpCommand(OperatorCommand):
             return False
         logs = self.core_api.read_namespaced_pod_log(
             name=pod.metadata.name,
-            namespace="default",
+            namespace=self.config["namespace"],
             tail_lines=100,
         )
         if "Ansible playbook complete" in logs:
