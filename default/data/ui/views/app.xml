@@ -1,0 +1,10 @@
+<form script="app.js" stylesheet="app.css">
+  <label>App</label>
+  <row>
+    <panel>
+      <html>
+        TODO
+      </html>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,23 @@
+<dashboard script="app_add.js" stylesheet="app_add.css">
+  <label>Add App</label>
+  <row>
+    <panel>
+      <html>
+        <div class="form-horizontal">
+          <form id="upload-form" enctype="multipart/form-data">
+            <input type="file" name="app" />
+          </form>
+        </div>
+      </html>
+    </panel>
+  </row>
+  <row id="addRow">
+    <panel>
+      <html>
+        <div class="form-horizontal">
+          <button id="addButton" class="btn btn-primary">Upload</button>
+        </div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

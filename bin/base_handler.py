@@ -12,7 +12,7 @@ app_name = os.path.basename(os.path.dirname(os.path.dirname(__file__)))
 
 
 class BaseRestHandler(splunk.rest.BaseRestHandler):
-    _service = None
+    _splunk = None
     _payload = None
 
     @property
@@ -23,15 +23,19 @@ class BaseRestHandler(splunk.rest.BaseRestHandler):
         return _payload
 
     @property
-    def service(self):
-        if self._service != None:
-            return self._service
-        self._service = client.Service(
+    def splunk(self):
+        if self._splunk != None:
+            return self._splunk
+        self._splunk = client.Service(
             token=self.request["systemAuth"],  # self.sessionKey,
             sharing="app",
             app=app_name,
         )
-        return self._service
+        return self._splunk
+
+    @property
+    def service(self):
+        return self.splunk
 
     def send_entries(self, entries):
         self.send_json_response({

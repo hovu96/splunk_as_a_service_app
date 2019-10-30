@@ -1,5 +1,7 @@
 import sys
 import os
-#sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-#sys.path.insert(0, os.path.join(os.path.dirname(__file__), "lib"))
+
+lib_path = os.path.join(os.path.dirname(__file__), "..", "lib")
+
+if lib_path not in sys.path:
+    sys.path.insert(0, lib_path)

@@ -1,26 +1,16 @@
 <dashboard script="apps.js" stylesheet="apps.css">
   <label>Apps</label>
-  <row id="apps_row">
+  <row>
     <panel>
-      <html>
-        <table class="table-bordered table table-striped">
-          <tr>
-            <th>App Name</th>
-            <th>Version</th>
-            <th>Splunk Stacks</th>
-          </tr>
-          <tr>
-            <td>Palo Alto Networks App for Splunk</td>
-            <td>6.1.1</td>
-            <td>Test Environment<br/>Another Use Case</td>
-          </tr>
-          <tr>
-            <td>Splunk Machine Learning Toolkit</td>
-            <td>4.4.1</td>
-            <td>Another Use Case<br/>ML Test Stack</td>
-          </tr>
-        </table>
-      </html>
+      <table>
+        <search>
+          <query>| rest splunk_server=local services/saas/apps | fields - splunk_server | table name version *</query>
+        </search>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_self">app?name=$row.name$&amp;version=$row.version$</link>
+        </drilldown>
+      </table>
     </panel>
   </row>
 </dashboard>
