@@ -9,9 +9,9 @@ require([
         _
     ) {
 
-        const addButton = $("<div id=\"addButton\"></div>");
+        const addButton = $("<div></div>");
         $(".dashboard-view-controls").append(addButton);
-        addButton.append($("<button class=\"btn btn-primary\">Create Stack</button>").click(async function () {
+        addButton.append($("<button class=\"btn btn-primary action-button\">Create Stack</button>").click(async function () {
             window.location.href = 'stack_create';
         }))
 

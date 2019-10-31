@@ -1,4 +1,4 @@
-<dashboard script="apps.js" stylesheet="apps.css">
+<dashboard script="apps.js">
   <label>Apps</label>
   <row>
     <panel>

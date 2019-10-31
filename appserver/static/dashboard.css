@@ -1,45 +1,49 @@
-.modal-dialog .close{
+/* remove upper right close button from modal dialogs */
+
+.modal-dialog .close {
     display: none;
 }
 
-.control-group{
+/* ensure there is some whitespace form fields */
+
+.control-group {
     margin-bottom: 20px;
     display: block;
 }
 
-splunk-control-group.fix-label label{
+splunk-control-group.fix-label label {
     padding-top: 10px !important;
 }
 
-splunk-control-group > div{
+splunk-control-group>div {
     /*margin-left: 0 !important;
     margin-right: 0 !important;*/
 }
 
-splunk-control-group div.splunk-dropdown{
+splunk-control-group div.splunk-dropdown {
     margin-left: 0 !important;
     margin-right: 0 !important;
 }
 
-splunk-control-group div.splunk-choice-input-message{
+splunk-control-group div.splunk-choice-input-message {
     display: none;
 }
 
-splunk-control-group splunk-search-dropdown{
+splunk-control-group splunk-search-dropdown {
     width: 100%;
 }
 
-splunk-text-area.license textarea{
+splunk-text-area.license textarea {
     height: 100%;
 }
 
 splunk-control-group.help p {
-   /* padding-left: 10px !important;*/
-   /*font-style: italic;*/
-   color: gray;
+    /* padding-left: 10px !important;*/
+    /*font-style: italic;*/
+    color: gray;
 }
 
 .action-button {
     float: left;
     margin-right: 10px;
-} 
+}

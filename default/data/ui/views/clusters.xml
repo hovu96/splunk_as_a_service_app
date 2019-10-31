@@ -1,4 +1,4 @@
-<dashboard script="clusters.js" stylesheet="clusters.css">
+<dashboard script="clusters.js">
   <label>Clusters</label>
   <row>
     <panel>
