@@ -62,6 +62,10 @@ class AppHandler(BaseRestHandler):
         }
         self.send_json_response(entry)
 
+    def handle_DELETE(self):
+        app_name, app_version = self.app
+        remove_app(self.splunk, app_name, app_version)
+
 
 # class AppStacksHandler(BaseRestHandler):
 #    @property
@@ -73,7 +77,6 @@ class AppHandler(BaseRestHandler):
 #
 #    def handle_GET(self):
 #        self.send_entries([])
-
 
 def add_app(splunk, path):
     app_name_from_manifest = None
@@ -145,14 +148,32 @@ def add_app(splunk, path):
     else:
         app_title = ""
 
+    remove_chunks(splunk, app_name, app_version)
+    chunk_count = add_chunks(splunk, path, app_name, app_version)
+
     stanza_name = create_stanza_name(app_name, app_version)
+    apps = splunk.confs["apps"]
+    if stanza_name in apps:
+        app = apps[stanza_name]
+    else:
+        app = apps.create(stanza_name)
+    app.submit({
+        "title": app_title,
+        "chunks": chunk_count,
+    })
+    
+    return app_name, app_version
 
+
+def remove_app(splunk, app_name, app_version):
+    stanza_name = create_stanza_name(app_name, app_version)
+    splunk.confs["apps"].delete(stanza_name)
+    remove_chunks(splunk, app_name, app_version)
+
+
+def add_chunks(splunk, path, app_name, app_version):
+    stanza_name = create_stanza_name(app_name, app_version)
     chunk_collection = splunk.kvstore["app_chunk"].data
-
-    chunk_collection.delete(query=json.dumps({
-        "app": stanza_name,
-    }))
-
     CHUNK_SIZE = 1024*100
     chunk_index = 0
     with open(path) as f:
@@ -165,13 +186,12 @@ def add_app(splunk, path):
             }))
             chunk_index += 1
             chunk = f.read(CHUNK_SIZE)
+    return chunk_index+1
 
-    apps = splunk.confs["apps"]
-    if stanza_name in apps:
-        app = apps[stanza_name]
-    else:
-        app = apps.create(stanza_name)
-    app.submit({
-        "title": app_title,
-        "chunks": chunk_index+1,
-    })
+
+def remove_chunks(splunk, app_name, app_version):
+    stanza_name = create_stanza_name(app_name, app_version)
+    chunk_collection = splunk.kvstore["app_chunk"].data
+    chunk_collection.delete(query=json.dumps({
+        "app": stanza_name,
+    }))

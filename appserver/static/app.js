@@ -39,4 +39,49 @@ require([
         }
         updateTitle(response.data.title);
     });
+
+    const deleteButton = $('<button class="btn btn-primary action-button" style="background-color: red;">Delete</button>');
+    deleteButton.click(function () {
+        const modal = new Modal("delete-dialog-body", {
+            title: 'Delete App',
+            backdrop: 'static',
+            keyboard: false,
+            destroyOnHide: true,
+            type: 'normal',
+        });
+        modal.body.append($(`
+            <p>
+                Deleting an app from this list does not deletes the app
+                in stacks to which it has been deployed to.
+            </p>
+            `));
+        modal.footer.append($('<button>Cancel</button>').attr({
+            type: 'button',
+            'data-dismiss': 'modal',
+            class: "btn",
+        }));
+        modal.footer.append($('<button>Delete</button>').attr({
+            type: 'button',
+            'data-dismiss': 'modal',
+            class: "btn btn-primary",
+        }).css({
+            "background-color": "red",
+        }).click(async function () {
+            const progressIndicator = Utils.newLoadingIndicator({
+                title: "Deleting App...",
+                subtitle: "Please wait.",
+            });
+            try {
+                await endpoint.delAsync('app/' + appName + "/" + appVersion);
+                progressIndicator.hide();
+                window.location.href = 'apps';
+            }
+            catch (err) {
+                progressIndicator.hide();
+                await Utils.showErrorDialog(null, err, true).wait();
+            }
+        }));
+        modal.show();
+    });
+    $(".dashboard-view-controls").append(deleteButton);
 });
