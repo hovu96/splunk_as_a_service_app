@@ -79,6 +79,26 @@ class AppHandler(BaseRestHandler):
 #        self.send_entries([])
 
 def add_app(splunk, path):
+    app_name, app_version, app_title = parse_app_metadata(path)
+
+    remove_chunks(splunk, app_name, app_version)
+    chunk_count = add_chunks(splunk, path, app_name, app_version)
+
+    stanza_name = create_stanza_name(app_name, app_version)
+    apps = splunk.confs["apps"]
+    if stanza_name in apps:
+        app = apps[stanza_name]
+    else:
+        app = apps.create(stanza_name)
+    app.submit({
+        "title": app_title,
+        "chunks": chunk_count,
+    })
+
+    return app_name, app_version
+
+
+def parse_app_metadata(path):
     app_name_from_manifest = None
     app_name_from_conf = None
     app_version_from_manifest = False
@@ -148,21 +168,7 @@ def add_app(splunk, path):
     else:
         app_title = ""
 
-    remove_chunks(splunk, app_name, app_version)
-    chunk_count = add_chunks(splunk, path, app_name, app_version)
-
-    stanza_name = create_stanza_name(app_name, app_version)
-    apps = splunk.confs["apps"]
-    if stanza_name in apps:
-        app = apps[stanza_name]
-    else:
-        app = apps.create(stanza_name)
-    app.submit({
-        "title": app_title,
-        "chunks": chunk_count,
-    })
-    
-    return app_name, app_version
+    return app_name, app_version, app_title
 
 
 def remove_app(splunk, app_name, app_version):
