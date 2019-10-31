@@ -5,6 +5,7 @@ from operator_command import OperatorCommand
 import services
 import time
 import app_deployment
+import stack_deployment
 
 
 class UpCommand(OperatorCommand):
@@ -19,12 +20,14 @@ class UpCommand(OperatorCommand):
 
     def create_deployment(self):
         if self.config["license_master_mode"] == "local":
-            if not self.license_exists():
+            if not stack_deployment.license_exists(self.core_api, self.stack_id, self.config):
                 logging.info("deploying license ...")
-                self.create_license()
-        if not self.get_splunk():
+                stack_deployment.create_license(
+                    self.core_api, self.stack_id, self.config)
+        if not stack_deployment.get_splunk(self.custom_objects_api, self.stack_id, self.config):
             logging.info("deploying Splunk ...")
-            self.create_splunk()
+            stack_deployment.create_splunk(
+                self.custom_objects_api, self.stack_id, self.config, self.cluster_config)
 
         if not self.wait_until_pod_created():
             logging.warning("could not find all pods")
