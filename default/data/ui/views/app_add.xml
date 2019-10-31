@@ -4,9 +4,18 @@
     <panel>
       <html>
         <div class="form-horizontal">
-          <form id="upload-form" enctype="multipart/form-data">
-            <input type="file" name="app" />
-          </form>
+          <splunk-control-group label="App Package" help="">
+            <form id="upload-form" enctype="multipart/form-data">
+              <input type="file" name="app" />
+            </form>
+          </splunk-control-group>
+          <splunk-control-group class="help" label="" help="">	
+            <p>
+              Select the .spl or .tar.gz app file to upload.
+              You can upload multiple different versions of the same app.
+              However, if an app with the same version already exists, it will be overwritten.
+            </p>
+          </splunk-control-group>
         </div>
       </html>
     </panel>
@@ -15,7 +24,9 @@
     <panel>
       <html>
         <div class="form-horizontal">
-          <button id="addButton" class="btn btn-primary">Upload</button>
+          <splunk-control-group class="help" label="" help="">	
+            <button id="addButton" class="btn btn-primary">Upload</button>
+          </splunk-control-group>
         </div>
       </html>
     </panel>

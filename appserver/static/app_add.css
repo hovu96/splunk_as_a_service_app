@@ -2,3 +2,7 @@
 #addRow .dashboard-panel{
     background-color: transparent;
 }
+
+#upload-form {
+    margin-bottom: 0;
+}

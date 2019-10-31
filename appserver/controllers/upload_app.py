@@ -61,7 +61,8 @@ class UploadAppController(controllers.BaseController):
                 import apps
                 # todo: make python 3 compliant
                 reload(apps)
-                return apps.add_app(splunk, app_path)
+                app_name, app_version = apps.add_app(splunk, app_path)
+                return self.render_json(dict(name=app_name, version=app_version))
             finally:
                 if app_path:
                     os.remove(app_path)
