@@ -6,7 +6,7 @@ import json
 from urlparse import parse_qs
 import splunklib
 import time
-import operator_controller
+import stack_operation
 import services
 import clusters
 
@@ -19,6 +19,13 @@ DELETED = "Deleted"
 def get_stack_config(service, stack_id):
     stacks = service.kvstore["stacks"].data
     return stacks.query_by_id(stack_id)
+
+
+def update_config(service, stack_id, updates):
+    stacks = service.kvstore["stacks"].data
+    config = stacks.query_by_id(stack_id)
+    config.update(updates)
+    stacks.update(stack_id, json.dumps(config))
 
 
 class StacksHandler(BaseRestHandler):
@@ -90,7 +97,7 @@ class StacksHandler(BaseRestHandler):
             json.dumps(stack_record))["_key"]
 
         # start operator
-        operator_controller.start_operator(self.service, stack_id)
+        stack_operation.start(self.service, stack_id)
 
         # return ID
         self.send_result({
@@ -157,7 +164,7 @@ class StackHandler(BaseRestHandler):
         path = self.request['path']
         _, stack_id = os.path.split(path)
         force = self.request["query"]["force"] == "true"
-        operator_controller.stop_operator(
+        stack_operation.stop(
             self.service, stack_id, force=force)
         self.send_result({
             "stack_id": stack_id,

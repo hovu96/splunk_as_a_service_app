@@ -3,7 +3,6 @@ import os
 import fix_path
 from base_handler import BaseRestHandler
 import stacks
-import operator_controller
 from kubernetes import client as kubernetes
 import kubernetes_utils
 import base64

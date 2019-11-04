@@ -1,6 +1,205 @@
 from kubernetes import client as kubernetes
 import yaml
 import errors
+import stacks
+import logging
+import time
+import services
+import app_deployment
+import clusters
+
+
+def up(splunk, stack_id):
+    stack_config = stacks.get_stack_config(splunk, stack_id)
+    cluster_name = stack_config["cluster"]
+    api_client = clusters.create_client(splunk, cluster_name)
+    core_api = kubernetes.CoreV1Api(api_client)
+    custom_objects_api = kubernetes.CustomObjectsApi(api_client)
+    cluster_config = clusters.get_cluster_config(splunk, cluster_name)
+    status = stack_config["status"]
+    if status == stacks.CREATING:
+        create_deployment(
+            splunk, core_api, custom_objects_api,
+            stack_id, stack_config, cluster_config
+        )
+        logging.info("created")
+        stacks.update_config(splunk, stack_id, {
+            "status": stacks.CREATED,
+        })
+    elif status == stacks.CREATED:
+        check_deployment()
+    else:
+        logging.warning("unexpected status: %s", status)
+
+
+def down(splunk, stack_id, force=False):
+    stacks.update_config(splunk, stack_id, {
+        "status": stacks.DELETING,
+    })
+    stack_config = stacks.get_stack_config(splunk, stack_id)
+    cluster_name = stack_config["cluster"]
+    api_client = clusters.create_client(splunk, cluster_name)
+    core_api = kubernetes.CoreV1Api(api_client)
+    custom_objects_api = kubernetes.CustomObjectsApi(api_client)
+    try:
+        services.delete_all_load_balancers(
+            core_api, stack_id, stack_config["namespace"])
+        if get_splunk(custom_objects_api, stack_id, stack_config):
+            delete_splunk(custom_objects_api, stack_id, stack_config)
+        if license_exists(core_api, stack_id, stack_config):
+            delete_license(core_api, stack_id, stack_config)
+    except:
+        if not force:
+            raise
+    stacks.update_config(splunk, stack_id, {
+        "status": stacks.DELETED,
+    })
+
+
+def create_deployment(splunk, core_api, custom_objects_api, stack_id, stack_config, cluster_config):
+    if stack_config["license_master_mode"] == "local":
+        if not license_exists(core_api, stack_id, stack_config):
+            logging.info("deploying license ...")
+            create_license(
+                core_api, stack_id, stack_config)
+    if not get_splunk(custom_objects_api, stack_id, stack_config):
+        logging.info("deploying Splunk ...")
+        create_splunk(
+            custom_objects_api, stack_id, stack_config, cluster_config)
+
+    if not wait_until_pod_created(splunk, core_api, stack_id, stack_config):
+        logging.warning("could not find all pods")
+        raise errors.RetryOperation()
+
+    create_load_balancers(core_api, stack_id, stack_config)
+
+    if not wait_until_splunk_instance_completed(core_api, stack_id, stack_config):
+        logging.warning("splunk could not complete startup")
+        raise errors.RetryOperation()
+
+    app_deployment.install_base_apps(
+        splunk, core_api, stack_id)
+
+
+def wait_until_pod_created(splunk, core_api, stack_id, stack_config, timeout=60*15):
+    expected_number_of_instances = 0
+    if stack_config["deployment_type"] == "standalone":
+        expected_number_of_instances += 1
+    elif stack_config["deployment_type"] == "distributed":
+        search_head_count = int(stack_config["search_head_count"])
+        if search_head_count > 1:
+            expected_number_of_instances += 1
+        if search_head_count > 0:
+            expected_number_of_instances += search_head_count
+        expected_number_of_instances += 2
+        indexer_count = int(stack_config["indexer_count"])
+        if indexer_count > 0:
+            expected_number_of_instances += indexer_count
+
+    logging.info("waiting for pod beeing created...")
+    t_end = time.time() + timeout
+    while time.time() < t_end:
+        pods = core_api.list_namespaced_pod(
+            namespace=stack_config["namespace"],
+            label_selector="app=splunk,for=%s" % stack_id,
+        ).items
+        if len(pods) == expected_number_of_instances:
+            return True
+        logging.info("expecting %s pods (found %d)" %
+                     (expected_number_of_instances, len(pods)))
+        time.sleep(1)
+    return False
+
+
+def create_load_balancers(core_api, stack_id, stack_config):
+    if stack_config["deployment_type"] == "standalone":
+        services.create_load_balancers(
+            core_api,
+            stack_id,
+            services.standalone_role,
+            stack_config["namespace"],
+        )
+    elif stack_config["deployment_type"] == "distributed":
+        if int(stack_config["search_head_count"]) > 1:
+            services.create_load_balancers(
+                core_api,
+                stack_id,
+                services.deployer_role,
+                stack_config["namespace"],
+            )
+        if int(stack_config["search_head_count"]) > 0:
+            services.create_load_balancers(
+                core_api,
+                stack_id,
+                services.search_head_role,
+                stack_config["namespace"],
+            )
+        services.create_load_balancers(
+            core_api,
+            stack_id,
+            services.license_master_role,
+            stack_config["namespace"],
+        )
+        if int(stack_config["indexer_count"]) > 0:
+            services.create_load_balancers(
+                core_api,
+                stack_id,
+                services.cluster_master_role,
+                stack_config["namespace"],
+            )
+            services.create_load_balancers(
+                core_api,
+                stack_id,
+                services.indexer_role,
+                stack_config["namespace"],
+            )
+    #getaddrinfo(host, port, 0, SOCK_STREAM)
+
+
+def wait_until_splunk_instance_completed(core_api, stack_id, stack_config, timeout=60*15):
+    logging.info("waiting for splunk instances to complete...")
+    t_end = time.time() + timeout
+    while time.time() < t_end:
+        pods = core_api.list_namespaced_pod(
+            namespace=stack_config["namespace"],
+            label_selector="app=splunk,for=%s" % stack_id,
+        ).items
+        number_of_pods_completed = 0
+        for p in pods:
+            if check_splunk_instance_completed(core_api, stack_config, p):
+                number_of_pods_completed += 1
+        if number_of_pods_completed == len(pods):
+            logging.info("all pods completed startup")
+            return True
+        else:
+            logging.info("Waiting for %d (out of %d) remaining pod(s) to complete startup ...",
+                         (len(pods)-number_of_pods_completed), len(pods))
+            time.sleep(5)
+    return False
+
+
+def check_splunk_instance_completed(core_api, stack_config, pod):
+    #logging.info("pod %s" % (pod.metadata.name))
+    if pod.status.phase != "Running":
+        logging.info("pod=\"%s\" not yet running (still %s)" %
+                     (pod.metadata.name, pod.status.phase))
+        return False
+    logs = core_api.read_namespaced_pod_log(
+        name=pod.metadata.name,
+        namespace=stack_config["namespace"],
+        tail_lines=100,
+    )
+    if "Ansible playbook complete" in logs:
+        logging.info("pod=\"%s\" status=\"completed\"" % pod.metadata.name)
+        return True
+    else:
+        logging.info("pod=\"%s\" status=\"not_yet_completed\"" %
+                     pod.metadata.name)
+        return False
+
+
+def check_deployment():
+    pass
 
 
 def license_exists(core_api, stack_id, stack_config):

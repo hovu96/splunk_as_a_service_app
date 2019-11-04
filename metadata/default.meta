@@ -28,3 +28,7 @@ access = read : [ saas_admin ]
 [datamodels/license_usage]
 access = read : [ saas_user ]
 export = none
+
+[commands/stackoperation]
+access = read : [ admin ], write : [ admin ]
+export = none
