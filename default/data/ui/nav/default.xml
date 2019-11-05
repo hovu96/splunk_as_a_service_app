@@ -1,5 +1,6 @@
 <nav>
-    <view name="clusters"  default="true" />
+    <view name="service_overview" default="true" />
+    <view name="clusters" />
     <view name="stacks" />
     <view name="apps" />
     <view name="activity" />
