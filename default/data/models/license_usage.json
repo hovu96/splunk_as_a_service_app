@@ -27,30 +27,6 @@
                     "comment": ""
                 },
                 {
-                    "fieldName": "cluster",
-                    "owner": "usage",
-                    "type": "string",
-                    "fieldSearch": "cluster=*",
-                    "required": true,
-                    "multivalue": false,
-                    "hidden": false,
-                    "editable": true,
-                    "displayName": "cluster",
-                    "comment": ""
-                },
-                {
-                    "fieldName": "stack",
-                    "owner": "usage",
-                    "type": "string",
-                    "fieldSearch": "stack=*",
-                    "required": true,
-                    "multivalue": false,
-                    "hidden": false,
-                    "editable": true,
-                    "displayName": "stack",
-                    "comment": ""
-                },
-                {
                     "fieldName": "_time",
                     "owner": "BaseEvent",
                     "type": "timestamp",
@@ -121,11 +97,53 @@
                     "comment": "",
                     "calculationType": "Eval",
                     "expression": "b/1024/1024/1024"
+                },
+                {
+                    "outputFields": [
+                        {
+                            "fieldName": "stack",
+                            "owner": "usage",
+                            "type": "string",
+                            "fieldSearch": "stack=*",
+                            "required": true,
+                            "multivalue": false,
+                            "hidden": false,
+                            "editable": true,
+                            "displayName": "stack",
+                            "comment": "",
+                            "lookupOutputFieldName": "title"
+                        },
+                        {
+                            "fieldName": "cluster",
+                            "owner": "usage",
+                            "type": "string",
+                            "fieldSearch": "cluster=*",
+                            "required": true,
+                            "multivalue": false,
+                            "hidden": false,
+                            "editable": true,
+                            "displayName": "cluster",
+                            "comment": "",
+                            "lookupOutputFieldName": "cluster"
+                        }
+                    ],
+                    "calculationType": "Lookup",
+                    "lookupName": "stacks",
+                    "comment": "",
+                    "lookupInputs": [
+                        {
+                            "inputField": "stack_id",
+                            "lookupField": "_key"
+                        }
+                    ],
+                    "owner": "usage",
+                    "calculationID": "sxwyi2bdkt8",
+                    "editable": true
                 }
             ],
             "constraints": [
                 {
-                    "search": "index=_internal stack_id=* source=*license_usage.log type=Usage cluster=\"*\"",
+                    "search": "index=_internal source=*license_usage.log type=Usage stack_id=*",
                     "owner": "usage"
                 }
             ],
