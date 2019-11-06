@@ -3,20 +3,28 @@
   <row>
     <panel>
       <single>
-        <title>Stacks</title>
         <search>
-          <query>index=summary search_name=update_stacks_summary | timechart dc(id) as count</query>
+          <query>index=summary search_name=update_stacks_summary 
+| timechart dc(id) as count 
+| streamstats count as i
+| eventstats count as t
+| appendcols [rest splunk_server=local services/saas/stacks | stats count as current_count] | filldown current_count
+| eval count = if(i==t,current_count,count)
+| table _time count</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">none</option>
         <option name="drilldown">none</option>
+        <option name="height">185</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0x1f618d"]</option>
         <option name="rangeValues">[-1]</option>
-        <option name="refresh.display">progressbar</option>
+        <option name="refresh.display">none</option>
         <option name="showSparkline">1</option>
         <option name="showTrendIndicator">1</option>
         <option name="trellis.enabled">0</option>
@@ -24,27 +32,30 @@
         <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
+        <option name="underLabel">Splunk Stacks Deployed</option>
         <option name="unitPosition">after</option>
-        <option name="useColors">1</option>
+        <option name="useColors">0</option>
         <option name="useThousandSeparators">0</option>
       </single>
     </panel>
     <panel>
       <single>
-        <title>Instances</title>
         <search>
-          <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"=splunk | timechart dc(metadata.labels.for) as count</query>
+          <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"=splunk | timechart dc(metadata.name) as count</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">none</option>
         <option name="drilldown">none</option>
+        <option name="height">185</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0x1f618d"]</option>
         <option name="rangeValues">[-1]</option>
-        <option name="refresh.display">progressbar</option>
+        <option name="refresh.display">none</option>
         <option name="showSparkline">1</option>
         <option name="showTrendIndicator">1</option>
         <option name="trellis.enabled">0</option>
@@ -52,27 +63,30 @@
         <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
+        <option name="underLabel">Splunk Instances Deployed</option>
         <option name="unitPosition">after</option>
-        <option name="useColors">1</option>
+        <option name="useColors">0</option>
         <option name="useThousandSeparators">1</option>
       </single>
     </panel>
     <panel>
       <single>
-        <title>Apps</title>
         <search>
           <query>index=summary search_name=update_apps_summary | timechart dc(name) as count</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">none</option>
         <option name="drilldown">none</option>
+        <option name="height">185</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0x1f618d"]</option>
         <option name="rangeValues">[-1]</option>
-        <option name="refresh.display">progressbar</option>
+        <option name="refresh.display">none</option>
         <option name="showSparkline">1</option>
         <option name="showTrendIndicator">1</option>
         <option name="trellis.enabled">0</option>
@@ -80,19 +94,53 @@
         <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
+        <option name="underLabel">Apps Deployed</option>
         <option name="unitPosition">after</option>
-        <option name="useColors">1</option>
+        <option name="useColors">0</option>
         <option name="useThousandSeparators">1</option>
       </single>
     </panel>
     <panel>
       <single>
-        <title>Data</title>
         <search>
           <query>index="em_meta" sourcetype="kube:objects:pods" | timechart count</query>
-          <earliest>-15m</earliest>
+          <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="height">185</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x53a051","0xdc4e41","0xdc4e41"]</option>
+        <option name="rangeValues">[10,30]</option>
+        <option name="refresh.display">none</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">small</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="underLabel">Data Volume Indexed</option>
+        <option name="unit">h</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <search>
+          <query>index="em_meta" sourcetype="kube:objects:nodes" | timechart dc(metadata.uid) as nodes</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">none</option>
@@ -100,6 +148,7 @@
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0xdc4e41","0xdc4e41"]</option>
         <option name="rangeValues">[10,30]</option>
+        <option name="refresh.display">none</option>
         <option name="showSparkline">1</option>
         <option name="showTrendIndicator">1</option>
         <option name="trellis.enabled">0</option>
@@ -107,114 +156,73 @@
         <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
-        <option name="unit">h</option>
+        <option name="underLabel">Infrastructure Nodes</option>
         <option name="unitPosition">after</option>
-        <option name="useColors">1</option>
+        <option name="useColors">0</option>
         <option name="useThousandSeparators">1</option>
-      </single>
-    </panel>
-    <panel>
-      <single>
-        <title>$$$</title>
-        <search>
-          <query>index="em_meta" sourcetype="kube:objects:pods" | timechart count</query>
-          <earliest>-15m</earliest>
-          <latest>now</latest>
-          <sampleRatio>1</sampleRatio>
-        </search>
-        <option name="colorBy">value</option>
-        <option name="colorMode">none</option>
-        <option name="drilldown">none</option>
-        <option name="numberPrecision">0</option>
-        <option name="rangeColors">["0x53a051","0xdc4e41","0xdc4e41"]</option>
-        <option name="rangeValues">[10,30]</option>
-        <option name="showSparkline">1</option>
-        <option name="showTrendIndicator">1</option>
-        <option name="trellis.enabled">0</option>
-        <option name="trellis.scales.shared">1</option>
-        <option name="trellis.size">small</option>
-        <option name="trendColorInterpretation">standard</option>
-        <option name="trendDisplayMode">absolute</option>
-        <option name="unit">h</option>
-        <option name="unitPosition">after</option>
-        <option name="useColors">1</option>
-        <option name="useThousandSeparators">1</option>
+        <option name="height">185</option>
       </single>
     </panel>
   </row>
   <row>
     <panel>
       <single>
-        <title>Top 20 Unhealthy Stack</title>
+        <title>Splunk Stacks's Health</title>
         <search>
-          <query>index="em_meta" sourcetype="kube:objects:pods" | stats count by metadata.name</query>
-          <earliest>-15m</earliest>
+          <query>index=_internal stack_id=* source="*health.log" node_type=feature 
+    | bin _time minspan=2m 
+    | stats latest(color) as color by stack_id host node_path _time 
+    | stats count(eval(color="red")) as red_count count(eval(color="yellow")) as yellow_count count(eval(color="green")) as green_count count by stack_id _time 
+    | eval health = 100 - (yellow_count/count)*10 - (red_count/count)*90
+    | lookup stacks _key as stack_id OUTPUT title status
+        | where status="Created"
+        | timechart avg(health) as health by title</query>
+          <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="colorBy">value</option>
         <option name="colorMode">block</option>
         <option name="drilldown">none</option>
-        <option name="height">295</option>
+        <option name="height">188</option>
         <option name="numberPrecision">0</option>
-        <option name="rangeColors">["0x53a051","0x53a051","0xdc4e41"]</option>
-        <option name="rangeValues">[10,30]</option>
+        <option name="rangeColors">["0xdc4e41","0xf8be34","0x53a051"]</option>
+        <option name="rangeValues">[90,99]</option>
+        <option name="refresh.display">none</option>
         <option name="showSparkline">1</option>
         <option name="showTrendIndicator">1</option>
         <option name="trellis.enabled">1</option>
-        <option name="trellis.scales.shared">1</option>
-        <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
+        <option name="unit">%</option>
         <option name="unitPosition">after</option>
         <option name="useColors">1</option>
-        <option name="useThousandSeparators">1</option>
+        <option name="useThousandSeparators">0</option>
       </single>
     </panel>
   </row>
   <row>
     <panel>
-      <chart>
-        <title>Search Activity</title>
+      <table>
+        <title>Top Search Activities</title>
         <search>
-          <query>index=_audit action=search stack_id=* cluster="*" search_id=* | stats dc(search_id) as searches by stack | sort - searches | head 10</query>
+          <query>index=_audit action=search stack_id=* cluster="*" search_id=* | stats sparkline dc(search_id) as count by stack_id | sort - count
+| join stack_id [
+rest splunk_server=local services/saas/stacks | rename id as stack_id title as stack 
+]
+| table stack sparkline count</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
-        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
-        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.visibility">collapsed</option>
-        <option name="charting.axisTitleY.visibility">collapsed</option>
-        <option name="charting.axisTitleY2.visibility">visible</option>
-        <option name="charting.axisX.abbreviation">none</option>
-        <option name="charting.axisX.scale">linear</option>
-        <option name="charting.axisY.abbreviation">none</option>
-        <option name="charting.axisY.scale">log</option>
-        <option name="charting.axisY2.abbreviation">none</option>
-        <option name="charting.axisY2.enabled">0</option>
-        <option name="charting.axisY2.scale">inherit</option>
-        <option name="charting.chart">column</option>
-        <option name="charting.chart.bubbleMaximumSize">50</option>
-        <option name="charting.chart.bubbleMinimumSize">10</option>
-        <option name="charting.chart.bubbleSizeBy">area</option>
-        <option name="charting.chart.nullValueMode">zero</option>
-        <option name="charting.chart.showDataLabels">none</option>
-        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
-        <option name="charting.chart.stackMode">default</option>
-        <option name="charting.chart.style">shiny</option>
-        <option name="charting.drilldown">none</option>
-        <option name="charting.layout.splitSeries">0</option>
-        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">standard</option>
-        <option name="charting.legend.placement">none</option>
-        <option name="charting.lineWidth">2</option>
-        <option name="refresh.display">progressbar</option>
-        <option name="trellis.enabled">0</option>
-        <option name="trellis.scales.shared">1</option>
-        <option name="trellis.size">medium</option>
-      </chart>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">none</option>
+      </table>
     </panel>
     <panel>
       <chart>
@@ -224,6 +232,8 @@
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
@@ -254,7 +264,7 @@
         <option name="charting.legend.mode">standard</option>
         <option name="charting.legend.placement">none</option>
         <option name="charting.lineWidth">2</option>
-        <option name="refresh.display">progressbar</option>
+        <option name="refresh.display">none</option>
         <option name="trellis.enabled">0</option>
         <option name="trellis.scales.shared">1</option>
         <option name="trellis.size">medium</option>
@@ -268,6 +278,8 @@
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
@@ -298,7 +310,7 @@
         <option name="charting.legend.mode">standard</option>
         <option name="charting.legend.placement">none</option>
         <option name="charting.lineWidth">2</option>
-        <option name="refresh.display">progressbar</option>
+        <option name="refresh.display">none</option>
         <option name="trellis.enabled">0</option>
         <option name="trellis.scales.shared">1</option>
         <option name="trellis.size">medium</option>
