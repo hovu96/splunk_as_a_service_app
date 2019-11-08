@@ -83,8 +83,8 @@
       <input type="time" token="logs" searchWhenChanged="true">
         <label>Time</label>
         <default>
-          <earliest>-60m@m</earliest>
-          <latest>now</latest>
+          <earliest>rt-30m</earliest>
+          <latest>rt</latest>
         </default>
       </input>
       <input type="dropdown" token="log_level_filter" searchWhenChanged="true">
@@ -96,20 +96,16 @@
         <default>eventtype=stack_operation_info</default>
         <initialValue>eventtype=stack_operation_info</initialValue>
       </input>
-      <table>
+      <event>
         <search>
-          <query>sourcetype="stack_operator" stack_operation_stack_id="$id$" $log_level_filter$ | fields + eventtype | rename stack_operation_level as level | table _time level _raw | reverse | rename _raw as message</query>
+          <query>sourcetype="stack_operator" stack_operation_stack_id="$id$" $log_level_filter$ | fields + eventtype | rename stack_operation_level as level</query>
           <earliest>$logs.earliest$</earliest>
           <latest>$logs.latest$</latest>
-          <refresh>3s</refresh>
-          <refreshType>delay</refreshType>
         </search>
-        <option name="count">10</option>
-        <option name="drilldown">none</option>
-        <format type="color" field="level">
-          <colorPalette type="map">{"ERROR":#DC4E41,"INFO":#53A051,"WARNING":#F8BE34,"DEBUG":#708794}</colorPalette>
-        </format>
-      </table>
+        <option name="list.drilldown">none</option>
+        <option name="refresh.display">none</option>
+        <option name="type">list</option>
+      </event>
     </panel>
   </row>
 </form>
