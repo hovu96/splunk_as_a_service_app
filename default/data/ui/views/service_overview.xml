@@ -263,7 +263,7 @@ search index=_internal stack_id=* source="*health.log" node_type=indicator (colo
 ]
 | table feature color reason count
 | sort - count</query>
-          <earliest>-24h@h</earliest>
+          <earliest>-3m</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
           <refresh>30s</refresh>
