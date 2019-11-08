@@ -1,59 +1,10 @@
 from kubernetes import client as kubernetes
 import yaml
 import errors
-import stacks
 import logging
 import time
 import services
 import app_deployment
-import clusters
-
-
-def up(splunk, stack_id):
-    stack_config = stacks.get_stack_config(splunk, stack_id)
-    cluster_name = stack_config["cluster"]
-    api_client = clusters.create_client(splunk, cluster_name)
-    core_api = kubernetes.CoreV1Api(api_client)
-    custom_objects_api = kubernetes.CustomObjectsApi(api_client)
-    cluster_config = clusters.get_cluster_config(splunk, cluster_name)
-    status = stack_config["status"]
-    if status == stacks.CREATING:
-        create_deployment(
-            splunk, core_api, custom_objects_api,
-            stack_id, stack_config, cluster_config
-        )
-        logging.info("created")
-        stacks.update_config(splunk, stack_id, {
-            "status": stacks.CREATED,
-        })
-    elif status == stacks.CREATED:
-        check_deployment()
-    else:
-        logging.warning("unexpected status: %s", status)
-
-
-def down(splunk, stack_id, force=False):
-    stacks.update_config(splunk, stack_id, {
-        "status": stacks.DELETING,
-    })
-    stack_config = stacks.get_stack_config(splunk, stack_id)
-    cluster_name = stack_config["cluster"]
-    api_client = clusters.create_client(splunk, cluster_name)
-    core_api = kubernetes.CoreV1Api(api_client)
-    custom_objects_api = kubernetes.CustomObjectsApi(api_client)
-    try:
-        services.delete_all_load_balancers(
-            core_api, stack_id, stack_config["namespace"])
-        if get_splunk(custom_objects_api, stack_id, stack_config):
-            delete_splunk(custom_objects_api, stack_id, stack_config)
-        if license_exists(core_api, stack_id, stack_config):
-            delete_license(core_api, stack_id, stack_config)
-    except:
-        if not force:
-            raise
-    stacks.update_config(splunk, stack_id, {
-        "status": stacks.DELETED,
-    })
 
 
 def create_deployment(splunk, core_api, custom_objects_api, stack_id, stack_config, cluster_config):
@@ -196,10 +147,6 @@ def check_splunk_instance_completed(core_api, stack_config, pod):
         logging.info("pod=\"%s\" status=\"not_yet_completed\"" %
                      pod.metadata.name)
         return False
-
-
-def check_deployment():
-    pass
 
 
 def license_exists(core_api, stack_id, stack_config):

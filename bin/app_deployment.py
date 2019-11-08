@@ -8,6 +8,7 @@ import base64
 import splunklib
 import clusters
 import stacks
+import instances
 
 
 def install_base_apps(service, core_api, stack_id):
@@ -55,7 +56,7 @@ def install_indexer_apps(service, core_api, stack_id, stack_config, cluster_conf
 
 
 def install_local_app(core_api, stack_id, stack_config, pod, pod_local_path, name):
-    service = create_client(
+    service = instances.create_client(
         core_api, stack_id, stack_config, services.standalone_role)
     try:
         service.post(
@@ -73,7 +74,7 @@ def install_local_app(core_api, stack_id, stack_config, pod, pod_local_path, nam
 
 
 def apply_cluster_bundle(core_api, stack_id, stack_config):
-    service = create_client(
+    service = instances.create_client(
         core_api, stack_id, stack_config, services.cluster_master_role)
     try:
         service.post("cluster/master/control/default/apply",
@@ -102,28 +103,6 @@ def install_search_head_apps(service, core_api, stack_id, stack_config, cluster_
 
 def install_deployment_server_apps(core_api, stack_id, stack_config, cluster_config):
     pass
-
-
-def create_client(core_api, stack_id, stack_config, role):
-    hosts = services.get_load_balancer_hosts(
-        core_api, stack_id, role, stack_config["namespace"])
-    if len(hosts) == 0:
-        raise Exception(
-            "could not get hostname for load balancer for role %s " % (role))
-    secrets = core_api.read_namespaced_secret(
-        "splunk-%s-secrets" % stack_id,
-        namespace=stack_config["namespace"],
-    )
-    password = base64.b64decode(secrets.data["password"])
-    service = splunklib.client.Service(
-        port=8089,
-        scheme="https",
-        host=hosts[0],
-        username="admin",
-        password=password
-    )
-    service.login()
-    return service
 
 
 def render_app(service, cluster_config, stack_config, source_dir, target_dir):

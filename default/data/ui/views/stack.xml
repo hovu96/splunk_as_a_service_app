@@ -98,7 +98,7 @@
       </input>
       <table>
         <search>
-          <query>sourcetype="stack_operator" stack_operation_stack_id="$id$" $log_level_filter$ | fields + eventtype | rename stack_operation_level as level | table _time level _raw</query>
+          <query>sourcetype="stack_operator" stack_operation_stack_id="$id$" $log_level_filter$ | fields + eventtype | rename stack_operation_level as level | table _time level _raw | reverse | rename _raw as message</query>
           <earliest>$logs.earliest$</earliest>
           <latest>$logs.latest$</latest>
           <refresh>3s</refresh>

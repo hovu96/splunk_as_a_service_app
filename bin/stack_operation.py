@@ -9,6 +9,63 @@ import logging
 import stack_deployment
 import os
 import errors
+import stacks
+import clusters
+from kubernetes import client as kubernetes
+import services
+import stack_deployment
+
+
+def up(splunk, stack_id):
+    stack_config = stacks.get_stack_config(splunk, stack_id)
+    cluster_name = stack_config["cluster"]
+    api_client = clusters.create_client(splunk, cluster_name)
+    core_api = kubernetes.CoreV1Api(api_client)
+    custom_objects_api = kubernetes.CustomObjectsApi(api_client)
+    cluster_config = clusters.get_cluster_config(splunk, cluster_name)
+    status = stack_config["status"]
+    if status == stacks.CREATING:
+        stack_deployment.create_deployment(
+            splunk, core_api, custom_objects_api,
+            stack_id, stack_config, cluster_config
+        )
+        logging.info("created")
+        stacks.update_config(splunk, stack_id, {
+            "status": stacks.CREATED,
+        })
+    elif status == stacks.CREATED:
+        import instances
+        indexer = instances.create_client(
+            core_api, stack_id, stack_config, services.standalone_role)
+        indexer.indexes["main"].submit("test")
+        logging.warning("sent")
+    else:
+        logging.warning("unexpected status: %s", status)
+
+
+def down(splunk, stack_id, force=False):
+    stacks.update_config(splunk, stack_id, {
+        "status": stacks.DELETING,
+    })
+    stack_config = stacks.get_stack_config(splunk, stack_id)
+    cluster_name = stack_config["cluster"]
+    api_client = clusters.create_client(splunk, cluster_name)
+    core_api = kubernetes.CoreV1Api(api_client)
+    custom_objects_api = kubernetes.CustomObjectsApi(api_client)
+    try:
+        services.delete_all_load_balancers(
+            core_api, stack_id, stack_config["namespace"])
+        if stack_deployment.get_splunk(custom_objects_api, stack_id, stack_config):
+            stack_deployment.delete_splunk(
+                custom_objects_api, stack_id, stack_config)
+        if stack_deployment.license_exists(core_api, stack_id, stack_config):
+            stack_deployment.delete_license(core_api, stack_id, stack_config)
+    except:
+        if not force:
+            raise
+    stacks.update_config(splunk, stack_id, {
+        "status": stacks.DELETED,
+    })
 
 
 def get_command_name(stack_id):
@@ -93,11 +150,11 @@ class StackOperation(GeneratingCommand):
 
         try:
             if self.command == "up":
-                stack_deployment.up(self.service, self.stack_id)
+                up(self.service, self.stack_id)
                 return
             elif self.command == "down" or self.command == "kill":
-                stack_deployment.down(self.service, self.stack_id,
-                                      force=self.command == "kill")
+                down(self.service, self.stack_id,
+                     force=self.command == "kill")
             else:
                 logging.error("unknown command: %s" % self.command)
         except errors.RetryOperation:
