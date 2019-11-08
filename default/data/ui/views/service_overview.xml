@@ -1,7 +1,8 @@
-<dashboard theme="light">
+<dashboard stylesheet="service_overview.css">
   <label>Service Overview</label>
   <row>
     <panel>
+      <title>Stacks</title>
       <single>
         <search>
           <query>index=summary search_name=update_stacks_summary 
@@ -32,13 +33,14 @@
         <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
-        <option name="underLabel">Splunk Stacks Deployed</option>
+        <option name="underLabel">Stacks Deployed</option>
         <option name="unitPosition">after</option>
         <option name="useColors">0</option>
         <option name="useThousandSeparators">0</option>
       </single>
     </panel>
     <panel>
+      <title>Instances</title>
       <single>
         <search>
           <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"=splunk | timechart dc(metadata.name) as count</query>
@@ -63,13 +65,14 @@
         <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
-        <option name="underLabel">Splunk Instances Deployed</option>
+        <option name="underLabel">Instances Deployed</option>
         <option name="unitPosition">after</option>
         <option name="useColors">0</option>
         <option name="useThousandSeparators">1</option>
       </single>
     </panel>
     <panel>
+      <title>Applications</title>
       <single>
         <search>
           <query>index=summary search_name=update_apps_summary | timechart dc(name) as count</query>
@@ -94,16 +97,25 @@
         <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
-        <option name="underLabel">Apps Deployed</option>
+        <option name="underLabel">Apps Managed</option>
         <option name="unitPosition">after</option>
         <option name="useColors">0</option>
         <option name="useThousandSeparators">1</option>
       </single>
     </panel>
     <panel>
+      <title>Data</title>
       <single>
         <search>
-          <query>index="em_meta" sourcetype="kube:objects:pods" | timechart count</query>
+          <progress>
+            <set token="dataVolumeUnit">$result.unit$</set>
+          </progress>
+          <query>| tstats allow_old_summaries=1 prestats=1 sum(usage.gb) from datamodel=license_usage.usage where usage.stack=* by _time 
+| timechart span=1h sum(usage.gb) as gb 
+| fillnull gb 
+| eval unit=case(gb*1024*1024&lt;1, "b", gb*1024&lt;1, "kb", gb&lt;1, "mb", 1=1, "gb") 
+| eval value=case(unit=="gb",gb,unit=="mb",gb*1024,unit=="kb",gb*1024*1024,unit=="b",gb*1024*1024*1024,1=1,"unknown")
+| table _time value *</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
@@ -125,14 +137,15 @@
         <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
-        <option name="underLabel">Data Volume Indexed</option>
-        <option name="unit">h</option>
+        <option name="underLabel">Hourly Indexed</option>
+        <option name="unit">$dataVolumeUnit$</option>
         <option name="unitPosition">after</option>
         <option name="useColors">0</option>
         <option name="useThousandSeparators">1</option>
       </single>
     </panel>
     <panel>
+      <title>Infrastructure</title>
       <single>
         <search>
           <query>index="em_meta" sourcetype="kube:objects:nodes" | timechart dc(metadata.uid) as nodes</query>
@@ -145,6 +158,7 @@
         <option name="colorBy">value</option>
         <option name="colorMode">none</option>
         <option name="drilldown">none</option>
+        <option name="height">185</option>
         <option name="numberPrecision">0</option>
         <option name="rangeColors">["0x53a051","0xdc4e41","0xdc4e41"]</option>
         <option name="rangeValues">[10,30]</option>
@@ -156,11 +170,10 @@
         <option name="trellis.size">small</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
-        <option name="underLabel">Infrastructure Nodes</option>
+        <option name="underLabel">Nodes Running</option>
         <option name="unitPosition">after</option>
         <option name="useColors">0</option>
         <option name="useThousandSeparators">1</option>
-        <option name="height">185</option>
       </single>
     </panel>
   </row>
@@ -204,9 +217,9 @@
     </panel>
   </row>
   <row>
-    <panel>
+    <panel id="topStackActivities">
       <table>
-        <title>Top Search Activities</title>
+        <title>Top Stack Activities</title>
         <search>
           <query>index=_audit action=search stack_id=* cluster="*" search_id=* | stats sparkline dc(search_id) as count by stack_id | sort - count
 | join stack_id [
@@ -224,97 +237,41 @@ rest splunk_server=local services/saas/stacks | rename id as stack_id title as s
         <option name="refresh.display">none</option>
       </table>
     </panel>
-    <panel>
-      <chart>
-        <title>Data</title>
+    <panel id="topHealthIssues">
+      <table>
+        <title>Top Health Issues</title>
         <search>
-          <query>| tstats prestats=1 sum(usage.gb) from datamodel=license_usage.usage by usage.stack _time | timechart sum(usage.gb) by usage.stack</query>
+          <query>index=_internal stack_id=* source="*health.log" node_type=feature (color=yellow OR color=red)
+| stats latest(color) as color by host node_path
+| stats count by node_path
+| eval node = split(node_path,".")
+| mvexpand node
+| streamstats current=1 window=0 list(node) as prev_node_path by node_path
+| eval prev_node_path=mvjoin(prev_node_path,".")
+| join prev_node_path [
+search index=_internal stack_id=* source="*health.log" | dedup node_path | table node_path feature | rename node_path as prev_node_path
+]
+| stats max(count) as count list(feature) as feature by node_path
+| eval feature=mvjoin(feature," | ")
+| join node_path [
+search index=_internal stack_id=* source="*health.log" node_type=indicator (color=yellow OR color=red) 
+| eval nodes = split(node_path,".")
+| eval nodes_parent = mvindex(nodes,0,mvcount(nodes)-2)
+| eval node_path = mvjoin(nodes_parent,".")
+| dedup indicator reason
+| stats values(reason) as reason values(color) as color by node_path indicator
+]
+| table feature color reason count
+| sort - count</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
           <refresh>30s</refresh>
           <refreshType>delay</refreshType>
         </search>
-        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
-        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.visibility">collapsed</option>
-        <option name="charting.axisTitleY.text">Cnt</option>
-        <option name="charting.axisTitleY.visibility">collapsed</option>
-        <option name="charting.axisTitleY2.visibility">visible</option>
-        <option name="charting.axisX.abbreviation">none</option>
-        <option name="charting.axisX.scale">linear</option>
-        <option name="charting.axisY.abbreviation">none</option>
-        <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.abbreviation">none</option>
-        <option name="charting.axisY2.enabled">0</option>
-        <option name="charting.axisY2.scale">inherit</option>
-        <option name="charting.chart">area</option>
-        <option name="charting.chart.bubbleMaximumSize">50</option>
-        <option name="charting.chart.bubbleMinimumSize">10</option>
-        <option name="charting.chart.bubbleSizeBy">area</option>
-        <option name="charting.chart.nullValueMode">zero</option>
-        <option name="charting.chart.showDataLabels">none</option>
-        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
-        <option name="charting.chart.stackMode">stacked</option>
-        <option name="charting.chart.style">shiny</option>
-        <option name="charting.drilldown">none</option>
-        <option name="charting.layout.splitSeries">0</option>
-        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">standard</option>
-        <option name="charting.legend.placement">none</option>
-        <option name="charting.lineWidth">2</option>
+        <option name="drilldown">none</option>
         <option name="refresh.display">none</option>
-        <option name="trellis.enabled">0</option>
-        <option name="trellis.scales.shared">1</option>
-        <option name="trellis.size">medium</option>
-      </chart>
-    </panel>
-    <panel>
-      <chart>
-        <title>Load</title>
-        <search>
-          <query>index=_audit action=search stack_id=* cluster="*" search_id=* | stats dc(search_id) as searches by stack | sort - searches | head 10</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
-          <sampleRatio>1</sampleRatio>
-          <refresh>30s</refresh>
-          <refreshType>delay</refreshType>
-        </search>
-        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
-        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.visibility">collapsed</option>
-        <option name="charting.axisTitleY.text">Cnt</option>
-        <option name="charting.axisTitleY.visibility">collapsed</option>
-        <option name="charting.axisTitleY2.visibility">visible</option>
-        <option name="charting.axisX.abbreviation">none</option>
-        <option name="charting.axisX.scale">linear</option>
-        <option name="charting.axisY.abbreviation">none</option>
-        <option name="charting.axisY.scale">log</option>
-        <option name="charting.axisY2.abbreviation">none</option>
-        <option name="charting.axisY2.enabled">0</option>
-        <option name="charting.axisY2.scale">inherit</option>
-        <option name="charting.chart">column</option>
-        <option name="charting.chart.bubbleMaximumSize">50</option>
-        <option name="charting.chart.bubbleMinimumSize">10</option>
-        <option name="charting.chart.bubbleSizeBy">area</option>
-        <option name="charting.chart.nullValueMode">zero</option>
-        <option name="charting.chart.showDataLabels">none</option>
-        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
-        <option name="charting.chart.stackMode">default</option>
-        <option name="charting.chart.style">shiny</option>
-        <option name="charting.drilldown">none</option>
-        <option name="charting.layout.splitSeries">0</option>
-        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">standard</option>
-        <option name="charting.legend.placement">none</option>
-        <option name="charting.lineWidth">2</option>
-        <option name="refresh.display">none</option>
-        <option name="trellis.enabled">0</option>
-        <option name="trellis.scales.shared">1</option>
-        <option name="trellis.size">medium</option>
-      </chart>
+      </table>
     </panel>
   </row>
 </dashboard>
