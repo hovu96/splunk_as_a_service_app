@@ -1,11 +1,17 @@
+import os
+import sys
+
+bin_path = os.path.join(os.path.dirname(__file__))
+if bin_path not in sys.path:
+    sys.path.insert(0, bin_path)
+
 import fix_path
 from base_handler import BaseRestHandler
 import tarfile
-import os
 import json
 from ConfigParser import SafeConfigParser
 import base64
-import urllib2
+from urllib.parse import unquote
 
 app_config_fields = set([
     "title",
@@ -51,7 +57,7 @@ class AppHandler(BaseRestHandler):
         path = self.request['path']
         path, app_version = os.path.split(path)
         _, app_name = os.path.split(path)
-        return urllib2.unquote(app_name), urllib2.unquote(app_version)
+        return unquote(app_name), unquote(app_version)
 
     def handle_GET(self):
         app_name, app_version = self.app
@@ -73,7 +79,7 @@ class AppHandler(BaseRestHandler):
 #        path = self.request['path']
 #        path, app_version = os.path.split(path)
 #        _, app_name = os.path.split(path)
-#        return urllib2.unquote(app_name), urllib2.unquote(app_version)
+#        return unquote(app_name), unquote(app_version)
 #
 #    def handle_GET(self):
 #        self.send_entries([])

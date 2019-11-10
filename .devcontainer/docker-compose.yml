@@ -10,7 +10,7 @@ version: "3"
 services:
   # Update this to the name of the service you want to work with in your docker-compose.yml file
   splunk_as_a_service:
-    image: splunk/splunk
+    image: splunk/splunk:8.0
     ports:
       - 8000:8000
 

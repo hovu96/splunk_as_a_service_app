@@ -1,10 +1,17 @@
+import os
+import os
+import sys
+
+bin_path = os.path.join(os.path.dirname(__file__))
+if bin_path not in sys.path:
+    sys.path.insert(0, bin_path)
+
 import fix_path
 import splunk.rest
 import json
 from logger import getLogger
 import splunklib.client as client
-import os
-from urlparse import parse_qs
+from urllib.parse import parse_qs
 
 logger = getLogger()
 

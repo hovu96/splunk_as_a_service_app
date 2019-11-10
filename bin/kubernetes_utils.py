@@ -1,3 +1,10 @@
+import os
+import sys
+
+bin_path = os.path.join(os.path.dirname(__file__))
+if bin_path not in sys.path:
+    sys.path.insert(0, bin_path)
+
 from kubernetes import client
 from kubernetes.stream import stream
 import base64
@@ -83,7 +90,7 @@ def create_client_configuration(connection_stanza):
                 fp.write(cert_data)
                 fp.close()
                 config.cert_file = fp.name
-            except Exception, e:
+            except Exception as e:
                 raise errors.ApplicationError(
                     "Error applying cluster cert: %s" % (e))
 
@@ -96,7 +103,7 @@ def create_client_configuration(connection_stanza):
                 fp.write(key_data)
                 fp.close()
                 config.key_file = fp.name
-            except Exception, e:
+            except Exception as e:
                 raise errors.ApplicationError(
                     "Error applying cluster key: %s" % (e))
 
@@ -109,7 +116,7 @@ def create_client_configuration(connection_stanza):
                 fp.write(cluster_ca_data)
                 fp.close()
                 config.ssl_ca_cert = fp.name
-            except Exception, e:
+            except Exception as e:
                 raise errors.ApplicationError(
                     "Error applying cluster ca: %s" % (e))
 

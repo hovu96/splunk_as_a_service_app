@@ -3,4 +3,7 @@
         "**/*.pyc": true,
         "**/*.pyo": true
     },
+    "python.formatting.autopep8Args": [
+        "--ignore=E402"
+    ],
 }

@@ -1,10 +1,16 @@
+import os
+import sys
+
+bin_path = os.path.join(os.path.dirname(__file__))
+if bin_path not in sys.path:
+    sys.path.insert(0, bin_path)
+
 import fix_path
 from base_handler import BaseRestHandler
 import splunklib
 import errors
-import urllib2
+from urllib.parse import unquote
 import traceback
-import os
 
 name_cluster_field = "name"
 
@@ -78,7 +84,7 @@ def validate_cluster(service, record):
         api_client = client.ApiClient(config)
         version_api = client.VersionApi(api_client)
         version_api.get_code()
-    except errors.ApplicationError, e:
+    except errors.ApplicationError as e:
         raise Exception("Could not connect to Kubernetes.\n\n%s" % e)
     except Exception:
         raise Exception(traceback.format_exc())
@@ -177,7 +183,7 @@ class ClusterHandler(BaseClusterHandler):
     def cluster_name(self):
         path = self.request['path']
         _, cluster_name = os.path.split(path)
-        return urllib2.unquote(cluster_name)
+        return unquote(cluster_name)
 
     def handle_GET(self):
         cluster = self.clusters[self.cluster_name]

@@ -1,4 +1,3 @@
-const appName = window.location.pathname.match(/..-..\/app\/(?<app>[^\/]+)/).groups.app;
 
 require([
     "jquery",
