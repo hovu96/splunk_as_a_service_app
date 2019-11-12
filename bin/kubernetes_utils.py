@@ -145,7 +145,7 @@ def tar_directory_to_pod(core_api, pod, namespace, local_path, remote_path):
             )
         tar_buffer.seek(0)
         exec_in_pod(core_api, pod, namespace, tar_buffer,
-                    ['sudo', '-u', 'splunk', 'tee', remote_path])
+                    ['tee', remote_path])
 
 
 def copy_directory_to_pod(core_api, pod, namespace, local_path, remote_path):
@@ -159,7 +159,7 @@ def copy_directory_to_pod(core_api, pod, namespace, local_path, remote_path):
             )
         tar_buffer.seek(0)
         exec_in_pod(core_api, pod, namespace, tar_buffer,
-                    ['sudo', '-u', 'splunk', 'tar', 'xvf', '-', '-C', '/'])
+                    ['tar', 'xvf', '-', '-C', '/'])
 
 
 def exec_in_pod(core_api, pod, namespace, stdin, command):
@@ -178,10 +178,10 @@ def exec_in_pod(core_api, pod, namespace, stdin, command):
     commands.append(stdin.read())
     while resp.is_open():
         resp.update(timeout=1)
-        # if resp.peek_stdout():
-        #    logging.info("STDOUT: %s" % resp.read_stdout())
-        # if resp.peek_stderr():
-        #    logging.error("STDERR: %s" % resp.read_stderr())
+        #if resp.peek_stdout():
+        #    logging.debug("STDOUT: %s" % resp.read_stdout())
+        #if resp.peek_stderr():
+        #    logging.debug("STDERR: %s" % resp.read_stderr())
         if commands:
             c = commands.pop(0)
             # https://stackoverflow.com/questions/54108278/kubectl-cp-in-kubernetes-python-client
