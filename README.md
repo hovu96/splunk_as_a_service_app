@@ -16,7 +16,7 @@ This is an early prototype and should not be used in a production environment.
 
 ## Prerequisites
 
-- Splunk Enterprise (to run this app)
+- Splunk Enterprise 8+ (to run this app)
 - One or more Kubernetes Clusters (being the deployment targets)
 - Splunk Operator for Kubernetes (see [blog post](https://www.splunk.com/blog/2019/05/08/an-insider-s-guide-to-splunk-on-containers-and-kubernetes.html))
 - [Splunk Connect for Kubernetes](https://github.com/splunk/splunk-connect-for-kubernetes)
