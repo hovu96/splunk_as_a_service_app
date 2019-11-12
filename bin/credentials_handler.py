@@ -33,9 +33,9 @@ class CredentialsHandler(BaseRestHandler):
             namespace=stack["namespace"],
         )
 
-        decoded_password = base64.b64decode(secrets.data["password"])
+        encoded_password = secrets.data["password"]
+        decoded_password = base64.decodestring( encoded_password.encode("ascii")).decode("ascii")
 
-        result = {
+        self.send_result({
             "admin": "%s" % decoded_password,
-        }
-        self.send_result(result)
+        })
