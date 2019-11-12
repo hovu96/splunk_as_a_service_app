@@ -1,11 +1,8 @@
 import cherrypy
 import splunk
 import splunk.rest as rest
-import logger
 import json
 import splunk.entity as entity
-
-logger = logger.setup("caps")
 
 
 def has(capabilities, user=None, session_key=None):
@@ -44,7 +41,7 @@ def has(capabilities, user=None, session_key=None):
             if response.status == 200:
 
                 # Parse the JSON content
-                logger.warn(content)
+                #logger.warn(content)
                 license_info = json.loads(content)
 
                 if license_info['entry'][0]['content']['is_active'] == 1:
@@ -69,7 +66,7 @@ def get4User(user=None, session_key=None):
 
     # Get user info
     if user is not None:
-        logger.info('Retrieving role(s) for current user: %s', user)
+        #logger.info('Retrieving role(s) for current user: %s', user)
         userDict = entity.getEntities(
             'authentication/users/%s' % (user), count=-1, sessionKey=session_key)
 
@@ -77,13 +74,13 @@ def get4User(user=None, session_key=None):
             if stanza == user:
                 for key, val in settings.items():
                     if key == 'roles':
-                        logger.info(
-                            'Successfully retrieved role(s) for user: %s', user)
+                        #logger.info(
+                        #    'Successfully retrieved role(s) for user: %s', user)
                         roles = val
 
     # Get capabilities
     for role in roles:
-        logger.info('Retrieving capabilities for current user: %s', user)
+        #logger.info('Retrieving capabilities for current user: %s', user)
         roleDict = entity.getEntities(
             'authorization/roles/%s' % (role), count=-1, sessionKey=session_key)
 
@@ -91,8 +88,8 @@ def get4User(user=None, session_key=None):
             if stanza == role:
                 for key, val in settings.items():
                     if key == 'capabilities' or key == 'imported_capabilities':
-                        logger.info(
-                            'Successfully retrieved %s for user: %s', key, user)
+                        #logger.info(
+                        #    'Successfully retrieved %s for user: %s', key, user)
                         capabilities.extend(val)
 
     return capabilities

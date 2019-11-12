@@ -9,7 +9,7 @@ import fix_path
 from base_handler import BaseRestHandler
 import tarfile
 import json
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 import base64
 from urllib.parse import unquote
 
@@ -20,7 +20,7 @@ app_config_fields = set([
 
 def create_stanza_name(name, version):
     if version:
-        return name+":"+version
+        return name + ":" + version
     else:
         return name
 
@@ -30,7 +30,7 @@ def parse_stanza_name(stanza_name):
     if i < 0:
         return stanza_name, None
     else:
-        return stanza_name[:i], stanza_name[i+1:]
+        return stanza_name[:i], stanza_name[i + 1:]
 
 
 class AppsHandler(BaseRestHandler):
@@ -129,8 +129,10 @@ def parse_app_metadata(path):
                         app_title_from_manifest = app_info["title"]
             if info.name.endswith(os.sep + "default" + os.sep + "app.conf"):
                 conf_file = archive.extractfile(info)
+                conf_file_data = conf_file.read()
                 conf_parser = SafeConfigParser()
-                conf_parser.readfp(conf_file)
+                # conf_parser.readfp(conf_file)
+                conf_parser.read(conf_file_data)
                 if conf_parser.has_section("id") and conf_parser.has_option("id", "name"):
                     app_name_from_conf = conf_parser.get("id", "name")
                 elif conf_parser.has_section("package") and conf_parser.has_option("package", "id"):
@@ -186,19 +188,21 @@ def remove_app(splunk, app_name, app_version):
 def add_chunks(splunk, path, app_name, app_version):
     stanza_name = create_stanza_name(app_name, app_version)
     chunk_collection = splunk.kvstore["app_chunk"].data
-    CHUNK_SIZE = 1024*100
+    CHUNK_SIZE = 1024 * 100
     chunk_index = 0
-    with open(path) as f:
+    with open(path, 'rb') as f:
         chunk = f.read(CHUNK_SIZE)
         while chunk:
+            chunk_encoded = base64.encodestring(chunk)
+            chunk_ascii = chunk_encoded.decode('ascii')
             chunk_collection.insert(json.dumps({
                 "index": chunk_index,
                 "app": stanza_name,
-                "data": base64.b64encode(chunk),
+                "data": chunk_ascii,
             }))
             chunk_index += 1
             chunk = f.read(CHUNK_SIZE)
-    return chunk_index+1
+    return chunk_index + 1
 
 
 def remove_chunks(splunk, app_name, app_version):

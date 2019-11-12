@@ -10,7 +10,7 @@ require([
     _
 ) {
     $("#addButton").click(function () {
-        const uploadURL = Splunk.util.make_url('custom', appName, "upload_app");
+        var uploadURL = Splunk.util.make_url('custom', appName, "upload_app", "post");
         const progressIndicator = Utils.newLoadingIndicator({
             title: "Uploading App...",
             subtitle: "Please wait."
