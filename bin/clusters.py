@@ -39,6 +39,7 @@ cluster_fields = set([
     "search_head_scaling_mode",
     "max_search_head_count",
     "namespace",
+    "node_selector",
 ])
 
 cluster_status_connected = "connected"

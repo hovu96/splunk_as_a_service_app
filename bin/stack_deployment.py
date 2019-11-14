@@ -272,6 +272,31 @@ def create_splunk(custom_objects_api, stack_id, stack_config, cluster_config):
         #    }
         # }
     }
+    if cluster_config.node_selector:
+        labels = cluster_config.node_selector.split(",")
+        match_expressions = []
+        for label in labels:
+            if label:
+                kv = label.split("=")
+                if len(kv) != 2:
+                    raise errors.ApplicationError(
+                        "invalid node selector format (%s)" % cluster_config.node_selector)
+                match_expressions.append({
+                    "key": kv[0],
+                    "operator": "In",
+                    "values": [kv[1]],
+                })
+        spec["affinity"] = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": match_expressions,
+                        }
+                    ],
+                }
+            }
+        }
     if stack_config["license_master_mode"] == "local":
         spec["splunkVolumes"].append({
             "name": "licenses",
