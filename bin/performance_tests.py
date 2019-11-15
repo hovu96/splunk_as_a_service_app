@@ -14,6 +14,8 @@ import splunklib.results as results
 import logging
 import errors
 import datetime
+import splunklib
+import stacks
 
 TEST_PREPARING = "Preparing"
 TEST_RUNNING = "Running"
@@ -82,11 +84,12 @@ class PerformanceTestHandler(BaseRestHandler):
         test = tests.query_by_id(test_id)
         if test["status"] == TEST_FINISHED:
             return
+        unschedule_search(self.splunk, test_id, raise_error=False)
         test.update({
             "status": TEST_STOPPING,
         })
         tests.update(test_id, json.dumps(test))
-        schedule_search(self.service, test_id)
+        schedule_search(self.splunk, test_id)
 
 
 class PerformanceTestItemsHandler(BaseRestHandler):
@@ -99,11 +102,14 @@ class PerformanceTestItemsHandler(BaseRestHandler):
         }))
 
         def map(item):
-            return {
+            result = {
                 "id": item["_key"],
                 "status": item["status"],
                 "data": item["data"],
             }
+            if "stack_id" in item:
+                result["stack_id"] = item["stack_id"]
+            return result
         self.send_entries([map(item) for item in items])
 
 
@@ -112,10 +118,7 @@ def get_search_name(test_id):
 
 
 def schedule_search(splunk, test_id):
-    try:
-        unschedule_search(splunk, test_id)
-    except KeyError:
-        pass
+    unschedule_search(splunk, test_id, raise_error=False)
     search = splunk.saved_searches.create(
         name=get_search_name(test_id),
         search="| performancetest test_id=\"%s\"" % (test_id),
@@ -136,9 +139,13 @@ def schedule_search(splunk, test_id):
     )
 
 
-def unschedule_search(splunk, test_id):
+def unschedule_search(splunk, test_id, raise_error=True):
     search_name = get_search_name(test_id)
-    splunk.saved_searches.delete(search_name)
+    try:
+        splunk.saved_searches.delete(search_name)
+    except KeyError:
+        if raise_error:
+            raise
 
 
 @Configuration(type='reporting')
@@ -247,15 +254,28 @@ def run_test_items(splunk, test_id, test):
         if status == ITEM_FINISHED:
             continue
         if status == ITEM_WAITING:
+            result = splunk.post("saas/stacks", **{
+                # "deployment_type": "",
+                # "license_master_mode": "",
+                # "indexer_count": "",
+                # "search_head_count": "",
+                # "cpu_per_instance": "",
+                # "memory_per_instance": "",
+                "title": "Performance Test %s - %s" % (test_id, item_id),
+                # "cluster": "",
+            })
+            response = json.loads(result.body.read())["entry"][0]["content"]
+            logging.debug("create stack result: %s" % response)
             item.update({
                 "status": ITEM_CREATING,
+                "stack_id": response["stack_id"],
             })
             items_collection.update(item_id, json.dumps(item))
             raise errors.RetryOperation(
                 "creating test item %s" % item_id)
         elif status == ITEM_CREATING:
-            logging.warning("run_test_items: %s not implemented" %
-                            (ITEM_CREATING))
+            logging.warning(
+                "TODO: wait for stack being created and run generators")
             item.update({
                 "status": ITEM_RUNNING,
             })
@@ -263,8 +283,7 @@ def run_test_items(splunk, test_id, test):
             raise errors.RetryOperation(
                 "running test item %s" % item_id)
         elif status == ITEM_RUNNING:
-            logging.warning("run_test_items: %s not implemented" %
-                            (ITEM_RUNNING))
+            logging.warning("TODO: wait for time being elapsed")
             item.update({
                 "status": ITEM_DELETING,
             })
@@ -272,7 +291,7 @@ def run_test_items(splunk, test_id, test):
             raise errors.RetryOperation(
                 "deleting test item %s" % item_id)
         elif status == ITEM_DELETING:
-            stop_test_item(splunk, test_id, item_id)
+            stop_test_item(splunk, test_id, item_id, item)
             item.update({
                 "status": ITEM_FINISHED,
             })
@@ -297,9 +316,11 @@ def stop_test_items(splunk, test_id, test):
         if status == ITEM_WAITING:
             pass
         elif status == ITEM_CREATING:
-            stop_test_item(splunk, test_id, item_id)
+            stop_test_item(splunk, test_id, item_id, item)
+            logging.info("stopped item %s" % item)
         elif status == ITEM_RUNNING:
-            stop_test_item(splunk, test_id, item_id)
+            stop_test_item(splunk, test_id, item_id, item)
+            logging.info("stopped item %s" % item)
         elif status == ITEM_FINISHED:
             pass
         else:
@@ -308,11 +329,24 @@ def stop_test_items(splunk, test_id, test):
             raise errors.RetryOperation()
         item.update({"stopped": True})
         items_collection.update(item_id, json.dumps(item))
-        logging.info("stopped item %s" % item)
 
 
-def stop_test_item(splunk, test_id, item_id):
-    pass
+def stop_test_item(splunk, test_id, item_id, item):
+    if "stack_id" not in item:
+        return
+    stack_id = item["stack_id"]
+    result = splunk.get("saas/stack/%s" % stack_id)
+    logging.debug("get stack result: %s" % result)
+    response = json.loads(result.body.read())["entry"][0]["content"]
+    logging.debug("get stack response: %s" % response)
+    stack_status = response["status"]
+    if stack_status == stacks.DELETING:
+        raise errors.RetryOperation("still in status %s" % stacks.DELETING)
+    if stack_status != stacks.DELETED:
+        result = splunk.delete("saas/stack/%s" % stack_id)
+        response = json.loads(result.body.read())["entry"][0]["content"]
+        logging.debug("delete stack result: %s" % response)
+        raise errors.RetryOperation("just issues stack deletion")
 
 
 dispatch(PerformanceTest, sys.argv, sys.stdin, sys.stdout, __name__)

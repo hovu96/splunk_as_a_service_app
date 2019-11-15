@@ -114,8 +114,15 @@ class StackHandler(BaseRestHandler):
     def handle_GET(self):
         path = self.request['path']
         _, stack_id = os.path.split(path)
-        stack = self.stacks.query_by_id(
-            stack_id)
+        try:
+            stack = self.stacks.query_by_id(
+                stack_id)
+        except splunklib.binding.HTTPError as e:
+            if e.status != 404:
+                raise
+            self.response.setStatus(404)
+            return
+
         result = {
             "status": stack["status"],
             "title": stack["title"] if "title" in stack else "",
@@ -168,7 +175,10 @@ class StackHandler(BaseRestHandler):
     def handle_DELETE(self):
         path = self.request['path']
         _, stack_id = os.path.split(path)
-        force = self.request["query"]["force"] == "true"
+        if "force" in self.request["query"]:
+            force = self.request["query"]["force"] == "true"
+        else:
+            force = False
         stack_operation.stop(
             self.service, stack_id, force=force)
         self.send_result({
