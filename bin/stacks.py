@@ -97,6 +97,14 @@ class StacksHandler(BaseRestHandler):
             }
         )
 
+        # add missing fields
+        if "data_fabric_search" not in stack_record:
+            stack_record["data_fabric_search"] = "false"
+        if "cpu_per_instance" not in stack_record:
+            stack_record["cpu_per_instance"] = "1"
+        if "memory_per_instance" not in stack_record:
+            stack_record["memory_per_instance"] = "4Gi"
+
         # save stack
         stack_id = self.stacks.insert(
             json.dumps(stack_record))["_key"]
@@ -114,14 +122,7 @@ class StackHandler(BaseRestHandler):
     def handle_GET(self):
         path = self.request['path']
         _, stack_id = os.path.split(path)
-        try:
-            stack = self.stacks.query_by_id(
-                stack_id)
-        except splunklib.binding.HTTPError as e:
-            if e.status != 404:
-                raise
-            self.response.setStatus(404)
-            return
+        stack = self.stacks.query_by_id(stack_id)
 
         result = {
             "status": stack["status"],

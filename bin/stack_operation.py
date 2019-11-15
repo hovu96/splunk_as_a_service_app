@@ -168,17 +168,18 @@ class StackOperation(GeneratingCommand):
                      force=self.command == "kill")
             else:
                 logging.error("unknown command: %s" % self.command)
+            logging.debug("will stop '%s' command" % self.command)
         except errors.RetryOperation as e:
             logging.info("will retry because: %s" % e)
             return
         except:
             import traceback
             logging.error(traceback.format_exc())
-            logging.debug("will retry" % self.command)
+            logging.debug("will retry %s" % self.command)
             return
+        finally:
+            logging.shutdown()
 
-        logging.debug("will stop '%s' command" % self.command)
-        logging.shutdown()
         unschedule_operation(self.service, self.stack_id)
 
 

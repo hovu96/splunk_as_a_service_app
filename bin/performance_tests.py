@@ -22,19 +22,19 @@ TEST_RUNNING = "Running"
 TEST_STOPPING = "Stopping"
 TEST_FINISHED = "Finished"
 
-ITEM_WAITING = "Waiting"
-ITEM_CREATING = "Creating"
-ITEM_RUNNING = "Running"
-ITEM_DELETING = "Deleting"
-ITEM_FINISHED = "Finished"
+CASE_WAITING = "Waiting"
+CASE_CREATING = "Creating"
+CASE_RUNNING = "Running"
+CASE_DELETING = "Deleting"
+CASE_FINISHED = "Finished"
 
 
 def get_performance_tests_collection(splunk):
     return splunk.kvstore["performance_tests"].data
 
 
-def get_performance_test_items_collection(splunk):
-    return splunk.kvstore["performance_test_items"].data
+def get_performance_test_cases_collection(splunk):
+    return splunk.kvstore["performance_test_cases"].data
 
 
 class PerformanceTestsHandler(BaseRestHandler):
@@ -92,25 +92,25 @@ class PerformanceTestHandler(BaseRestHandler):
         schedule_search(self.splunk, test_id)
 
 
-class PerformanceTestItemsHandler(BaseRestHandler):
+class PerformanceTestCasesHandler(BaseRestHandler):
     def handle_GET(self):
         path = self.request['path']
         _, test_id = os.path.split(path)
-        items_collection = get_performance_test_items_collection(self.splunk)
-        items = items_collection.query(query=json.dumps({
+        cases_collection = get_performance_test_cases_collection(self.splunk)
+        cases = cases_collection.query(query=json.dumps({
             "test_id": test_id
         }))
 
-        def map(item):
+        def map(case):
             result = {
-                "id": item["_key"],
-                "status": item["status"],
-                "data": item["data"],
+                "id": case["_key"],
+                "status": case["status"],
+                "data": case["data"],
             }
-            if "stack_id" in item:
-                result["stack_id"] = item["stack_id"]
+            if "stack_id" in case:
+                result["stack_id"] = case["stack_id"]
             return result
-        self.send_entries([map(item) for item in items])
+        self.send_entries([map(case) for case in cases])
 
 
 def get_search_name(test_id):
@@ -197,7 +197,7 @@ def perform_test(splunk, test_id):
     test = tests.query_by_id(test_id)
 
     if test["status"] == TEST_PREPARING:
-        prepare_test_items(splunk, test_id, test)
+        prepare_cases(splunk, test_id, test)
         test.update({
             "status": TEST_RUNNING,
         })
@@ -205,7 +205,7 @@ def perform_test(splunk, test_id):
         logging.info("new test status: %s" % test["status"])
 
     if test["status"] == TEST_RUNNING:
-        run_test_items(splunk, test_id, test)
+        run_cases(splunk, test_id, test)
         test.update({
             "status": TEST_STOPPING,
         })
@@ -213,7 +213,7 @@ def perform_test(splunk, test_id):
         logging.info("new test status: %s" % test["status"])
 
     if test["status"] == TEST_STOPPING:
-        stop_test_items(splunk, test_id, test)
+        stop_cases(splunk, test_id, test)
         test.update({
             "status": TEST_FINISHED,
             "finished": datetime.datetime.utcnow().timestamp(),
@@ -225,35 +225,35 @@ def perform_test(splunk, test_id):
         logging.error("unexpected state: %s" % test["status"])
 
 
-def prepare_test_items(splunk, test_id, test):
+def prepare_cases(splunk, test_id, test):
     testsuite_results = splunk.jobs.oneshot(
         "| inputlookup %s" % test["testsuite"])
     testsuite_reader = results.ResultsReader(testsuite_results)
-    items_collection = get_performance_test_items_collection(splunk)
+    cases_collection = get_performance_test_cases_collection(splunk)
     cnt = 0
-    for testsuite_item in testsuite_reader:
-        logging.debug("creating item %s" % json.dumps(testsuite_item))
-        item_record = {
-            "status": ITEM_WAITING,
+    for case_data in testsuite_reader:
+        logging.debug("creating test case %s" % json.dumps(case_data))
+        case = {
+            "status": CASE_WAITING,
             "test_id": test_id,
-            "data": json.dumps(testsuite_item)
+            "data": json.dumps(case_data)
         }
-        items_collection.insert(json.dumps(item_record))["_key"]
+        cases_collection.insert(json.dumps(case))["_key"]
         cnt += 1
-    logging.info("created %s items" % cnt)
+    logging.info("created %s test cases" % cnt)
 
 
-def run_test_items(splunk, test_id, test):
-    items_collection = get_performance_test_items_collection(splunk)
-    items = items_collection.query(query=json.dumps({
+def run_cases(splunk, test_id, test):
+    cases_collection = get_performance_test_cases_collection(splunk)
+    cases = cases_collection.query(query=json.dumps({
         "test_id": test_id,
     }))
-    for item in items:
-        item_id = item["_key"]
-        status = item["status"]
-        if status == ITEM_FINISHED:
+    for case in cases:
+        case_id = case["_key"]
+        status = case["status"]
+        if status == CASE_FINISHED:
             continue
-        if status == ITEM_WAITING:
+        if status == CASE_WAITING:
             result = splunk.post("saas/stacks", **{
                 # "deployment_type": "",
                 # "license_master_mode": "",
@@ -261,80 +261,86 @@ def run_test_items(splunk, test_id, test):
                 # "search_head_count": "",
                 # "cpu_per_instance": "",
                 # "memory_per_instance": "",
-                "title": "Performance Test %s - %s" % (test_id, item_id),
+                "title": "Performance Test %s - %s" % (test_id, case_id),
                 # "cluster": "",
             })
             response = json.loads(result.body.read())["entry"][0]["content"]
             logging.debug("create stack result: %s" % response)
-            item.update({
-                "status": ITEM_CREATING,
+            case.update({
+                "status": CASE_CREATING,
                 "stack_id": response["stack_id"],
             })
-            items_collection.update(item_id, json.dumps(item))
+            cases_collection.update(case_id, json.dumps(case))
             raise errors.RetryOperation(
-                "creating test item %s" % item_id)
-        elif status == ITEM_CREATING:
-            logging.warning(
-                "TODO: wait for stack being created and run generators")
-            item.update({
-                "status": ITEM_RUNNING,
+                "creating test case %s" % case_id)
+        elif status == CASE_CREATING:
+            stack = splunk.get("saas/stack/%s" % case["stack_id"])
+            stack_status = json.loads(stack.body.read())[
+                "entry"][0]["content"]["status"]
+            if stack_status == stacks.CREATING:
+                raise errors.RetryOperation("stack not yet created")
+            if stack_status != stacks.CREATED:
+                raise Exception("unexpected stack status: %s" % stack_status)
+            logging.warning("TODO: run load generators")
+            case.update({
+                "status": CASE_RUNNING,
             })
-            items_collection.update(item_id, json.dumps(item))
+            cases_collection.update(case_id, json.dumps(case))
             raise errors.RetryOperation(
-                "running test item %s" % item_id)
-        elif status == ITEM_RUNNING:
+                "running test case %s" % case_id)
+        elif status == CASE_RUNNING:
             logging.warning("TODO: wait for time being elapsed")
-            item.update({
-                "status": ITEM_DELETING,
+            case.update({
+                "status": CASE_DELETING,
             })
-            items_collection.update(item_id, json.dumps(item))
+            cases_collection.update(case_id, json.dumps(case))
             raise errors.RetryOperation(
-                "deleting test item %s" % item_id)
-        elif status == ITEM_DELETING:
-            stop_test_item(splunk, test_id, item_id, item)
-            item.update({
-                "status": ITEM_FINISHED,
+                "deleting test case %s" % case_id)
+        elif status == CASE_DELETING:
+            stop_case(splunk, test_id, case_id, case)
+            case.update({
+                "status": CASE_FINISHED,
             })
-            items_collection.update(item_id, json.dumps(item))
-            logging.info("finished test item %s" % item_id)
+            cases_collection.update(case_id, json.dumps(case))
+            logging.info("finished test case %s" % case_id)
         else:
             logging.error(
-                "run_test_items: unexpected status for item %s: %s" % (item_id, status))
+                "run_cases: unexpected status for test case %s: %s" % (case_id, status))
             raise errors.RetryOperation()
 
 
-def stop_test_items(splunk, test_id, test):
-    items_collection = get_performance_test_items_collection(splunk)
-    items = items_collection.query(query=json.dumps({
+def stop_cases(splunk, test_id, test):
+    cases_collection = get_performance_test_cases_collection(splunk)
+    cases = cases_collection.query(query=json.dumps({
         "test_id": test_id,
     }))
-    for item in items:
-        item_id = item["_key"]
-        status = item["status"]
-        if "stopped" in item and item["stopped"] == True:
+    for case in cases:
+        case_id = case["_key"]
+        status = case["status"]
+        if "stopped" in case and case["stopped"] == True:
             continue
-        if status == ITEM_WAITING:
+        if status == CASE_WAITING:
             pass
-        elif status == ITEM_CREATING:
-            stop_test_item(splunk, test_id, item_id, item)
-            logging.info("stopped item %s" % item)
-        elif status == ITEM_RUNNING:
-            stop_test_item(splunk, test_id, item_id, item)
-            logging.info("stopped item %s" % item)
-        elif status == ITEM_FINISHED:
+        elif status == CASE_CREATING:
+            stop_case(splunk, test_id, case_id, case)
+            logging.info("stopped test case %s" % case_id)
+        elif status == CASE_RUNNING:
+            stop_case(splunk, test_id, case_id, case)
+            logging.info("stopped test case %s" % case_id)
+        elif status == CASE_FINISHED:
             pass
         else:
             logging.error(
-                "stop_test_items: unexpected status for item %s: %s" % (item_id, status))
+                "stop_cases: unexpected status for test case %s: %s" % (case_id, status))
             raise errors.RetryOperation()
-        item.update({"stopped": True})
-        items_collection.update(item_id, json.dumps(item))
+        case.update({"stopped": True})
+        cases_collection.update(case_id, json.dumps(case))
 
 
-def stop_test_item(splunk, test_id, item_id, item):
-    if "stack_id" not in item:
+def stop_case(splunk, test_id, case_id, case):
+    if "stack_id" not in case:
         return
-    stack_id = item["stack_id"]
+    stack_id = case["stack_id"]
     result = splunk.get("saas/stack/%s" % stack_id)
     logging.debug("get stack result: %s" % result)
     response = json.loads(result.body.read())["entry"][0]["content"]

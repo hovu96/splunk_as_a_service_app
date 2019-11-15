@@ -175,6 +175,7 @@ def get_splunk(custom_objects_api, stack_id, stack_config):
 
 def create_splunk(custom_objects_api, stack_id, stack_config, cluster_config):
     def str2bool(v):
+        v = "%s" % v
         return v.lower() in ("yes", "true", "t", "1")
     splunk_defaults = {}
     if stack_config["license_master_mode"] == "remote":
