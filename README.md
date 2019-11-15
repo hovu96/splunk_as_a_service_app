@@ -2,6 +2,8 @@
 
 A Splunk app to deploy, manage and monitor other Splunk environments in remote Kubernetes clusters.
 
+![Service-Overview](ServiceOverview.png)
+
 This is an early prototype and should not be used in a production environment.
 
 ## Features
