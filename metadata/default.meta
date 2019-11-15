@@ -25,6 +25,14 @@ export = none
 [views/internal_usage]
 access = read : [ saas_admin ]
 
+[views/performance_tests]
+access = read : [ saas_power ]
+export = none
+
+[views/performance_test]
+access = read : [ saas_power ]
+export = none
+
 [datamodels/license_usage]
 access = read : [ saas_user ]
 export = none

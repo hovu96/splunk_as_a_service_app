@@ -33,3 +33,22 @@ def create_client(core_api, stack_id, stack_config, role):
     )
     splunk.login()
     return splunk
+
+
+def check_instance_startup_complated(core_api, stack_config, pod):
+    if pod.status.phase != "Running":
+        logging.debug("pod=\"%s\" not yet running (still %s)" %
+                      (pod.metadata.name, pod.status.phase))
+        return False
+    logs = core_api.read_namespaced_pod_log(
+        name=pod.metadata.name,
+        namespace=stack_config["namespace"],
+        tail_lines=100,
+    )
+    if "Ansible playbook complete" in logs:
+        logging.debug("pod=\"%s\" status=\"completed\"" % pod.metadata.name)
+        return True
+    else:
+        logging.debug("pod=\"%s\" status=\"not_yet_completed\"" %
+                      pod.metadata.name)
+        return False

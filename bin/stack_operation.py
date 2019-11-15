@@ -132,11 +132,11 @@ class StackOperation(GeneratingCommand):
 
     def generate(self):
         log_file_path = os.path.join(os.path.dirname(
-            os.path.dirname(__file__)), "..", "..", "..", "var", "log", "splunk", "saas_stack_operation_" + self.stack_id+".log")
+            os.path.dirname(__file__)), "..", "..", "..", "var", "log", "splunk", "saas_stack_operation_" + self.stack_id + ".log")
         file_handler = logging.handlers.RotatingFileHandler(
             log_file_path, maxBytes=25000000, backupCount=5)
         formatter = logging.Formatter(
-            '%(asctime)s stack_id=\"'+self.stack_id +
+            '%(asctime)s stack_id=\"' + self.stack_id +
             '\" level=\"%(levelname)s\" %(message)s')
         formatter.datefmt = "%m/%d/%Y %H:%M:%S %Z"
         file_handler.setFormatter(formatter)
@@ -168,13 +168,13 @@ class StackOperation(GeneratingCommand):
                      force=self.command == "kill")
             else:
                 logging.error("unknown command: %s" % self.command)
-        except errors.RetryOperation:
-            logging.debug("will retry '%s' command" % self.command)
+        except errors.RetryOperation as e:
+            logging.info("will retry because: %s" % e)
             return
         except:
             import traceback
             logging.error(traceback.format_exc())
-            logging.debug("will retry '%s' command" % self.command)
+            logging.debug("will retry" % self.command)
             return
 
         logging.debug("will stop '%s' command" % self.command)

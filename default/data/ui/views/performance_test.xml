@@ -1,0 +1,50 @@
+<form script="performance_test.js" stylesheet="performance_test.css">
+  <label>Performance Test</label>
+  <fieldset submitButton="false"></fieldset>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>| rest splunk_server=local services/saas/performance_test_items/$test_id$ | fields - splunk_server | table id status data *</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <input type="time" token="logs" searchWhenChanged="true">
+        <label>Time</label>
+        <default>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <input type="dropdown" token="log_level_filter" searchWhenChanged="true">
+        <label>Level</label>
+        <choice value="eventtype=performance_test_debug">Debug</choice>
+        <choice value="eventtype=performance_test_info">Info</choice>
+        <choice value="eventtype=performance_test_warning">Warning</choice>
+        <choice value="eventtype=performance_test_error">Error</choice>
+        <default>eventtype=performance_test_info</default>
+        <initialValue>eventtype=performance_test_info</initialValue>
+      </input>
+      <event>
+        <search>
+          <query>sourcetype="performance_test" performance_test_id="$test_id$" $log_level_filter$ | fields + eventtype | rename performance_test_log_level as level</query>
+          <earliest>$logs.earliest$</earliest>
+          <latest>$logs.latest$</latest>
+        </search>
+        <option name="list.drilldown">none</option>
+        <option name="refresh.display">none</option>
+        <option name="type">list</option>
+      </event>
+    </panel>
+  </row>
+</form>

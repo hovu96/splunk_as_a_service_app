@@ -12,6 +12,7 @@ import logging
 import time
 import services
 import app_deployment
+import instances
 
 
 def create_deployment(splunk, core_api, custom_objects_api, stack_id, stack_config, cluster_config):
@@ -25,21 +26,15 @@ def create_deployment(splunk, core_api, custom_objects_api, stack_id, stack_conf
         create_splunk(
             custom_objects_api, stack_id, stack_config, cluster_config)
 
-    if not wait_until_pod_created(splunk, core_api, stack_id, stack_config):
-        logging.warning("could not find all pods")
-        raise errors.RetryOperation()
-
+    verify_pods_created(splunk, core_api, stack_id, stack_config)
     create_load_balancers(core_api, stack_id, stack_config)
-
-    if not wait_until_splunk_instance_completed(core_api, stack_id, stack_config):
-        logging.warning("splunk could not complete startup")
-        raise errors.RetryOperation()
-
+    verify_all_splunk_instance_completed_startup(
+        core_api, stack_id, stack_config)
     app_deployment.install_base_apps(
         splunk, core_api, stack_id)
 
 
-def wait_until_pod_created(splunk, core_api, stack_id, stack_config, timeout=60*15):
+def verify_pods_created(splunk, core_api, stack_id, stack_config):
     expected_number_of_instances = 0
     if stack_config["deployment_type"] == "standalone":
         expected_number_of_instances += 1
@@ -54,19 +49,14 @@ def wait_until_pod_created(splunk, core_api, stack_id, stack_config, timeout=60*
         if indexer_count > 0:
             expected_number_of_instances += indexer_count
 
-    logging.info("waiting for pod beeing created...")
-    t_end = time.time() + timeout
-    while time.time() < t_end:
-        pods = core_api.list_namespaced_pod(
-            namespace=stack_config["namespace"],
-            label_selector="app=splunk,for=%s" % stack_id,
-        ).items
-        if len(pods) == expected_number_of_instances:
-            return True
-        logging.info("expecting %s pods (found %d)" %
-                     (expected_number_of_instances, len(pods)))
-        time.sleep(1)
-    return False
+    pods = core_api.list_namespaced_pod(
+        namespace=stack_config["namespace"],
+        label_selector="app=splunk,for=%s" % stack_id,
+    ).items
+    if len(pods) == expected_number_of_instances:
+        return
+    raise errors.RetryOperation("expecting %s pods (found %d)" %
+                                (expected_number_of_instances, len(pods)))
 
 
 def create_load_balancers(core_api, stack_id, stack_config):
@@ -111,49 +101,23 @@ def create_load_balancers(core_api, stack_id, stack_config):
                 services.indexer_role,
                 stack_config["namespace"],
             )
-    #getaddrinfo(host, port, 0, SOCK_STREAM)
+    # getaddrinfo(host, port, 0, SOCK_STREAM)
 
 
-def wait_until_splunk_instance_completed(core_api, stack_id, stack_config, timeout=60*15):
-    logging.info("waiting for splunk instances to complete...")
-    t_end = time.time() + timeout
-    while time.time() < t_end:
-        pods = core_api.list_namespaced_pod(
-            namespace=stack_config["namespace"],
-            label_selector="app=splunk,for=%s" % stack_id,
-        ).items
-        number_of_pods_completed = 0
-        for p in pods:
-            if check_splunk_instance_completed(core_api, stack_config, p):
-                number_of_pods_completed += 1
-        if number_of_pods_completed == len(pods):
-            logging.info("all pods completed startup")
-            return True
-        else:
-            logging.info("Waiting for %d (out of %d) remaining pod(s) to complete startup ...",
-                         (len(pods)-number_of_pods_completed), len(pods))
-            time.sleep(5)
-    return False
-
-
-def check_splunk_instance_completed(core_api, stack_config, pod):
-    #logging.info("pod %s" % (pod.metadata.name))
-    if pod.status.phase != "Running":
-        logging.info("pod=\"%s\" not yet running (still %s)" %
-                     (pod.metadata.name, pod.status.phase))
-        return False
-    logs = core_api.read_namespaced_pod_log(
-        name=pod.metadata.name,
+def verify_all_splunk_instance_completed_startup(core_api, stack_id, stack_config):
+    logging.info("checking splunk instances to complete startup...")
+    pods = core_api.list_namespaced_pod(
         namespace=stack_config["namespace"],
-        tail_lines=100,
-    )
-    if "Ansible playbook complete" in logs:
-        logging.info("pod=\"%s\" status=\"completed\"" % pod.metadata.name)
-        return True
-    else:
-        logging.info("pod=\"%s\" status=\"not_yet_completed\"" %
-                     pod.metadata.name)
-        return False
+        label_selector="app=splunk,for=%s" % stack_id,
+    ).items
+    number_of_pods_completed = 0
+    for p in pods:
+        if instances.check_instance_startup_complated(core_api, stack_config, p):
+            number_of_pods_completed += 1
+    if number_of_pods_completed != len(pods):
+        raise errors.RetryOperation("%s out of %s pods completed startup ..." %
+                                    (number_of_pods_completed, len(pods)))
+    logging.info("all pods completed startup")
 
 
 def license_exists(core_api, stack_id, stack_config):

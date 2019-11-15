@@ -1,6 +1,5 @@
 <nav>
     <view name="service_overview" default="true" />
-    <view name="clusters" />
     <view name="stacks" />
     <view name="apps" />
     <view name="activity" />
@@ -10,6 +9,8 @@
     <view name="infrastructure" />
     <view name="configure" />
     <collection label="Other">
+        <view name="clusters" />
+        <view name="performance_tests" />
         <view name="internal_usage" />
         <collection label="Search">
             <view name="search" />
