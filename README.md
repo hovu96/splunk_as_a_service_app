@@ -16,9 +16,9 @@ This is an early prototype and should not be used in a production environment.
 
 ## Prerequisites
 
-- Splunk Enterprise 8+ (to run this app)
-- One or more Kubernetes Clusters (being the deployment targets)
-- Splunk Operator for Kubernetes (see [blog post](https://www.splunk.com/blog/2019/05/08/an-insider-s-guide-to-splunk-on-containers-and-kubernetes.html))
+- Splunk Enterprise 8.0+ (to run this app)
+- One or more Kubernetes Clusters 1.12+ (being the deployment targets)
+- [Splunk Operator for Kubernetes](https://github.com/splunk/splunk-operator)
 - [Splunk Connect for Kubernetes](https://github.com/splunk/splunk-connect-for-kubernetes)
 
 ## Getting Started
@@ -27,7 +27,7 @@ TODO
 
 ## Architecture
 
-![Image of Yaktocat](architecture.png)
+![Architecture](architecture.png)
 
 ## Contributing
 
