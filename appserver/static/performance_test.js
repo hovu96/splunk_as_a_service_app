@@ -18,6 +18,12 @@ require([
     const titleElement = $(".dashboard-title.dashboard-header-title");
     titleElement.text(titleElement.text() + ": " + testID);
 
+    const backButton = $('<button class="btn btn-primary action-button">Back</button>');
+    backButton.click(async function () {
+        window.location.href = 'performance_tests';
+    });
+    $(".dashboard-view-controls").append(backButton);
+
     const stopButton = $('<button class="btn btn-primary action-button" style="background-color: red;">Stop</button>');
     stopButton.click(async function () {
         const progressIndicator = Utils.newLoadingIndicator({

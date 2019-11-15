@@ -9,6 +9,12 @@ require([
     Utils,
     _
 ) {
+    const backButton = $('<button class="btn btn-primary action-button">Back</button>');
+    backButton.click(async function () {
+        window.location.href = 'apps';
+    });
+    $(".dashboard-view-controls").append(backButton);
+
     $("#addButton").click(function () {
         var uploadURL = Splunk.util.make_url('custom', appName, "upload_app", "post");
         const progressIndicator = Utils.newLoadingIndicator({

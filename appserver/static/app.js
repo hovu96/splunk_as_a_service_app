@@ -27,6 +27,12 @@ require([
     };
     updateTitle(appName);
 
+    const backButton = $('<button class="btn btn-primary action-button">Back</button>');
+    backButton.click(async function () {
+        window.location.href = 'apps';
+    });
+    $(".dashboard-view-controls").append(backButton);
+
     endpoint.get('app/' + appName + "/" + appVersion, {}, function (err, response) {
         if (err) {
             Utils.showErrorDialog("Error loading app details", err).footer.append($('<button>Retry</button>').attr({

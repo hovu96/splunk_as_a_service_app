@@ -39,6 +39,11 @@ require([
         });
     });
 
+    const backButton = $('<button class="btn btn-primary action-button">Back</button>');
+    backButton.click(async function () {
+        window.location.href = 'stacks';
+    });
+    $(".dashboard-view-controls").append(backButton);
 
     const deleteButton = $('<button class="btn btn-primary action-button" style="background-color: red;">Delete</button>');
     deleteButton.click(function () {
