@@ -23,9 +23,9 @@ TEST_STOPPING = "Stopping"
 TEST_FINISHED = "Finished"
 
 CASE_WAITING = "Waiting"
-CASE_CREATING = "Creating"
+CASE_STARTING = "Starting"
 CASE_RUNNING = "Running"
-CASE_DELETING = "Deleting"
+CASE_STOPPING = "Stopping"
 CASE_FINISHED = "Finished"
 
 
@@ -261,24 +261,28 @@ def run_cases(splunk, test_id, test):
                 # "search_head_count": "",
                 # "cpu_per_instance": "",
                 # "memory_per_instance": "",
-                "title": "Performance Test %s - %s" % (test_id, case_id),
+                "title": "Performance Test %s and Case %s" % (test_id, case_id),
                 # "cluster": "",
             })
             response = json.loads(result.body.read())["entry"][0]["content"]
-            logging.debug("create stack result: %s" % response)
+            stack_id = response["stack_id"]
+            logging.info("created stack %s for test case %s" %
+                         (stack_id, case_id))
             case.update({
-                "status": CASE_CREATING,
-                "stack_id": response["stack_id"],
+                "status": CASE_STARTING,
+                "stack_id": stack_id,
             })
             cases_collection.update(case_id, json.dumps(case))
             raise errors.RetryOperation(
-                "creating test case %s" % case_id)
-        elif status == CASE_CREATING:
-            stack = splunk.get("saas/stack/%s" % case["stack_id"])
+                "starting test case %s" % case_id)
+        elif status == CASE_STARTING:
+            stack_id = case["stack_id"]
+            stack = splunk.get("saas/stack/%s" % stack_id)
             stack_status = json.loads(stack.body.read())[
                 "entry"][0]["content"]["status"]
             if stack_status == stacks.CREATING:
-                raise errors.RetryOperation("stack not yet created")
+                raise errors.RetryOperation(
+                    "stack %s for case %s still in status %s" % (stack_id, case_id, stack_status))
             if stack_status != stacks.CREATED:
                 raise Exception("unexpected stack status: %s" % stack_status)
             logging.warning("TODO: run load generators")
@@ -291,12 +295,12 @@ def run_cases(splunk, test_id, test):
         elif status == CASE_RUNNING:
             logging.warning("TODO: wait for time being elapsed")
             case.update({
-                "status": CASE_DELETING,
+                "status": CASE_STOPPING,
             })
             cases_collection.update(case_id, json.dumps(case))
             raise errors.RetryOperation(
-                "deleting test case %s" % case_id)
-        elif status == CASE_DELETING:
+                "stopping test case %s" % case_id)
+        elif status == CASE_STOPPING:
             stop_case(splunk, test_id, case_id, case)
             case.update({
                 "status": CASE_FINISHED,
@@ -321,10 +325,13 @@ def stop_cases(splunk, test_id, test):
             continue
         if status == CASE_WAITING:
             pass
-        elif status == CASE_CREATING:
+        elif status == CASE_STARTING:
             stop_case(splunk, test_id, case_id, case)
             logging.info("stopped test case %s" % case_id)
         elif status == CASE_RUNNING:
+            stop_case(splunk, test_id, case_id, case)
+            logging.info("stopped test case %s" % case_id)
+        elif status == CASE_STOPPING:
             stop_case(splunk, test_id, case_id, case)
             logging.info("stopped test case %s" % case_id)
         elif status == CASE_FINISHED:
@@ -352,7 +359,7 @@ def stop_case(splunk, test_id, case_id, case):
         result = splunk.delete("saas/stack/%s" % stack_id)
         response = json.loads(result.body.read())["entry"][0]["content"]
         logging.debug("delete stack result: %s" % response)
-        raise errors.RetryOperation("just issues stack deletion")
+        raise errors.RetryOperation("issued deletion of stack %s" % (stack_id))
 
 
 dispatch(PerformanceTest, sys.argv, sys.stdin, sys.stdout, __name__)

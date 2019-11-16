@@ -1,45 +1,5 @@
 <form script="performance_tests.js" stylesheet="performance_tests.css">
   <label>Performance Tests</label>
-  <fieldset submitButton="false">
-    <input type="dropdown" token="testsuite" searchWhenChanged="true">
-      <label>Select Test Suite</label>
-      <fieldForLabel>name</fieldForLabel>
-      <fieldForValue>internal_title</fieldForValue>
-      <search>
-        <query>| rest/servicesNS/-/splunk_as_a_service/data/lookup-table-files | where 'eai:appName'="splunk_as_a_service" | search title="*_test_suite.csv" | eval internal_title = title | eval name = substr(title,0,len(title)-15) | eval name = upper(substr(name,1,1)).substr(name,2) | table internal_title name</query>
-        <earliest>-24h@h</earliest>
-        <latest>now</latest>
-      </search>
-    </input>
-  </fieldset>
-  <row>
-    <panel>
-      <table>
-        <search>
-          <query>| inputlookup $testsuite$</query>
-          <earliest>$earliest$</earliest>
-          <latest>$latest$</latest>
-        </search>
-        <option name="count">10</option>
-        <option name="drilldown">none</option>
-      </table>
-    </panel>
-  </row>
-  <row id="runRow" depends="$testsuite$">
-    <panel>
-        <html>
-            <div class="performance-test-options form-horizontal">
-                <splunk-control-group class="fix-label" label="Select Cluster" help="">	
-                    <splunk-search-dropdown class="option" name="cluster" search="| rest splunk_server=local services/saas/clusters" value-field="name" label-field="name">
-                    </splunk-search-dropdown>
-                </splunk-control-group>
-                <splunk-control-group label="" help="">	
-                  <button id="run-button" class="btn btn-primary">Run Now</button>
-                </splunk-control-group>
-            </div>
-        </html>
-    </panel>
-  </row>
   <row>
     <panel>
       <title>Currently Running</title>

@@ -8,7 +8,7 @@
           <query>| rest splunk_server=local services/saas/performance_test_items/$test_id$ | fields - splunk_server | table id status data *</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
-          <refresh>30s</refresh>
+          <refresh>10s</refresh>
           <refreshType>delay</refreshType>
         </search>
         <option name="count">10</option>
@@ -40,7 +40,7 @@
           <query>sourcetype="performance_test" performance_test_id="$test_id$" $log_level_filter$ | fields + eventtype | rename performance_test_log_level as level</query>
           <earliest>$logs.earliest$</earliest>
           <latest>$logs.latest$</latest>
-          <refresh>30s</refresh>
+          <refresh>10s</refresh>
           <refreshType>delay</refreshType>
         </search>
         <option name="list.drilldown">none</option>
