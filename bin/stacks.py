@@ -100,6 +100,8 @@ class StacksHandler(BaseRestHandler):
         # add missing fields
         if "data_fabric_search" not in stack_record:
             stack_record["data_fabric_search"] = "false"
+        if "spark_worker_count" not in stack_record:
+            stack_record["spark_worker_count"] = "0"
         if "cpu_per_instance" not in stack_record:
             stack_record["cpu_per_instance"] = "1"
         if "memory_per_instance" not in stack_record:

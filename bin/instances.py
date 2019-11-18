@@ -5,10 +5,15 @@ bin_path = os.path.join(os.path.dirname(__file__))
 if bin_path not in sys.path:
     sys.path.insert(0, bin_path)
 
+import fix_path
 import services
 import splunklib
 import base64
 import logging
+from base_handler import BaseRestHandler
+import stacks
+import clusters
+from kubernetes import client as kubernetes
 
 
 def create_client(core_api, stack_id, stack_config, role):
@@ -52,3 +57,22 @@ def check_instance_startup_complated(core_api, stack_config, pod):
         logging.debug("pod=\"%s\" status=\"not_yet_completed\"" %
                       pod.metadata.name)
         return False
+
+
+class InstancesHandler(BaseRestHandler):
+    def handle_GET(self):
+        path = self.request['path']
+        _, stack_id = os.path.split(path)
+
+        stack = stacks.get_stack_config(self.splunk, stack_id)
+        client = clusters.create_client(stack["cluster"])
+        core_api = kubernetes.CoreV1Api(client)
+
+        #def map(d):
+        #    return {
+        #        "id": d["_key"],
+        #        "status": d["status"],
+        #        "title": d["title"] if "title" in d else "",
+        #        "cluster": d["cluster"],
+        #    }
+        #self.send_entries([map(d) for d in query])

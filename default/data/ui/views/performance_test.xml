@@ -4,8 +4,9 @@
   <row>
     <panel>
       <table>
-        <search>
-          <query>| rest splunk_server=local services/saas/performance_test_items/$test_id$ | fields - splunk_server | table id status data *</query>
+        <title>General Information</title>
+        <search id="status_search">
+          <query>| rest splunk_server=local services/saas/performance_test/$test_id$ | fields - splunk_server id | table status *</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <refresh>10s</refresh>
@@ -13,7 +14,27 @@
         </search>
         <option name="count">10</option>
         <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Test Cases</title>
+        <search>
+          <query>| rest splunk_server=local services/saas/performance_test_items/$test_id$ | fields - splunk_server | table id status *</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <refresh>10s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <condition field="stack_id">
+            <link>stack?id=$row.stack_id$</link>
+          </condition>
+        </drilldown>
       </table>
     </panel>
   </row>
@@ -35,18 +56,80 @@
         <default>eventtype=performance_test_info</default>
         <initialValue>eventtype=performance_test_info</initialValue>
       </input>
-      <event>
+      <table>
+        <title>Events</title>
         <search>
-          <query>sourcetype="performance_test" performance_test_id="$test_id$" $log_level_filter$ | fields + eventtype | rename performance_test_log_level as level</query>
+          <query>sourcetype="performance_test" performance_test_id="$test_id$" $log_level_filter$ | fields + eventtype | rename performance_test_log_level as level _raw as message | table _time level message | sort - _time</query>
           <earliest>$logs.earliest$</earliest>
           <latest>$logs.latest$</latest>
           <refresh>10s</refresh>
           <refreshType>delay</refreshType>
         </search>
-        <option name="list.drilldown">none</option>
-        <option name="refresh.display">preview</option>
-        <option name="type">list</option>
-      </event>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">none</option>
+        <format type="color" field="level">
+          <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
+        </format>
+        <format type="color" field="level">
+          <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
+        </format>
+        <format type="color" field="level">
+          <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
+        </format>
+        <format type="color" field="level">
+          <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>CPU Usage</title>
+        <search>
+          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.usage_rate" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,*)` BY pod-name `span_for_performance_test($test_id$)`
+| append [
+| mstats avg(_value) as limit WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,*)` BY name `span_for_performance_test($test_id$)`
+| rename name as pod-name
+]
+| rename pod-name as instance
+
+| stats avg(usage) as usage min(limit) as limit by _time instance
+
+| lookup instances _key as instance OUTPUT stack_id
+| lookup performance_test_cases stack_id OUTPUT _key as case_id, time_started_running, time_finished_running
+| where isnotnull(time_started_running)
+| eval time_finished_running=coalesce(time_finished_running,now())
+
+| where _time&gt;=time_started_running and _time&lt;=time_finished_running
+| eventstats earliest(time_started_running) as start_time
+| eval duration = time_finished_running-time_started_running
+| eval diff_time = time_started_running-start_time
+| eval _time = _time-diff_time
+
+| streamstats limit=0 last(limit) as limit2 last(usage) as usage2 by instance
+| eval limit = coalesce(limit,limit2)
+| eval usage = coalesce(usage,usage2)
+| fields - limit2 usage2
+| eval usage_pct = (usage / limit) * 100
+
+| timechart max(usage_pct) as usage by case_id `span_for_performance_test($test_id$)`</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">none</option>
+      </chart>
     </panel>
   </row>
 </form>

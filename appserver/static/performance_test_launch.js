@@ -24,13 +24,9 @@ require([
         try {
             var options = {
                 testsuite: tokens.attributes.testsuite,
+                run_duration: tokens.attributes.run_duration,
+                cluster: tokens.attributes.cluster,
             };
-            $('.performance-test-options .option').each(function () {
-                var el = $(this);
-                var value = el.attr('value');
-                if (!value) value = "";
-                options[el.attr("name")] = value;
-            });
             const progressIndicator = Utils.newLoadingIndicator({
                 title: "Starting Performance Test ...",
                 subtitle: "Please wait.",

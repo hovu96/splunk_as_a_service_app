@@ -13,9 +13,10 @@ from splunklib.searchcommands import \
 import splunklib.results as results
 import logging
 import errors
-import datetime
+from datetime import datetime, timezone, timedelta
 import splunklib
 import stacks
+import time
 
 TEST_PREPARING = "Preparing"
 TEST_RUNNING = "Running"
@@ -37,32 +38,57 @@ def get_performance_test_cases_collection(splunk):
     return splunk.kvstore["performance_test_cases"].data
 
 
-class PerformanceTestsHandler(BaseRestHandler):
-    def handle_GET(self):
-        tests = get_performance_tests_collection(self.splunk)
-        query = tests.query(query=json.dumps({
-            "status": {"$ne": TEST_FINISHED}
-        }))
+def get_test_info(test):
+    info = {
+        "id": test["_key"],
+        "status": test["status"],
+        "testsuite": test["testsuite"],
+        "cluster": test["cluster"],
+        "time_created": test["time_created"],
+        "run_duration": test["run_duration"] if "run_duration" in test else None,
+    }
+    if "time_finished" in test:
+        info["time_finished"] = test["time_finished"]
+    return info
 
-        def map(d):
-            return {
-                "id": d["_key"],
-                "status": d["status"],
-                "testsuite": d["testsuite"] if "testsuite" in d else "????",
-                "cluster": d["cluster"] if "cluster" in d else "????",
-                "created": d["created"] if "created" in d else "????",
+
+class TestsHandler(BaseRestHandler):
+    def handle_GET(self):
+        request_query = self.request["query"]
+        if "filter" in request_query:
+            query_filter = request_query["filter"]
+        else:
+            query_filter = "non_finished"
+        if query_filter=="non_finished":
+            query = {
+                "status": {"$ne": TEST_FINISHED}
             }
-        self.send_entries([map(d) for d in query])
+        elif query_filter=="recently_finished":
+            query = {
+                "$and": [ 
+                    { "status": TEST_FINISHED}, 
+                    { "time_finished": { "$gt": (datetime.utcnow() - timedelta(hours=24)).timestamp() } },
+                ],
+            }
+        else:
+            raise Exception("unsupported filter")
+        tests = get_performance_tests_collection(self.splunk)
+        tests_query = tests.query(
+            query=json.dumps(query),
+            sort ="time_created:-1",
+            )
+        self.send_entries([get_test_info(test) for test in tests_query])
 
     def handle_POST(self):
         tests = get_performance_tests_collection(self.splunk)
         test_record = {
             "status": TEST_PREPARING,
-            "created": datetime.datetime.utcnow().timestamp(),
+            "time_created": time.time(),
         }
         fields_names = set([
             "testsuite",
             "cluster",
+            "run_duration",
         ])
         request_params = parse_qs(self.request['payload'])
         test_record.update({
@@ -76,7 +102,7 @@ class PerformanceTestsHandler(BaseRestHandler):
         })
 
 
-class PerformanceTestHandler(BaseRestHandler):
+class TestHandler(BaseRestHandler):
     def handle_DELETE(self):
         path = self.request['path']
         _, test_id = os.path.split(path)
@@ -91,6 +117,13 @@ class PerformanceTestHandler(BaseRestHandler):
         tests.update(test_id, json.dumps(test))
         schedule_search(self.splunk, test_id)
 
+    def handle_GET(self):
+        path = self.request['path']
+        _, test_id = os.path.split(path)
+        tests = get_performance_tests_collection(self.splunk)
+        test = tests.query_by_id(test_id)
+        self.send_result(get_test_info(test))
+
 
 class PerformanceTestCasesHandler(BaseRestHandler):
     def handle_GET(self):
@@ -98,19 +131,27 @@ class PerformanceTestCasesHandler(BaseRestHandler):
         _, test_id = os.path.split(path)
         cases_collection = get_performance_test_cases_collection(self.splunk)
         cases = cases_collection.query(query=json.dumps({
-            "test_id": test_id
+            "test_id": test_id 
         }))
 
         def map(case):
             result = {
                 "id": case["_key"],
                 "status": case["status"],
-                "data": case["data"],
+                "deployment_type": case["deployment_type"],
+                "indexer_count": case["indexer_count"],
+                "search_head_count": case["search_head_count"],
+                "cpu_per_instance": case["cpu_per_instance"],
+                "memory_per_instance": case["memory_per_instance"],
+                "data_volume_per_minute": case["data_volume_per_minute"],
+                "searches_per_minute": case["searches_per_minute"],
+                "user_count": case["user_count"],
             }
             if "stack_id" in case:
                 result["stack_id"] = case["stack_id"]
             return result
         self.send_entries([map(case) for case in cases])
+
 
 
 def get_search_name(test_id):
@@ -157,10 +198,11 @@ class PerformanceTest(GeneratingCommand):
             os.path.dirname(__file__)), "..", "..", "..", "var", "log", "splunk", "saas_performance_test_" + self.test_id + ".log")
         file_handler = logging.handlers.RotatingFileHandler(
             log_file_path, maxBytes=25000000, backupCount=5)
+        tz = time.strftime("%Z")
         formatter = logging.Formatter(
-            '%(asctime)s test_id=\"' + self.test_id +
+            '%(asctime)s.%(msecs)03d '+tz+' test_id=\"' + self.test_id +
             '\" level=\"%(levelname)s\" %(message)s')
-        formatter.datefmt = "%m/%d/%Y %H:%M:%S %Z"
+        formatter.datefmt = "%m/%d/%Y %H:%M:%S"
         file_handler.setFormatter(formatter)
         root_logger = logging.getLogger()
         root_logger.setLevel("DEBUG")
@@ -177,9 +219,8 @@ class PerformanceTest(GeneratingCommand):
         except errors.RetryOperation as e:
             msg = "%s" % e
             if msg:
-                logging.info("%s\n\n(will check in 1m)" % msg)
-            else:
-                logging.info("will check in 1m")
+                logging.info("%s" % msg)
+            logging.debug("will check in 1m")
             return
         except:
             import traceback
@@ -202,7 +243,7 @@ def perform_test(splunk, test_id):
             "status": TEST_RUNNING,
         })
         tests.update(test_id, json.dumps(test))
-        logging.info("new test status: %s" % test["status"])
+        logging.debug("new test status: %s" % test["status"])
 
     if test["status"] == TEST_RUNNING:
         run_cases(splunk, test_id, test)
@@ -210,16 +251,16 @@ def perform_test(splunk, test_id):
             "status": TEST_STOPPING,
         })
         tests.update(test_id, json.dumps(test))
-        logging.info("new test status: %s" % test["status"])
+        logging.debug("new test status: %s" % test["status"])
 
     if test["status"] == TEST_STOPPING:
         stop_cases(splunk, test_id, test)
         test.update({
             "status": TEST_FINISHED,
-            "finished": datetime.datetime.utcnow().timestamp(),
+            "time_finished": time.time(),
         })
         tests.update(test_id, json.dumps(test))
-        logging.info("new test status: %s" % test["status"])
+        logging.debug("new test status: %s" % test["status"])
 
     if test["status"] != TEST_FINISHED:
         logging.error("unexpected state: %s" % test["status"])
@@ -236,7 +277,15 @@ def prepare_cases(splunk, test_id, test):
         case = {
             "status": CASE_WAITING,
             "test_id": test_id,
-            "data": json.dumps(case_data)
+            "index": cnt,
+            "deployment_type": case_data["deployment_type"],
+            "indexer_count": case_data["indexer_count"],
+            "search_head_count": case_data["search_head_count"],
+            "cpu_per_instance": case_data["cpu_per_instance"],
+            "memory_per_instance": case_data["memory_per_instance"],
+            "data_volume_per_minute": case_data["data_volume_per_minute"],
+            "searches_per_minute": case_data["searches_per_minute"],
+            "user_count": case_data["user_count"],
         }
         cases_collection.insert(json.dumps(case))["_key"]
         cnt += 1
@@ -255,14 +304,13 @@ def run_cases(splunk, test_id, test):
             continue
         if status == CASE_WAITING:
             result = splunk.post("saas/stacks", **{
-                # "deployment_type": "",
-                # "license_master_mode": "",
-                # "indexer_count": "",
-                # "search_head_count": "",
-                # "cpu_per_instance": "",
-                # "memory_per_instance": "",
+                "deployment_type": case["deployment_type"],
+                "indexer_count": case["indexer_count"],
+                "search_head_count": case["search_head_count"],
+                "cpu_per_instance": case["cpu_per_instance"],
+                "memory_per_instance": case["memory_per_instance"],
                 "title": "Performance Test %s and Case %s" % (test_id, case_id),
-                # "cluster": "",
+                "cluster": test["cluster"],
             })
             response = json.loads(result.body.read())["entry"][0]["content"]
             stack_id = response["stack_id"]
@@ -274,28 +322,39 @@ def run_cases(splunk, test_id, test):
             })
             cases_collection.update(case_id, json.dumps(case))
             raise errors.RetryOperation(
-                "starting test case %s" % case_id)
+                "waiting for stack %s in test case %s starting up ..." % (stack_id, case_id))
         elif status == CASE_STARTING:
             stack_id = case["stack_id"]
             stack = splunk.get("saas/stack/%s" % stack_id)
             stack_status = json.loads(stack.body.read())[
                 "entry"][0]["content"]["status"]
             if stack_status == stacks.CREATING:
-                raise errors.RetryOperation(
-                    "stack %s for case %s still in status %s" % (stack_id, case_id, stack_status))
+                raise errors.RetryOperation()
             if stack_status != stacks.CREATED:
                 raise Exception("unexpected stack status: %s" % stack_status)
-            logging.warning("TODO: run load generators")
+            logging.info("successfully created stack %s for case %s" % (stack_id, case_id))
+            logging.warning("TODO: start load generators")
             case.update({
                 "status": CASE_RUNNING,
+                "time_started_running": time.time(),
             })
             cases_collection.update(case_id, json.dumps(case))
             raise errors.RetryOperation(
-                "running test case %s" % case_id)
+                "running test case %s ..." % case_id)
         elif status == CASE_RUNNING:
-            logging.warning("TODO: wait for time being elapsed")
+            time_started_running = case["time_started_running"]
+            time_now = time.time()
+            seconds_running_to_far = time_now - time_started_running
+            target_run_duration = test["run_duration"]
+            logging.debug("time_started_running=%s time_now=%s seconds_running_to_far=%s"%(time_started_running,time_now,seconds_running_to_far))
+            if seconds_running_to_far < (target_run_duration*60):
+                logging.debug("still waiting")
+                raise errors.RetryOperation()
+            #case["time_created"]
+            logging.info("time elapsed for case %s"%(case_id))
             case.update({
                 "status": CASE_STOPPING,
+                "time_finished_running": time.time(),
             })
             cases_collection.update(case_id, json.dumps(case))
             raise errors.RetryOperation(

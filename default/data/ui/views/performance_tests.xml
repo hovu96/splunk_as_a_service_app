@@ -1,17 +1,43 @@
-<form script="performance_tests.js" stylesheet="performance_tests.css">
+<dashboard script="performance_tests.js" stylesheet="performance_tests.css">
   <label>Performance Tests</label>
   <row>
     <panel>
       <title>Currently Running</title>
       <table>
         <search>
-          <query>| rest splunk_server=local services/saas/performance_tests | fields - splunk_server | table id cluster status *</query>
+          <query>| rest splunk_server=local services/saas/performance_tests | fields - splunk_server | rename time_created as _time | table _time cluster id status *</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+          <refresh>10s</refresh>
+          <refreshType>delay</refreshType>
         </search>
+        <option name="count">10</option>
         <option name="drilldown">row</option>
+        <option name="refresh.display">progressbar</option>
         <drilldown>
           <link target="_self">performance_test?test_id=$row.id$</link>
         </drilldown>
       </table>
     </panel>
   </row>
-</form>
+  <row>
+    <panel>
+      <title>Recently Finished</title>
+      <table>
+        <search>
+          <query>| rest splunk_server=local services/saas/performance_tests filter=recently_finished | fields - splunk_server | table id cluster status * | eval duration=tostring(time_finished-time_created,"duration") | rename time_created as _time | fields - time_finished status | table _time cluster id duration *</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+          <refresh>10s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">row</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <link target="_self">performance_test?test_id=$row.id$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</dashboard>

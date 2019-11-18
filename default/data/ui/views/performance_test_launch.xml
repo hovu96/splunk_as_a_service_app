@@ -11,6 +11,28 @@
         <latest>now</latest>
       </search>
     </input>
+    <input type="dropdown" token="run_duration" searchWhenChanged="true">
+      <label>Run Duration</label>
+      <choice value="5">5 minutes</choice>
+      <choice value="10">10 minutes</choice>
+      <choice value="20">20 minutes</choice>
+      <choice value="30">30 minutes</choice>
+      <choice value="60">1 hour</choice>
+      <choice value="120">2 hours</choice>
+      <choice value="180">3 hours</choice>
+      <choice value="360">6 hours</choice>
+      <default>1</default>
+    </input>
+    <input type="dropdown" token="cluster" searchWhenChanged="true">
+      <label>Target Cluster</label>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>| rest splunk_server=local services/saas/clusters | table name</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
   </fieldset>
   <row>
     <panel>
@@ -27,17 +49,9 @@
   </row>
   <row id="runRow">
     <panel>
-        <html>
-            <div class="performance-test-options form-horizontal">
-                <splunk-control-group class="fix-label" label="Select Cluster" help="">	
-                    <splunk-search-dropdown class="option" name="cluster" search="| rest splunk_server=local services/saas/clusters" value-field="name" label-field="name">
-                    </splunk-search-dropdown>
-                </splunk-control-group>
-                <splunk-control-group label="" help="">	
-                  <button id="run-button" class="btn btn-primary">Run Now</button>
-                </splunk-control-group>
-            </div>
-        </html>
+      <html>
+        <button id="run-button" class="btn btn-primary">Launch Test</button>
+      </html>
     </panel>
   </row>
 </form>

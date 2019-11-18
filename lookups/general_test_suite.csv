@@ -1,3 +1,4 @@
-sh,idx,cpu,ram,rf,sf,iops,sources,mb_source_per_min,searches_per_min,users,search_templates
-3,3,1,1,3,2,800,10,3,10,10,index=_internal | head 10
-4,4,1,1,3,2,800,10,3,10,10,index=_internal | head 10
+deployment_type,indexer_count,search_head_count,cpu_per_instance,memory_per_instance,data_volume_per_minute,searches_per_minute,user_count
+standalone,0,0,1,1Gi,10,20,3
+standalone,0,0,5,1Gi,50,10,3
+standalone,0,0,10,1Gi,100,30,3

@@ -31,7 +31,7 @@
             <title>Splunk Topology</title>
             <html>
                 <div class="deployment-options form-horizontal">
-                    <splunk-control-group label="Deployment Type" help="">	
+                    <splunk-control-group label="Deployment Type" help="">
                         <splunk-radio-input class="option" name="deployment_type">
                             <option value="standalone">Standalone</option>
                             <option value="distributed">Distributed</option>
