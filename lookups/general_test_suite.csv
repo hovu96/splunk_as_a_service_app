@@ -1,4 +1,6 @@
-deployment_type,indexer_count,search_head_count,cpu_per_instance,memory_per_instance,data_volume_per_minute,searches_per_minute,user_count
-standalone,0,0,1,1Gi,10,20,3
-standalone,0,0,5,1Gi,50,10,3
-standalone,0,0,10,1Gi,100,30,3
+deployment_type,indexer_count,search_head_count,cpu_per_instance,memory_per_instance,data_volume_in_gb_per_day,searches_per_minute,user_count
+standalone,0,0,2,1Gi,1,0,0
+standalone,0,0,2,1Gi,10,0,0
+standalone,0,0,2,1Gi,50,0,0
+standalone,0,0,4,1Gi,50,0,0
+standalone,0,0,2,2Gi,50,0,0

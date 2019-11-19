@@ -47,13 +47,13 @@ cluster_status_disconnected = "disconnected"
 cluster_status_unknown = "unknown"
 
 
-def get_cluster_config(service, cluster_name):
-    clusters = service.confs["clusters"]
+def get_cluster_config(splunk, cluster_name):
+    clusters = splunk.confs["clusters"]
     return clusters[cluster_name]
 
 
-def get_cluster_defaults(service):
-    clusters = service.confs["clusters"]
+def get_cluster_defaults(splunk):
+    clusters = splunk.confs["clusters"]
     defaults = clusters.create("__default__", disabled="1").content
     clusters.delete("__default__")
     return {
@@ -62,21 +62,21 @@ def get_cluster_defaults(service):
     }
 
 
-def create_client(service, cluster_name):
+def create_client(splunk, cluster_name):
     import kubernetes_utils
     from kubernetes import client
-    cluster = get_cluster_config(service, cluster_name)
+    cluster = get_cluster_config(splunk, cluster_name)
     config = kubernetes_utils.create_client_configuration(cluster)
     api_client = client.ApiClient(config)
     return api_client
 
 
-def validate_cluster(service, record):
+def validate_cluster(splunk, record):
     from kubernetes import client
     import kubernetes_utils
     try:
         connection_stanza = splunklib.client.Stanza(
-            service, "", skip_refresh=True)
+            splunk, "", skip_refresh=True)
         connection_stanza.refresh(state=splunklib.data.record({
             "content": record
         }))
@@ -136,11 +136,11 @@ class BaseClusterHandler(BaseRestHandler):
 
     @property
     def clusters(self):
-        return self.service.confs.create("clusters")
-        # return self.service.confs["clusters"]
+        return self.splunk.confs.create("clusters")
+        # return self.splunk.confs["clusters"]
 
     def create_cluster_record_from_payload(self):
-        defaults = get_cluster_defaults(self.service)
+        defaults = get_cluster_defaults(self.splunk)
         return splunklib.data.record({
             k: self.payload[k][0] if k in self.payload else defaults[k] if k in defaults else ""
             for k in cluster_fields if k != name_cluster_field
@@ -172,7 +172,7 @@ class ClustersHandler(BaseClusterHandler):
         if cluster_name in self.clusters:
             raise Exception("Cluster name already exists.")
         cluster_record = self.create_cluster_record_from_payload()
-        validate_cluster(self.service, cluster_record)
+        validate_cluster(self.splunk, cluster_record)
         cluster = self.clusters.create(cluster_name)
         cluster_record.status = cluster_status_connected
         cluster.submit(cluster_record)
@@ -200,7 +200,7 @@ class ClusterHandler(BaseClusterHandler):
 
     def handle_POST(self):
         cluster_record = self.create_cluster_record_from_payload()
-        validate_cluster(self.service, cluster_record)
+        validate_cluster(self.splunk, cluster_record)
         cluster = self.clusters[self.cluster_name]
         cluster_record.status = cluster_status_connected
         cluster_record.error = ""
@@ -215,7 +215,7 @@ class CheckClustersHandler(BaseClusterHandler):
         def map(c):
             cluster_record = self.get_cluster_record(c.name)
             try:
-                validate_cluster(self.service, cluster_record)
+                validate_cluster(self.splunk, cluster_record)
                 error = ""
                 status = cluster_status_connected
             except Exception as e:
@@ -236,5 +236,5 @@ class CheckClustersHandler(BaseClusterHandler):
 class ClusterDefaultsHandler(BaseClusterHandler):
 
     def handle_GET(self):
-        defaults = get_cluster_defaults(self.service)
+        defaults = get_cluster_defaults(self.splunk)
         self.send_json_response(defaults)

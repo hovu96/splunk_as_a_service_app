@@ -41,15 +41,16 @@ def up(splunk, stack_id):
             "status": stacks.CREATED,
         })
     elif status == stacks.CREATED:
-        import instances
-        if stack_config["deployment_type"] == "standalone":
-            inst = instances.create_client(
-                core_api, stack_id, stack_config, services.standalone_role)
-        elif stack_config["deployment_type"] == "distributed":
-            inst = instances.create_client(
-                core_api, stack_id, stack_config, services.search_head_role)
-        inst.indexes["main"].submit("test")
-        logging.warning("sent")
+        #import instances
+        #if stack_config["deployment_type"] == "standalone":
+        #    inst = instances.create_client(
+        #        core_api, stack_id, stack_config, services.standalone_role)
+        #elif stack_config["deployment_type"] == "distributed":
+        #    inst = instances.create_client(
+        #        core_api, stack_id, stack_config, services.search_head_role)
+        #inst.indexes["main"].submit("test")
+        #logging.warning("sent")
+        pass
     else:
         logging.warning("unexpected status: %s", status)
 

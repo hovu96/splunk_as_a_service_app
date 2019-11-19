@@ -17,6 +17,9 @@ from datetime import datetime, timezone, timedelta
 import splunklib
 import stacks
 import time
+import clusters
+from kubernetes import client as kubernetes
+import services
 
 TEST_PREPARING = "Preparing"
 TEST_RUNNING = "Running"
@@ -59,15 +62,16 @@ class TestsHandler(BaseRestHandler):
             query_filter = request_query["filter"]
         else:
             query_filter = "non_finished"
-        if query_filter=="non_finished":
+        if query_filter == "non_finished":
             query = {
                 "status": {"$ne": TEST_FINISHED}
             }
-        elif query_filter=="recently_finished":
+        elif query_filter == "recently_finished":
             query = {
-                "$and": [ 
-                    { "status": TEST_FINISHED}, 
-                    { "time_finished": { "$gt": (datetime.utcnow() - timedelta(hours=24)).timestamp() } },
+                "$and": [
+                    {"status": TEST_FINISHED},
+                    {"time_finished": {
+                        "$gt": (datetime.utcnow() - timedelta(hours=24)).timestamp()}},
                 ],
             }
         else:
@@ -75,8 +79,8 @@ class TestsHandler(BaseRestHandler):
         tests = get_performance_tests_collection(self.splunk)
         tests_query = tests.query(
             query=json.dumps(query),
-            sort ="time_created:-1",
-            )
+            sort="time_created:-1",
+        )
         self.send_entries([get_test_info(test) for test in tests_query])
 
     def handle_POST(self):
@@ -131,19 +135,20 @@ class PerformanceTestCasesHandler(BaseRestHandler):
         _, test_id = os.path.split(path)
         cases_collection = get_performance_test_cases_collection(self.splunk)
         cases = cases_collection.query(query=json.dumps({
-            "test_id": test_id 
+            "test_id": test_id
         }))
 
         def map(case):
             result = {
                 "id": case["_key"],
+                "index": case["index"],
                 "status": case["status"],
                 "deployment_type": case["deployment_type"],
                 "indexer_count": case["indexer_count"],
                 "search_head_count": case["search_head_count"],
                 "cpu_per_instance": case["cpu_per_instance"],
                 "memory_per_instance": case["memory_per_instance"],
-                "data_volume_per_minute": case["data_volume_per_minute"],
+                "data_volume_in_gb_per_day": case["data_volume_in_gb_per_day"],
                 "searches_per_minute": case["searches_per_minute"],
                 "user_count": case["user_count"],
             }
@@ -151,7 +156,6 @@ class PerformanceTestCasesHandler(BaseRestHandler):
                 result["stack_id"] = case["stack_id"]
             return result
         self.send_entries([map(case) for case in cases])
-
 
 
 def get_search_name(test_id):
@@ -200,7 +204,7 @@ class PerformanceTest(GeneratingCommand):
             log_file_path, maxBytes=25000000, backupCount=5)
         tz = time.strftime("%Z")
         formatter = logging.Formatter(
-            '%(asctime)s.%(msecs)03d '+tz+' test_id=\"' + self.test_id +
+            '%(asctime)s.%(msecs)03d ' + tz + ' test_id=\"' + self.test_id +
             '\" level=\"%(levelname)s\" %(message)s')
         formatter.datefmt = "%m/%d/%Y %H:%M:%S"
         file_handler.setFormatter(formatter)
@@ -283,7 +287,7 @@ def prepare_cases(splunk, test_id, test):
             "search_head_count": case_data["search_head_count"],
             "cpu_per_instance": case_data["cpu_per_instance"],
             "memory_per_instance": case_data["memory_per_instance"],
-            "data_volume_per_minute": case_data["data_volume_per_minute"],
+            "data_volume_in_gb_per_day": case_data["data_volume_in_gb_per_day"],
             "searches_per_minute": case_data["searches_per_minute"],
             "user_count": case_data["user_count"],
         }
@@ -332,8 +336,112 @@ def run_cases(splunk, test_id, test):
                 raise errors.RetryOperation()
             if stack_status != stacks.CREATED:
                 raise Exception("unexpected stack status: %s" % stack_status)
-            logging.info("successfully created stack %s for case %s" % (stack_id, case_id))
-            logging.warning("TODO: start load generators")
+            logging.info("successfully created stack %s for case %s" %
+                         (stack_id, case_id))
+            stack_config = stacks.get_stack_config(splunk, stack_id)
+            kube_client = clusters.create_client(
+                splunk, stack_config["cluster"])
+            core_api = kubernetes.CoreV1Api(kube_client)
+            if stack_config["deployment_type"] == "standalone":
+                hosts = services.get_load_balancer_hosts(
+                    core_api, stack_id, services.standalone_role, stack_config["namespace"])
+            elif stack_config["deployment_type"] == "distributed":
+                hosts = services.get_load_balancer_hosts(
+                    core_api, stack_id, services.indexer_role, stack_config["namespace"])
+            else:
+                raise Exception("unexpected deployment type: %s" %
+                                stack_config["deployment_type"])
+            logging.info(
+                "successfully created data gen for case %s" % (case_id))
+            data_volume_in_gb_per_day = int(case["data_volume_in_gb_per_day"])
+            logging.info("data_volume_in_gb_per_day=%s" %
+                         (data_volume_in_gb_per_day))
+            data_volume_in_gb_per_second = data_volume_in_gb_per_day / 24 / 60 / 60
+            logging.info("data_volume_in_gb_per_second=%s" %
+                         (data_volume_in_gb_per_second))
+            data_volume_in_kb_per_second = data_volume_in_gb_per_second * 1024 * 1024
+            logging.info("data_volume_in_kb_per_second=%s" %
+                         (data_volume_in_kb_per_second))
+            max_kb_per_second_per_data_generator = 100
+            logging.info("max_kb_per_second_per_data_generator=%s" %
+                         (max_kb_per_second_per_data_generator))
+            number_of_data_generators = max(
+                int(data_volume_in_kb_per_second / max_kb_per_second_per_data_generator)+1, 1)
+            logging.info("number_of_data_generators=%s" %
+                         (number_of_data_generators))
+            data_volume_in_kb_per_second_per_data_generator = data_volume_in_kb_per_second / number_of_data_generators
+            logging.info("data_volume_in_kb_per_second_per_data_generator=%s" %
+                         (data_volume_in_kb_per_second_per_data_generator))
+            cluster_config = clusters.get_cluster_config(
+                splunk, test["cluster"])
+            node_selector_labels = cluster_config["node_selector"].split(",")
+            node_selector_for_data_generators = {}
+            for label in node_selector_labels:
+                if label:
+                    kv = label.split("=")
+                    if len(kv) != 2:
+                        raise errors.ApplicationError(
+                            "invalid node selector format (%s)" % cluster_config.node_selector)
+                    node_selector_for_data_generators[kv[0]] = kv[1]
+            apps_api = kubernetes.AppsV1Api(kube_client)
+            apps_api.create_namespaced_deployment(
+                namespace=stack_config["namespace"],
+                body=kubernetes.V1Deployment(
+                    metadata=kubernetes.V1ObjectMeta(
+                        name="eventgen-%s" % (stack_id),
+                        namespace=stack_config["namespace"],
+                        labels={
+                            "for": stack_id,
+                            "app": "datagen",
+                        },
+                    ),
+                    spec=kubernetes.V1DeploymentSpec(
+                        replicas=number_of_data_generators,
+                        selector=kubernetes.V1LabelSelector(
+                            match_labels={
+                                "name": "eventgen-%s" % (stack_id),
+                            }
+                        ),
+                        template=kubernetes.V1PodTemplateSpec(
+                            metadata=kubernetes.V1ObjectMeta(
+                                labels={
+                                    "name": "eventgen-%s" % (stack_id),
+                                },
+                            ),
+                            spec=kubernetes.V1PodSpec(
+                                containers=[
+                                    kubernetes.V1Container(
+                                        name="eventgen",
+                                        image="blackhypothesis/splunkeventgenerator:latest",
+                                        resources=kubernetes.V1ResourceRequirements(
+                                            requests={
+                                                "memory": "10Mi",
+                                                "cpu": "500m",
+                                            },
+                                            limits={
+                                                "memory": "50Mi",
+                                                "cpu": "1",
+                                            },
+                                        ),
+                                        env=[
+                                            kubernetes.V1EnvVar(
+                                                name="DSTHOST",
+                                                value=";".join(
+                                                    map(lambda host: host + ":9996", hosts)),
+                                            ),
+                                            kubernetes.V1EnvVar(
+                                                name="KB_S",
+                                                value="%s" % data_volume_in_kb_per_second_per_data_generator,
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                                node_selector=node_selector_for_data_generators,
+                            ),
+                        ),
+                    ),
+                ),
+            )
             case.update({
                 "status": CASE_RUNNING,
                 "time_started_running": time.time(),
@@ -346,12 +454,12 @@ def run_cases(splunk, test_id, test):
             time_now = time.time()
             seconds_running_to_far = time_now - time_started_running
             target_run_duration = test["run_duration"]
-            logging.debug("time_started_running=%s time_now=%s seconds_running_to_far=%s"%(time_started_running,time_now,seconds_running_to_far))
-            if seconds_running_to_far < (target_run_duration*60):
+            logging.debug("time_started_running=%s time_now=%s seconds_running_to_far=%s" % (
+                time_started_running, time_now, seconds_running_to_far))
+            if seconds_running_to_far < (target_run_duration * 60):
                 logging.debug("still waiting")
                 raise errors.RetryOperation()
-            #case["time_created"]
-            logging.info("time elapsed for case %s"%(case_id))
+            logging.info("time elapsed for case %s" % (case_id))
             case.update({
                 "status": CASE_STOPPING,
                 "time_finished_running": time.time(),
@@ -414,11 +522,27 @@ def stop_case(splunk, test_id, case_id, case):
     stack_status = response["status"]
     if stack_status == stacks.DELETING:
         raise errors.RetryOperation("still in status %s" % stacks.DELETING)
-    if stack_status != stacks.DELETED:
+    elif stack_status == stacks.DELETED:
+        pass
+    elif stack_status != stacks.DELETED:
         result = splunk.delete("saas/stack/%s" % stack_id)
         response = json.loads(result.body.read())["entry"][0]["content"]
         logging.debug("delete stack result: %s" % response)
         raise errors.RetryOperation("issued deletion of stack %s" % (stack_id))
+    stack_config = stacks.get_stack_config(splunk, stack_id)
+    kube_client = clusters.create_client(
+        splunk, stack_config["cluster"])
+    apps_api = kubernetes.AppsV1Api(kube_client)
+    datagen_deployments = apps_api.list_namespaced_deployment(
+        namespace=stack_config["namespace"],
+        label_selector="app=datagen,for=%s" % stack_id,
+    ).items
+    for deployment in datagen_deployments:
+        apps_api.delete_namespaced_deployment(
+            name=deployment.metadata.name,
+            namespace=stack_config["namespace"],
+        )
+        logging.debug("deleted deployment %s" % deployment.metadata.name)
 
 
 dispatch(PerformanceTest, sys.argv, sys.stdin, sys.stdout, __name__)

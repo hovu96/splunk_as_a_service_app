@@ -56,16 +56,17 @@ def create_load_balancers(core_api, stack_id, role, namespace):
     web = False
     mgmt = False
     splunktcp = False
+    tcp = False
     selector = {
         "app": "splunk",
         "for": stack_id,
     }
     if role == standalone_role:
         selector["type"] = "standalone"
-        web = mgmt = splunktcp = True
+        web = mgmt = splunktcp = tcp = True
     elif role == indexer_role:
         selector["type"] = "indexer"
-        splunktcp = True
+        splunktcp = tcp = True
     elif role == cluster_master_role:
         selector["type"] = "cluster-master"
         web = mgmt = True
@@ -101,6 +102,13 @@ def create_load_balancers(core_api, stack_id, role, namespace):
             port=9997,
             protocol="TCP",
             target_port=9997,
+        ))
+    if tcp:
+        ports.append(kubernetes.V1ServicePort(
+            name="tcp",
+            port=9996,
+            protocol="TCP",
+            target_port=9996,
         ))
     if role == indexer_role:
         logging.info("creating load balancers for '%s' ..." % (role))
@@ -148,9 +156,9 @@ def create_load_balancers(core_api, stack_id, role, namespace):
         for load_balancer_name in lbs_to_delete:
             delete(core_api, load_balancer_name, namespace)
     else:
-        logging.info("creating load balancer for '%s' ..." % (role))
         load_balancer_name = "splunk-%s-%s-lb" % (stack_id, role)
         if not get(core_api, load_balancer_name, namespace):
+            logging.info("creating load balancer for '%s' ..." % (role))
             core_api.create_namespaced_service(
                 namespace=namespace,
                 body=kubernetes.V1Service(

@@ -177,16 +177,25 @@ def create_splunk(custom_objects_api, stack_id, stack_config, cluster_config):
     def str2bool(v):
         v = "%s" % v
         return v.lower() in ("yes", "true", "t", "1")
-    splunk_defaults = {}
-    if stack_config["license_master_mode"] == "remote":
-        splunk_defaults["splunk"] = {
+    splunk_defaults = {
+        "splunk": {
             "conf": {
-                "server": {
+                "inputs": {
                     "content": {
-                        "license": {
-                            "master_uri": cluster_config.license_master_url,
+                        "tcp://:9996": {
+                            "connection_host": "dns",
+                            "source": "tcp:9996",
                         }
                     }
+                }
+            }
+        }
+    }
+    if stack_config["license_master_mode"] == "remote":
+        splunk_defaults["splunk"]["conf"]["server"] = {
+            "content": {
+                "license": {
+                    "master_uri": cluster_config.license_master_url,
                 }
             }
         }
@@ -219,23 +228,6 @@ def create_splunk(custom_objects_api, stack_id, stack_config, cluster_config):
             "sparkMemoryLimit": stack_config["memory_per_instance"],
         },
         "defaults": yaml.dump(splunk_defaults),
-        # "affinity": {
-        #    "nodeAffinity": {
-        #        "requiredDuringSchedulingIgnoredDuringExecution": {
-        #            "nodeSelectorTerms": [
-        #                {
-        #                    "matchExpressions": [
-        #                        {
-        #                            "key": "role",
-        #                            "operator": "In",
-        #                            "values": ["splunk"],
-        #                        },
-        #                    ],
-        #                }
-        #            ],
-        #        }
-        #    }
-        # }
     }
     if cluster_config.node_selector:
         labels = cluster_config.node_selector.split(",")
