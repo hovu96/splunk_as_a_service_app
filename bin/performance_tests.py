@@ -134,9 +134,12 @@ class PerformanceTestCasesHandler(BaseRestHandler):
         path = self.request['path']
         _, test_id = os.path.split(path)
         cases_collection = get_performance_test_cases_collection(self.splunk)
-        cases = cases_collection.query(query=json.dumps({
-            "test_id": test_id
-        }))
+        cases = cases_collection.query(
+            query=json.dumps({
+                "test_id": test_id
+            }),
+            sort="index:1",
+        )
 
         def map(case):
             result = {
@@ -147,6 +150,9 @@ class PerformanceTestCasesHandler(BaseRestHandler):
                 "indexer_count": case["indexer_count"],
                 "search_head_count": case["search_head_count"],
                 "cpu_per_instance": case["cpu_per_instance"],
+                "etc_storage_in_gb": case["etc_storage_in_gb"],
+                "other_var_storage_in_gb": case["other_var_storage_in_gb"],
+                "indexer_var_storage_in_gb": case["indexer_var_storage_in_gb"],
                 "memory_per_instance": case["memory_per_instance"],
                 "data_volume_in_gb_per_day": case["data_volume_in_gb_per_day"],
                 "searches_per_minute": case["searches_per_minute"],
@@ -286,6 +292,9 @@ def prepare_cases(splunk, test_id, test):
             "indexer_count": case_data["indexer_count"],
             "search_head_count": case_data["search_head_count"],
             "cpu_per_instance": case_data["cpu_per_instance"],
+            "etc_storage_in_gb": case_data["etc_storage_in_gb"],
+            "other_var_storage_in_gb": case_data["other_var_storage_in_gb"],
+            "indexer_var_storage_in_gb": case_data["indexer_var_storage_in_gb"],
             "memory_per_instance": case_data["memory_per_instance"],
             "data_volume_in_gb_per_day": case_data["data_volume_in_gb_per_day"],
             "searches_per_minute": case_data["searches_per_minute"],
@@ -298,9 +307,12 @@ def prepare_cases(splunk, test_id, test):
 
 def run_cases(splunk, test_id, test):
     cases_collection = get_performance_test_cases_collection(splunk)
-    cases = cases_collection.query(query=json.dumps({
-        "test_id": test_id,
-    }))
+    cases = cases_collection.query(
+        query=json.dumps({
+            "test_id": test_id,
+        }),
+        sort="index:1",
+    )
     for case in cases:
         case_id = case["_key"]
         status = case["status"]
@@ -312,6 +324,9 @@ def run_cases(splunk, test_id, test):
                 "indexer_count": case["indexer_count"],
                 "search_head_count": case["search_head_count"],
                 "cpu_per_instance": case["cpu_per_instance"],
+                "etc_storage_in_gb": case["etc_storage_in_gb"],
+                "other_var_storage_in_gb": case["other_var_storage_in_gb"],
+                "indexer_var_storage_in_gb": case["indexer_var_storage_in_gb"],
                 "memory_per_instance": case["memory_per_instance"],
                 "title": "Performance Test %s and Case %s" % (test_id, case_id),
                 "cluster": test["cluster"],
@@ -366,10 +381,11 @@ def run_cases(splunk, test_id, test):
             logging.info("max_kb_per_second_per_data_generator=%s" %
                          (max_kb_per_second_per_data_generator))
             number_of_data_generators = max(
-                int(data_volume_in_kb_per_second / max_kb_per_second_per_data_generator)+1, 1)
+                int(data_volume_in_kb_per_second / max_kb_per_second_per_data_generator) + 1, 1)
             logging.info("number_of_data_generators=%s" %
                          (number_of_data_generators))
-            data_volume_in_kb_per_second_per_data_generator = data_volume_in_kb_per_second / number_of_data_generators
+            data_volume_in_kb_per_second_per_data_generator = data_volume_in_kb_per_second / \
+                number_of_data_generators
             logging.info("data_volume_in_kb_per_second_per_data_generator=%s" %
                          (data_volume_in_kb_per_second_per_data_generator))
             cluster_config = clusters.get_cluster_config(
@@ -482,9 +498,12 @@ def run_cases(splunk, test_id, test):
 
 def stop_cases(splunk, test_id, test):
     cases_collection = get_performance_test_cases_collection(splunk)
-    cases = cases_collection.query(query=json.dumps({
-        "test_id": test_id,
-    }))
+    cases = cases_collection.query(
+        query=json.dumps({
+            "test_id": test_id,
+        }),
+        sort="index:1",
+    )
     for case in cases:
         case_id = case["_key"]
         status = case["status"]

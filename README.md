@@ -15,6 +15,7 @@ This is an early prototype and should not be used in a production environment.
 - App management
 - Health tracking
 - Capacity monitoring
+- Performance testing
 
 ## Prerequisites
 

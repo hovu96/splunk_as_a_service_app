@@ -29,7 +29,6 @@
         </search>
         <option name="count">10</option>
         <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
         <option name="rowNumbers">true</option>
         <format type="color" field="status">
           <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
@@ -133,6 +132,130 @@
         </format>
         <format type="color" field="searches_per_minute">
           <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="indexer_var_storage_in_gb">
+          <colorPalette type="minMidMax" maxColor="#62B3B2" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="etc_storage_in_gb">
+          <colorPalette type="minMidMax" maxColor="#62B3B2" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="cpu_per_instance">
+          <colorPalette type="minMidMax" maxColor="#006D9C" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="cpu_per_instance">
+          <colorPalette type="minMidMax" maxColor="#006D9C" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="searches_per_minute">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="cpu_per_instance">
+          <colorPalette type="minMidMax" maxColor="#006D9C" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="cpu_per_instance">
+          <colorPalette type="minMidMax" maxColor="#006D9C" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="searches_per_minute">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="indexer_var_storage_in_gb">
+          <colorPalette type="minMidMax" maxColor="#62B3B2" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="etc_storage_in_gb">
+          <colorPalette type="minMidMax" maxColor="#62B3B2" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="other_var_storage_in_gb">
+          <colorPalette type="minMidMax" maxColor="#62B3B2" minColor="#FFFFFF"></colorPalette>
           <scale type="minMidMax"></scale>
         </format>
         <drilldown>
