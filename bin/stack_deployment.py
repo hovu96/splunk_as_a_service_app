@@ -226,6 +226,9 @@ def create_splunk(custom_objects_api, stack_id, stack_config, cluster_config):
             "sparkCpuLimit": stack_config["cpu_per_instance"],
             "sparkMemoryRequest": stack_config["memory_per_instance"],
             "sparkMemoryLimit": stack_config["memory_per_instance"],
+            "splunkEtcStorage": '%sGi' % stack_config["etc_storage_in_gb"],
+            "splunkVarStorage": '%sGi' % stack_config["other_var_storage_in_gb"],
+            "splunkIndexerStorage": '%sGi' % stack_config["indexer_var_storage_in_gb"],
         },
         "defaults": yaml.dump(splunk_defaults),
     }

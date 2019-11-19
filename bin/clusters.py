@@ -40,6 +40,9 @@ cluster_fields = set([
     "max_search_head_count",
     "namespace",
     "node_selector",
+    "etc_storage_in_gb",
+    "other_var_storage_in_gb",
+    "indexer_var_storage_in_gb",
 ])
 
 cluster_status_connected = "connected"

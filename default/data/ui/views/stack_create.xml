@@ -17,9 +17,9 @@
                     </splunk-control-group>
                     <splunk-control-group class="help" label="" help="">	
                         <p>
-                            Select the Cluster you want to distribute the Splunk Stack to. In case
+                            Select the Cluster you want to deploy the Splunk Stack to. In case
                             you cannot find the Cluster in the list above, simply
-                            <a href="cluster">add your Cluster</a>.
+                            <a href="cluster">add a Cluster</a>.
                         </p>
                     </splunk-control-group>
                 </div>
@@ -160,6 +160,33 @@
                     <splunk-control-group label="Memory per Instance" help="">	
                         <splunk-text-input class="option" name="memory_per_instance" value="4Gi">	
                         </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group label="Size of 'etc'" help="">
+                        <splunk-text-input name="etc_storage_in_gb" class="option">
+                        </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group label="" help="">
+                        <p>
+                        Storage capacity (in GB) to request for Splunk etc volume claims. This applies to all Splunk roles.
+                        </p>
+                    </splunk-control-group>
+                    <splunk-control-group label="Size of 'var'" help="">
+                        <splunk-text-input name="other_var_storage_in_gb" class="option">
+                        </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group label="" help="">
+                        <p>
+                        Storage capacity (in GB) to request for Splunk var volume claims. This applies to all Splunk roles - except Splunk indexers.
+                        </p>
+                    </splunk-control-group>
+                    <splunk-control-group label="Size of 'var' on Indexers" help="">
+                        <splunk-text-input name="indexer_var_storage_in_gb" class="option">
+                        </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group label="" help="">
+                        <p>
+                        Storage capacity (in GB) to request for Splunk etc volume claims. This applies to Splunk indexers only!
+                        </p>
                     </splunk-control-group>
                 </div>
             </html>

@@ -69,6 +69,9 @@ class StacksHandler(BaseRestHandler):
             "spark_worker_count",
             "cluster",
             "namespace",
+            "etc_storage_in_gb",
+            "other_var_storage_in_gb",
+            "indexer_var_storage_in_gb",
         ])
 
         # apply request parameters

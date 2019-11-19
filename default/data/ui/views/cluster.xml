@@ -233,6 +233,42 @@
       </html>
     </panel>
   </row>
+  <row>
+    <panel>
+      <title>Resources Defaults</title>
+      <html>
+        <div class="form-horizontal">
+          <splunk-control-group label="Size of 'etc'" help="">
+            <splunk-text-input name="etc_storage_in_gb" class="option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group label="" help="">
+            <p>
+              Storage capacity (in GB) to request for Splunk etc volume claims. This applies to all Splunk roles.
+            </p>
+          </splunk-control-group>
+          <splunk-control-group label="Size of 'var'" help="">
+            <splunk-text-input name="other_var_storage_in_gb" class="option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group label="" help="">
+            <p>
+              Storage capacity (in GB) to request for Splunk var volume claims. This applies to all Splunk roles - except Splunk indexers.
+            </p>
+          </splunk-control-group>
+          <splunk-control-group label="Size of 'var' on Indexers" help="">
+            <splunk-text-input name="indexer_var_storage_in_gb" class="option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group label="" help="">
+            <p>
+              Storage capacity (in GB) to request for Splunk etc volume claims. This applies to Splunk indexers only!
+            </p>
+          </splunk-control-group>
+        </div>
+      </html>
+    </panel>
+  </row>
   <row id="saveRow">
     <panel>
       <html>
