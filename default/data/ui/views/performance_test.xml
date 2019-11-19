@@ -1,6 +1,5 @@
-<form script="performance_test.js" stylesheet="performance_test.css">
+<dashboard script="performance_test.js" stylesheet="performance_test.css">
   <label>Performance Test</label>
-  <fieldset submitButton="false"></fieldset>
   <row>
     <panel>
       <table>
@@ -22,14 +21,120 @@
       <table>
         <title>Test Cases</title>
         <search>
-          <query>| rest splunk_server=local services/saas/performance_test_items/$test_id$ | fields - splunk_server | table id status *</query>
+          <query>| rest splunk_server=local services/saas/performance_test_items/$test_id$ | fields - splunk_server id index | table status stack_id *</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <refresh>10s</refresh>
           <refreshType>delay</refreshType>
         </search>
         <option name="count">10</option>
-        <option name="drilldown">row</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">true</option>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="cpu_per_instance">
+          <colorPalette type="minMidMax" maxColor="#006D9C" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="cpu_per_instance">
+          <colorPalette type="minMidMax" maxColor="#006D9C" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="searches_per_minute">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="cpu_per_instance">
+          <colorPalette type="minMidMax" maxColor="#006D9C" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
+        </format>
+        <format type="color" field="data_volume_in_gb_per_day">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="cpu_per_instance">
+          <colorPalette type="minMidMax" maxColor="#006D9C" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="searches_per_minute">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
         <drilldown>
           <condition field="stack_id">
             <link>stack?id=$row.stack_id$</link>
@@ -40,28 +145,12 @@
   </row>
   <row>
     <panel>
-      <input type="time" token="logs" searchWhenChanged="true">
-        <label>Time</label>
-        <default>
-          <earliest>-60m@m</earliest>
-          <latest>now</latest>
-        </default>
-      </input>
-      <input type="dropdown" token="log_level_filter" searchWhenChanged="true">
-        <label>Level</label>
-        <choice value="eventtype=performance_test_debug">Debug</choice>
-        <choice value="eventtype=performance_test_info">Info</choice>
-        <choice value="eventtype=performance_test_warning">Warning</choice>
-        <choice value="eventtype=performance_test_error">Error</choice>
-        <default>eventtype=performance_test_info</default>
-        <initialValue>eventtype=performance_test_info</initialValue>
-      </input>
       <table>
         <title>Events</title>
         <search>
-          <query>sourcetype="performance_test" performance_test_id="$test_id$" $log_level_filter$ | fields + eventtype | rename performance_test_log_level as level _raw as message | table _time level message | sort - _time</query>
-          <earliest>$logs.earliest$</earliest>
-          <latest>$logs.latest$</latest>
+          <query>`time_range_filter_for_performance_test($test_id$)` sourcetype="performance_test" performance_test_id="$test_id$" eventtype=performance_test_info | rename performance_test_log_level as level _raw as message | table _time level message | sort - _time</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
           <refresh>10s</refresh>
           <refreshType>delay</refreshType>
         </search>
@@ -98,7 +187,7 @@
 | stats avg(usage) as usage min(limit) as limit by _time instance
 
 | lookup instances _key as instance OUTPUT stack_id
-| lookup performance_test_cases stack_id OUTPUT _key as case_id, time_started_running, time_finished_running
+| lookup performance_test_cases stack_id OUTPUT _key as case_id, time_started_running, time_finished_running, index as case_index
 | where isnotnull(time_started_running)
 | eval time_finished_running=coalesce(time_finished_running,now())
 
@@ -114,7 +203,8 @@
 | fields - limit2 usage2
 | eval usage_pct = (usage / limit) * 100
 
-| timechart max(usage_pct) as usage by case_id `span_for_performance_test($test_id$)`</query>
+| eval case_number =  "# " + tostring(case_index+1)
+| timechart max(usage_pct) as usage by case_number `span_for_performance_test($test_id$)`</query>
           <earliest>0</earliest>
           <latest></latest>
           <refresh>30s</refresh>
@@ -132,4 +222,4 @@
       </chart>
     </panel>
   </row>
-</form>
+</dashboard>
