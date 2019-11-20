@@ -27,7 +27,7 @@
           <refresh>10s</refresh>
           <refreshType>delay</refreshType>
         </search>
-        <option name="count">10</option>
+        <option name="count">100</option>
         <option name="drilldown">none</option>
         <option name="rowNumbers">true</option>
         <format type="color" field="status">
@@ -358,17 +358,109 @@
         <search>
           <query>`time_range_filter_for_performance_test($test_id$)` `host_filter_for_performance_test($test_id$,*)` index="_internal" source=*metrics.log group=thruput name=index_thruput
 | bin `span_for_performance_test($test_id$)` _time
-| stats sum(instantaneous_kbps) as kbps by _time host
+| stats avg(instantaneous_kbps) as kbps by _time host
 | lookup instances host OUTPUT stack_id
 | `overlap_performance_test_cases(stack_id)`
 | eval gb_per_day = (kbps*60*60*24)/1024/1024
-| timechart fixedrange=0 `span_for_performance_test($test_id$)` sum(gb_per_day) as gb_per_day by case</query>
+| timechart fixedrange=0 `span_for_performance_test($test_id$)` avg(gb_per_day) as gb_per_day by case</query>
           <earliest>$earliest$</earliest>
           <latest>$latest$</latest>
           <refresh>30s</refresh>
           <refreshType>delay</refreshType>
         </search>
         <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Data Processing Queues Fill Ratio</title>
+        <search>
+          <query>`time_range_filter_for_performance_test($test_id$)` `host_filter_for_performance_test($test_id$,*)` index="_internal" source=*metrics.log group=queue (name=parsingqueue OR name=aggqueue OR name=typingqueue OR name=indexqueue)
+| lookup instances host OUTPUT stack_id
+| `overlap_performance_test_cases(stack_id)`
+
+| eval max=if(isnotnull(max_size_kb),max_size_kb,max_size)
+| eval curr=if(isnotnull(current_size_kb),current_size_kb,current_size)
+| eval fill_perc=round((curr/max)*100,2)
+
+| bin `span_for_performance_test($test_id$)` _time
+| stats median(fill_perc) as fill_perc by _time name case host
+| stats max(fill_perc) as fill_perc by _time case host
+| stats avg(fill_perc) as fill_perc by _time case
+
+| timechart fixedrange=0 `span_for_performance_test($test_id$)` avg(fill_perc) as fill_perc by case</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.maximumNumber">100</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Data Generator Health</title>
+        <search>
+          <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"="datagen" "metadata.labels.test"="$test_id$" 
+| `overlap_performance_test_cases(metadata.labels.stack)`
+| eval not_ready = if('status.containerStatuses{}.ready'=="true",0,1) 
+| eval ready = if('status.containerStatuses{}.ready'=="true",1,0) 
+| bin `span_for_performance_test($test_id$)` _time
+| stats sum(ready) as ready sum(not_ready) as not_ready by _time case
+| eval total = not_ready + ready
+| eval readyness = (ready / total) * 100
+| timechart fixedrange=0 `span_for_performance_test($test_id$)` avg(readyness) as readyness by case</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisY.maximumNumber">100</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
         <option name="charting.drilldown">none</option>
         <option name="refresh.display">progressbar</option>
       </chart>

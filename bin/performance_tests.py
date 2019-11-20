@@ -465,7 +465,7 @@ def run_cases(splunk, test_id, test):
                 ),
             )
             logging.info(
-                "created %s data generators for case %s" % (case_id))
+                "created %s data generators for case %s" % (number_of_data_generators, case_id))
             case.update({
                 "status": CASE_RUNNING,
                 "time_started_running": time.time(),
