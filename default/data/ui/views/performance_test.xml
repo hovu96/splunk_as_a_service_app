@@ -268,6 +268,114 @@
   </row>
   <row>
     <panel>
+      <chart>
+        <title>CPU Usage</title>
+        <search>
+          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.usage_rate" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,*)` BY pod-name `span_for_performance_test($test_id$)`
+| append [
+| mstats avg(_value) as limit WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,*)` BY name `span_for_performance_test($test_id$)`
+| rename name as pod-name
+]
+| rename pod-name as instance
+
+| stats avg(usage) as usage min(limit) as limit by _time instance
+
+| lookup instances _key as instance OUTPUT stack_id
+| `overlap_performance_test_cases(stack_id)`
+
+| streamstats limit=0 last(limit) as limit2 last(usage) as usage2 by instance
+| eval limit = coalesce(limit,limit2)
+| eval usage = coalesce(usage,usage2)
+| fields - limit2 usage2
+| eval usage_pct = (usage / limit) * 100
+
+| timechart `span_for_performance_test($test_id$)` max(usage_pct) as usage by case</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisY.maximumNumber">100</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">none</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Memory Usage</title>
+        <search>
+          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.usage_bytes" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,*)` BY pod-name `span_for_performance_test($test_id$)`
+| append [
+| mstats avg(_value) as request WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,*)` BY name `span_for_performance_test($test_id$)`
+| rename name as pod-name
+]
+| rename pod-name as instance
+| eval usage=usage/1024/1024
+
+| stats avg(usage) as usage min(request) as request by _time instance
+
+| lookup instances _key as instance OUTPUT stack_id
+| `overlap_performance_test_cases(stack_id)`
+
+| streamstats limit=0 last(request) as request2 last(usage) as usage2 by instance
+| eval request = coalesce(request,request2)
+| eval usage = coalesce(usage,usage2)
+| fields - request2 usage2
+| eval usage_pct = (usage / request) * 100
+
+| timechart `span_for_performance_test($test_id$)` max(usage_pct) as usage by case</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisY.maximumNumber">100</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Data Thruput (in GB/day)</title>
+        <search>
+          <query>`time_range_filter_for_performance_test($test_id$)` `host_filter_for_performance_test($test_id$,*)` index="_internal" source=*metrics.log group=thruput name=index_thruput
+| bin `span_for_performance_test($test_id$)` _time
+| stats sum(instantaneous_kbps) as kbps by _time host
+| lookup instances host OUTPUT stack_id
+| `overlap_performance_test_cases(stack_id)`
+| eval gb_per_day = (kbps*60*60*24)/1024/1024
+| timechart fixedrange=0 `span_for_performance_test($test_id$)` sum(gb_per_day) as gb_per_day by case</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
       <table>
         <title>Events</title>
         <search>
@@ -293,56 +401,6 @@
           <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
         </format>
       </table>
-    </panel>
-  </row>
-  <row>
-    <panel>
-      <chart>
-        <title>CPU Usage</title>
-        <search>
-          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.usage_rate" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,*)` BY pod-name `span_for_performance_test($test_id$)`
-| append [
-| mstats avg(_value) as limit WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,*)` BY name `span_for_performance_test($test_id$)`
-| rename name as pod-name
-]
-| rename pod-name as instance
-
-| stats avg(usage) as usage min(limit) as limit by _time instance
-
-| lookup instances _key as instance OUTPUT stack_id
-| lookup performance_test_cases stack_id OUTPUT _key as case_id, time_started_running, time_finished_running, index as case_index
-| where isnotnull(time_started_running)
-| eval time_finished_running=coalesce(time_finished_running,now())
-
-| where _time&gt;=time_started_running and _time&lt;=time_finished_running
-| eventstats earliest(time_started_running) as start_time
-| eval duration = time_finished_running-time_started_running
-| eval diff_time = time_started_running-start_time
-| eval _time = _time-diff_time
-
-| streamstats limit=0 last(limit) as limit2 last(usage) as usage2 by instance
-| eval limit = coalesce(limit,limit2)
-| eval usage = coalesce(usage,usage2)
-| fields - limit2 usage2
-| eval usage_pct = (usage / limit) * 100
-
-| eval case_number =  "# " + tostring(case_index+1)
-| timechart max(usage_pct) as usage by case_number `span_for_performance_test($test_id$)`</query>
-          <earliest>0</earliest>
-          <latest></latest>
-          <refresh>30s</refresh>
-          <refreshType>delay</refreshType>
-        </search>
-        <option name="charting.axisTitleX.visibility">collapsed</option>
-        <option name="charting.axisTitleY.visibility">collapsed</option>
-        <option name="charting.chart">line</option>
-        <option name="charting.chart.nullValueMode">connect</option>
-        <option name="charting.drilldown">none</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">standard</option>
-        <option name="charting.legend.placement">bottom</option>
-        <option name="refresh.display">none</option>
-      </chart>
     </panel>
   </row>
 </dashboard>

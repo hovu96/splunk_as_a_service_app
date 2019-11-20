@@ -369,25 +369,25 @@ def run_cases(splunk, test_id, test):
             logging.info(
                 "successfully created data gen for case %s" % (case_id))
             data_volume_in_gb_per_day = int(case["data_volume_in_gb_per_day"])
-            logging.info("data_volume_in_gb_per_day=%s" %
-                         (data_volume_in_gb_per_day))
+            logging.debug("data_volume_in_gb_per_day=%s" %
+                          (data_volume_in_gb_per_day))
             data_volume_in_gb_per_second = data_volume_in_gb_per_day / 24 / 60 / 60
-            logging.info("data_volume_in_gb_per_second=%s" %
-                         (data_volume_in_gb_per_second))
+            logging.debug("data_volume_in_gb_per_second=%s" %
+                          (data_volume_in_gb_per_second))
             data_volume_in_kb_per_second = data_volume_in_gb_per_second * 1024 * 1024
-            logging.info("data_volume_in_kb_per_second=%s" %
-                         (data_volume_in_kb_per_second))
+            logging.debug("data_volume_in_kb_per_second=%s" %
+                          (data_volume_in_kb_per_second))
             max_kb_per_second_per_data_generator = 100
-            logging.info("max_kb_per_second_per_data_generator=%s" %
-                         (max_kb_per_second_per_data_generator))
+            logging.debug("max_kb_per_second_per_data_generator=%s" %
+                          (max_kb_per_second_per_data_generator))
             number_of_data_generators = max(
                 int(data_volume_in_kb_per_second / max_kb_per_second_per_data_generator) + 1, 1)
-            logging.info("number_of_data_generators=%s" %
-                         (number_of_data_generators))
+            logging.debug("number_of_data_generators=%s" %
+                          (number_of_data_generators))
             data_volume_in_kb_per_second_per_data_generator = data_volume_in_kb_per_second / \
                 number_of_data_generators
-            logging.info("data_volume_in_kb_per_second_per_data_generator=%s" %
-                         (data_volume_in_kb_per_second_per_data_generator))
+            logging.debug("data_volume_in_kb_per_second_per_data_generator=%s" %
+                          (data_volume_in_kb_per_second_per_data_generator))
             cluster_config = clusters.get_cluster_config(
                 splunk, test["cluster"])
             node_selector_labels = cluster_config["node_selector"].split(",")
@@ -404,30 +404,36 @@ def run_cases(splunk, test_id, test):
                 namespace=stack_config["namespace"],
                 body=kubernetes.V1Deployment(
                     metadata=kubernetes.V1ObjectMeta(
-                        name="eventgen-%s" % (stack_id),
+                        name="datagen-%s" % (stack_id),
                         namespace=stack_config["namespace"],
                         labels={
                             "for": stack_id,
                             "app": "datagen",
+                            "test": test_id,
+                            "case": case_id,
                         },
                     ),
                     spec=kubernetes.V1DeploymentSpec(
                         replicas=number_of_data_generators,
                         selector=kubernetes.V1LabelSelector(
                             match_labels={
-                                "name": "eventgen-%s" % (stack_id),
+                                "name": "datagen-%s" % (stack_id),
                             }
                         ),
                         template=kubernetes.V1PodTemplateSpec(
                             metadata=kubernetes.V1ObjectMeta(
                                 labels={
-                                    "name": "eventgen-%s" % (stack_id),
+                                    "name": "datagen-%s" % (stack_id),
+                                    "app": "datagen",
+                                    "test": test_id,
+                                    "case": case_id,
+                                    "stack": stack_id,
                                 },
                             ),
                             spec=kubernetes.V1PodSpec(
                                 containers=[
                                     kubernetes.V1Container(
-                                        name="eventgen",
+                                        name="datagen",
                                         image="blackhypothesis/splunkeventgenerator:latest",
                                         resources=kubernetes.V1ResourceRequirements(
                                             requests={
@@ -458,6 +464,8 @@ def run_cases(splunk, test_id, test):
                     ),
                 ),
             )
+            logging.info(
+                "created %s data generators for case %s" % (case_id))
             case.update({
                 "status": CASE_RUNNING,
                 "time_started_running": time.time(),
@@ -554,7 +562,7 @@ def stop_case(splunk, test_id, case_id, case):
     apps_api = kubernetes.AppsV1Api(kube_client)
     datagen_deployments = apps_api.list_namespaced_deployment(
         namespace=stack_config["namespace"],
-        label_selector="app=datagen,for=%s" % stack_id,
+        label_selector="app=datagen,test=%s" % test_id,
     ).items
     for deployment in datagen_deployments:
         apps_api.delete_namespaced_deployment(
