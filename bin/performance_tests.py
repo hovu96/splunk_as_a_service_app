@@ -407,7 +407,6 @@ def run_cases(splunk, test_id, test):
                         name="datagen-%s" % (stack_id),
                         namespace=stack_config["namespace"],
                         labels={
-                            "for": stack_id,
                             "app": "datagen",
                             "test": test_id,
                             "case": case_id,
