@@ -486,21 +486,21 @@ def run_cases(splunk, test_id, test):
                 raise Exception("unexpected deployment type: %s" %
                                 stack_config["deployment_type"])
             searches_per_day = int(case["searches_per_day"])
-            logging.info("searches_per_day=%s" %
+            logging.debug("searches_per_day=%s" %
                          (searches_per_day))
             searches_per_second = searches_per_day / 24 / 60 / 60
-            logging.info("searches_per_second=%s" %
+            logging.debug("searches_per_second=%s" %
                          (searches_per_second))
             max_searches_per_second_per_generator = 5
-            logging.info("max_searches_per_second_per_generator=%s" %
+            logging.debug("max_searches_per_second_per_generator=%s" %
                          (max_searches_per_second_per_generator))
             number_of_search_generators = max(
                 int(searches_per_second / max_searches_per_second_per_generator) + 1, 1)
-            logging.info("number_of_search_generators=%s" %
+            logging.debug("number_of_search_generators=%s" %
                          (number_of_search_generators))
             searches_per_second_per_generator = searches_per_second / \
                 number_of_search_generators
-            logging.info("searches_per_second_per_generator=%s" %
+            logging.debug("searches_per_second_per_generator=%s" %
                          (searches_per_second_per_generator))
             search_template = case["search_template"]
             if searches_per_day > 0 and search_template:
