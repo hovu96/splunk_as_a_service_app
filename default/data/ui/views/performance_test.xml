@@ -289,7 +289,7 @@
 | fields - limit2 usage2
 | eval usage_pct = (usage / limit) * 100
 
-| timechart `span_for_performance_test($test_id$)` max(usage_pct) as usage by case</query>
+| timechart limit=0 `span_for_performance_test($test_id$)` max(usage_pct) as usage by case</query>
           <earliest>0</earliest>
           <latest></latest>
           <refresh>30s</refresh>
@@ -333,7 +333,7 @@
 | fields - request2 usage2
 | eval usage_pct = (usage / request) * 100
 
-| timechart `span_for_performance_test($test_id$)` max(usage_pct) as usage by case</query>
+| timechart limit=0 `span_for_performance_test($test_id$)` max(usage_pct) as usage by case</query>
           <earliest>$earliest$</earliest>
           <latest>$latest$</latest>
           <refresh>30s</refresh>
@@ -362,7 +362,7 @@
 | lookup instances host OUTPUT stack_id
 | `overlap_performance_test_cases(stack_id)`
 | eval gb_per_day = (kbps*60*60*24)/1024/1024
-| timechart fixedrange=0 `span_for_performance_test($test_id$)` avg(gb_per_day) as gb_per_day by case</query>
+| timechart limit=0 fixedrange=0 `span_for_performance_test($test_id$)` avg(gb_per_day) as gb_per_day by case</query>
           <earliest>$earliest$</earliest>
           <latest>$latest$</latest>
           <refresh>30s</refresh>
@@ -392,7 +392,7 @@
 | stats max(fill_perc) as fill_perc by _time case host
 | stats avg(fill_perc) as fill_perc by _time case
 
-| timechart fixedrange=0 `span_for_performance_test($test_id$)` avg(fill_perc) as fill_perc by case</query>
+| timechart limit=0 fixedrange=0 `span_for_performance_test($test_id$)` avg(fill_perc) as fill_perc by case</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>
@@ -441,7 +441,7 @@
       <chart>
         <title>Data Generator Health</title>
         <search>
-          <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"="datagen" "metadata.labels.test"="$test_id$" 
+          <query>`time_range_filter_for_performance_test($test_id$)` index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"="datagen" "metadata.labels.test"="$test_id$" 
 | `overlap_performance_test_cases(metadata.labels.stack)`
 | eval not_ready = if('status.containerStatuses{}.ready'=="true",0,1) 
 | eval ready = if('status.containerStatuses{}.ready'=="true",1,0) 
@@ -449,7 +449,7 @@
 | stats sum(ready) as ready sum(not_ready) as not_ready by _time case
 | eval total = not_ready + ready
 | eval readyness = (ready / total) * 100
-| timechart fixedrange=0 `span_for_performance_test($test_id$)` avg(readyness) as readyness by case</query>
+| timechart limit=0 fixedrange=0 `span_for_performance_test($test_id$)` avg(readyness) as readyness by case</query>
           <earliest>-15m</earliest>
           <latest>now</latest>
           <refresh>30s</refresh>
