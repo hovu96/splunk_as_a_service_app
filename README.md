@@ -24,10 +24,6 @@ This is an early prototype and should not be used in a production environment.
 - [Splunk Operator for Kubernetes](https://github.com/splunk/splunk-operator)
 - [Splunk Connect for Kubernetes](https://github.com/splunk/splunk-connect-for-kubernetes)
 
-## Getting Started
-
-TODO
-
 ## Architecture
 
 ![Architecture](architecture.png)

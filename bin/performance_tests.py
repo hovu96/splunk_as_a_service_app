@@ -20,6 +20,7 @@ import time
 import clusters
 from kubernetes import client as kubernetes
 import services
+import credentials_handler
 
 TEST_PREPARING = "Preparing"
 TEST_RUNNING = "Running"
@@ -155,7 +156,8 @@ class PerformanceTestCasesHandler(BaseRestHandler):
                 "indexer_var_storage_in_gb": case["indexer_var_storage_in_gb"],
                 "memory_per_instance": case["memory_per_instance"],
                 "data_volume_in_gb_per_day": case["data_volume_in_gb_per_day"],
-                "searches_per_minute": case["searches_per_minute"],
+                "searches_per_day": case["searches_per_day"],
+                "search_template": case["search_template"],
                 "user_count": case["user_count"],
             }
             if "stack_id" in case:
@@ -297,7 +299,8 @@ def prepare_cases(splunk, test_id, test):
             "indexer_var_storage_in_gb": case_data["indexer_var_storage_in_gb"],
             "memory_per_instance": case_data["memory_per_instance"],
             "data_volume_in_gb_per_day": case_data["data_volume_in_gb_per_day"],
-            "searches_per_minute": case_data["searches_per_minute"],
+            "searches_per_day": case_data["searches_per_day"],
+            "search_template": case_data["search_template"],
             "user_count": case_data["user_count"],
         }
         cases_collection.insert(json.dumps(case))["_key"]
@@ -356,18 +359,28 @@ def run_cases(splunk, test_id, test):
             stack_config = stacks.get_stack_config(splunk, stack_id)
             kube_client = clusters.create_client(
                 splunk, stack_config["cluster"])
+            cluster_config = clusters.get_cluster_config(
+                splunk, test["cluster"])
+            node_selector_labels = cluster_config["node_selector"].split(",")
+            node_selector_for_generators = {}
+            for label in node_selector_labels:
+                if label:
+                    kv = label.split("=")
+                    if len(kv) != 2:
+                        raise errors.ApplicationError(
+                            "invalid node selector format (%s)" % cluster_config.node_selector)
+                    node_selector_for_generators[kv[0]] = kv[1]
+            apps_api = kubernetes.AppsV1Api(kube_client)
             core_api = kubernetes.CoreV1Api(kube_client)
             if stack_config["deployment_type"] == "standalone":
-                hosts = services.get_load_balancer_hosts(
+                indexer_hosts = services.get_load_balancer_hosts(
                     core_api, stack_id, services.standalone_role, stack_config["namespace"])
             elif stack_config["deployment_type"] == "distributed":
-                hosts = services.get_load_balancer_hosts(
+                indexer_hosts = services.get_load_balancer_hosts(
                     core_api, stack_id, services.indexer_role, stack_config["namespace"])
             else:
                 raise Exception("unexpected deployment type: %s" %
                                 stack_config["deployment_type"])
-            logging.info(
-                "successfully created data gen for case %s" % (case_id))
             data_volume_in_gb_per_day = int(case["data_volume_in_gb_per_day"])
             logging.debug("data_volume_in_gb_per_day=%s" %
                           (data_volume_in_gb_per_day))
@@ -388,83 +401,199 @@ def run_cases(splunk, test_id, test):
                 number_of_data_generators
             logging.debug("data_volume_in_kb_per_second_per_data_generator=%s" %
                           (data_volume_in_kb_per_second_per_data_generator))
-            cluster_config = clusters.get_cluster_config(
-                splunk, test["cluster"])
-            node_selector_labels = cluster_config["node_selector"].split(",")
-            node_selector_for_data_generators = {}
-            for label in node_selector_labels:
-                if label:
-                    kv = label.split("=")
-                    if len(kv) != 2:
-                        raise errors.ApplicationError(
-                            "invalid node selector format (%s)" % cluster_config.node_selector)
-                    node_selector_for_data_generators[kv[0]] = kv[1]
-            apps_api = kubernetes.AppsV1Api(kube_client)
-            apps_api.create_namespaced_deployment(
-                namespace=stack_config["namespace"],
-                body=kubernetes.V1Deployment(
-                    metadata=kubernetes.V1ObjectMeta(
-                        name="datagen-%s" % (stack_id),
-                        namespace=stack_config["namespace"],
-                        labels={
-                            "app": "datagen",
-                            "test": test_id,
-                            "case": case_id,
-                        },
-                    ),
-                    spec=kubernetes.V1DeploymentSpec(
-                        replicas=number_of_data_generators,
-                        selector=kubernetes.V1LabelSelector(
-                            match_labels={
-                                "name": "datagen-%s" % (stack_id),
-                            }
+            deployment_name = "datagen-%s" % (stack_id)
+            try:
+                apps_api.read_namespaced_deployment(
+                    deployment_name, namespace=stack_config["namespace"])
+                data_gen_deployment_already_exists = True
+            except kubernetes.rest.ApiException as e:
+                if e.status != 404:
+                    raise
+                data_gen_deployment_already_exists = False
+            if not data_gen_deployment_already_exists:
+                apps_api.create_namespaced_deployment(
+                    namespace=stack_config["namespace"],
+                    body=kubernetes.V1Deployment(
+                        metadata=kubernetes.V1ObjectMeta(
+                            name=deployment_name,
+                            namespace=stack_config["namespace"],
+                            labels={
+                                "app": "datagen",
+                                "test": test_id,
+                                "case": case_id,
+                            },
                         ),
-                        template=kubernetes.V1PodTemplateSpec(
-                            metadata=kubernetes.V1ObjectMeta(
-                                labels={
+                        spec=kubernetes.V1DeploymentSpec(
+                            replicas=number_of_data_generators,
+                            selector=kubernetes.V1LabelSelector(
+                                match_labels={
                                     "name": "datagen-%s" % (stack_id),
-                                    "app": "datagen",
+                                }
+                            ),
+                            template=kubernetes.V1PodTemplateSpec(
+                                metadata=kubernetes.V1ObjectMeta(
+                                    labels={
+                                        "name": "datagen-%s" % (stack_id),
+                                        "app": "datagen",
+                                        "test": test_id,
+                                        "case": case_id,
+                                        "stack": stack_id,
+                                    },
+                                ),
+                                spec=kubernetes.V1PodSpec(
+                                    containers=[
+                                        kubernetes.V1Container(
+                                            name="datagen",
+                                            image="blackhypothesis/splunkeventgenerator:latest",
+                                            resources=kubernetes.V1ResourceRequirements(
+                                                requests={
+                                                    "memory": "10Mi",
+                                                    "cpu": "500m",
+                                                },
+                                                limits={
+                                                    "memory": "50Mi",
+                                                    "cpu": "1",
+                                                },
+                                            ),
+                                            env=[
+                                                kubernetes.V1EnvVar(
+                                                    name="DSTHOST",
+                                                    value=";".join(
+                                                        map(lambda host: host + ":9996", indexer_hosts)),
+                                                ),
+                                                kubernetes.V1EnvVar(
+                                                    name="KB_S",
+                                                    value="%s" % data_volume_in_kb_per_second_per_data_generator,
+                                                ),
+                                            ],
+                                        ),
+                                    ],
+                                    node_selector=node_selector_for_generators,
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+                logging.info(
+                    "created %s data generators for case %s" % (number_of_data_generators, case_id))
+            if stack_config["deployment_type"] == "standalone":
+                search_head_host = services.get_load_balancer_hosts(
+                    core_api, stack_id, services.standalone_role, stack_config["namespace"])[0]
+            elif stack_config["deployment_type"] == "distributed":
+                search_head_host = services.get_load_balancer_hosts(
+                    core_api, stack_id, services.search_head_role, stack_config["namespace"])[0]
+            else:
+                raise Exception("unexpected deployment type: %s" %
+                                stack_config["deployment_type"])
+            searches_per_day = int(case["searches_per_day"])
+            logging.info("searches_per_day=%s" %
+                         (searches_per_day))
+            searches_per_second = searches_per_day / 24 / 60 / 60
+            logging.info("searches_per_second=%s" %
+                         (searches_per_second))
+            max_searches_per_second_per_generator = 5
+            logging.info("max_searches_per_second_per_generator=%s" %
+                         (max_searches_per_second_per_generator))
+            number_of_search_generators = max(
+                int(searches_per_second / max_searches_per_second_per_generator) + 1, 1)
+            logging.info("number_of_search_generators=%s" %
+                         (number_of_search_generators))
+            searches_per_second_per_generator = searches_per_second / \
+                number_of_search_generators
+            logging.info("searches_per_second_per_generator=%s" %
+                         (searches_per_second_per_generator))
+            search_template = case["search_template"]
+            if searches_per_day > 0 and search_template:
+                deployment_name = "searchgen-%s" % (stack_id)
+                try:
+                    apps_api.read_namespaced_deployment(
+                        deployment_name, namespace=stack_config["namespace"])
+                    search_gen_deployment_already_exists = True
+                except kubernetes.rest.ApiException as e:
+                    if e.status != 404:
+                        raise
+                    search_gen_deployment_already_exists = False
+                if not search_gen_deployment_already_exists:
+                    admin_password = credentials_handler.get_admin_password(
+                        splunk, stack_id)
+                    apps_api.create_namespaced_deployment(
+                        namespace=stack_config["namespace"],
+                        body=kubernetes.V1Deployment(
+                            metadata=kubernetes.V1ObjectMeta(
+                                name=deployment_name,
+                                namespace=stack_config["namespace"],
+                                labels={
+                                    "app": "searchgen",
                                     "test": test_id,
                                     "case": case_id,
-                                    "stack": stack_id,
                                 },
                             ),
-                            spec=kubernetes.V1PodSpec(
-                                containers=[
-                                    kubernetes.V1Container(
-                                        name="datagen",
-                                        image="blackhypothesis/splunkeventgenerator:latest",
-                                        resources=kubernetes.V1ResourceRequirements(
-                                            requests={
-                                                "memory": "10Mi",
-                                                "cpu": "500m",
-                                            },
-                                            limits={
-                                                "memory": "50Mi",
-                                                "cpu": "1",
-                                            },
-                                        ),
-                                        env=[
-                                            kubernetes.V1EnvVar(
-                                                name="DSTHOST",
-                                                value=";".join(
-                                                    map(lambda host: host + ":9996", hosts)),
-                                            ),
-                                            kubernetes.V1EnvVar(
-                                                name="KB_S",
-                                                value="%s" % data_volume_in_kb_per_second_per_data_generator,
+                            spec=kubernetes.V1DeploymentSpec(
+                                replicas=number_of_search_generators,
+                                selector=kubernetes.V1LabelSelector(
+                                    match_labels={
+                                        "name": "searchgen-%s" % (stack_id),
+                                    }
+                                ),
+                                template=kubernetes.V1PodTemplateSpec(
+                                    metadata=kubernetes.V1ObjectMeta(
+                                        labels={
+                                            "name": "searchgen-%s" % (stack_id),
+                                            "app": "searchgen",
+                                            "test": test_id,
+                                            "case": case_id,
+                                            "stack": stack_id,
+                                        },
+                                    ),
+                                    spec=kubernetes.V1PodSpec(
+                                        containers=[
+                                            kubernetes.V1Container(
+                                                name="searchgen",
+                                                image="hovu96/splunk-searchgen:latest",
+                                                resources=kubernetes.V1ResourceRequirements(
+                                                    requests={
+                                                        "memory": "10Mi",
+                                                        "cpu": "500m",
+                                                    },
+                                                    limits={
+                                                        "memory": "50Mi",
+                                                        "cpu": "1",
+                                                    },
+                                                ),
+                                                env=[
+                                                    kubernetes.V1EnvVar(
+                                                        name="SEARCH_GEN_SPL",
+                                                        value=search_template,
+                                                    ),
+                                                    kubernetes.V1EnvVar(
+                                                        name="SEARCH_GEN_HOST",
+                                                        value=search_head_host,
+                                                    ),
+                                                    kubernetes.V1EnvVar(
+                                                        name="SEARCH_GEN_USER",
+                                                        value="admin",
+                                                    ),
+                                                    kubernetes.V1EnvVar(
+                                                        name="SEARCH_GEN_PASSWORD",
+                                                        value=admin_password,
+                                                    ),
+                                                    kubernetes.V1EnvVar(
+                                                        name="SEARCH_GEN_SPS",
+                                                        value="%s" % searches_per_second_per_generator,
+                                                    ),
+                                                ],
                                             ),
                                         ],
+                                        node_selector=node_selector_for_generators,
                                     ),
-                                ],
-                                node_selector=node_selector_for_data_generators,
+                                ),
                             ),
                         ),
-                    ),
-                ),
-            )
-            logging.info(
-                "created %s data generators for case %s" % (number_of_data_generators, case_id))
+                    )
+                    logging.info(
+                        "created %s search generators for case %s" % (number_of_search_generators, case_id))
+            else:
+                logging.info("no search generators started")
             case.update({
                 "status": CASE_RUNNING,
                 "time_started_running": time.time(),
@@ -564,6 +693,16 @@ def stop_case(splunk, test_id, case_id, case):
         label_selector="app=datagen,test=%s" % test_id,
     ).items
     for deployment in datagen_deployments:
+        apps_api.delete_namespaced_deployment(
+            name=deployment.metadata.name,
+            namespace=stack_config["namespace"],
+        )
+        logging.debug("deleted deployment %s" % deployment.metadata.name)
+    searchgen_deployments = apps_api.list_namespaced_deployment(
+        namespace=stack_config["namespace"],
+        label_selector="app=searchgen,test=%s" % test_id,
+    ).items
+    for deployment in searchgen_deployments:
         apps_api.delete_namespaced_deployment(
             name=deployment.metadata.name,
             namespace=stack_config["namespace"],

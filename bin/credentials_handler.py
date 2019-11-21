@@ -19,23 +19,28 @@ class CredentialsHandler(BaseRestHandler):
     def handle_GET(self):
         path = self.request['path']
         _, stack_id = os.path.split(path)
-        stack = self.stacks.query_by_id(
-            stack_id)
-        if stack["status"] != stacks.CREATED:
-            raise Exception("State is not '%s'" % stacks.CREATED)
-
-        api_client = clusters.create_client(
-            self.service, stack["cluster"])
-        core_api = kubernetes.CoreV1Api(api_client)
-
-        secrets = core_api.read_namespaced_secret(
-            "splunk-%s-secrets" % stack_id,
-            namespace=stack["namespace"],
-        )
-
-        encoded_password = secrets.data["password"]
-        decoded_password = base64.decodestring( encoded_password.encode("ascii")).decode("ascii")
-
+        admin_password = get_admin_password(self.splunk, stack_id)
         self.send_result({
-            "admin": "%s" % decoded_password,
+            "admin": "%s" % admin_password,
         })
+
+
+def get_admin_password(splunk, stack_id):
+    stack = stacks.get_stack_config(splunk, stack_id)
+    if stack["status"] != stacks.CREATED:
+        raise Exception("State is not '%s'" % stacks.CREATED)
+
+    api_client = clusters.create_client(
+        splunk, stack["cluster"])
+    core_api = kubernetes.CoreV1Api(api_client)
+
+    secrets = core_api.read_namespaced_secret(
+        "splunk-%s-secrets" % stack_id,
+        namespace=stack["namespace"],
+    )
+
+    encoded_password = secrets.data["password"]
+    decoded_password = base64.decodestring(
+        encoded_password.encode("ascii")).decode("ascii")
+
+    return decoded_password
