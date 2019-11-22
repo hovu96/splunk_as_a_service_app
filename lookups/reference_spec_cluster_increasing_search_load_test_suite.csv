@@ -1,5 +1,0 @@
-deployment_type,indexer_count,search_head_count,cpu_per_instance,memory_per_instance,etc_storage_in_gb,other_var_storage_in_gb,indexer_var_storage_in_gb,data_volume_in_gb_per_day,searches_per_day,search_template,user_count
-distributed,3,3,16,12Gi,1,50,200,100,50000,| search earliest=-1m latest=now index=_internal | stats count by sourcetype,0
-distributed,3,3,16,12Gi,1,50,200,100,100000,| search earliest=-1m latest=now index=_internal | stats count by sourcetype,0
-distributed,3,3,16,12Gi,1,50,200,100,200000,| search earliest=-1m latest=now index=_internal | stats count by sourcetype,0
-distributed,3,3,16,12Gi,1,50,200,100,400000,| search earliest=-1m latest=now index=_internal | stats count by sourcetype,0

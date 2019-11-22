@@ -348,8 +348,6 @@
         <option name="refresh.display">none</option>
       </chart>
     </panel>
-  </row>
-  <row>
     <panel>
       <title>Memory Usage</title>
       <chart>
@@ -539,8 +537,6 @@
         <option name="refresh.display">progressbar</option>
       </chart>
     </panel>
-  </row>
-  <row>
     <panel>
       <title>Searches</title>
       <chart>
