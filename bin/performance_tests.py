@@ -72,7 +72,7 @@ class TestsHandler(BaseRestHandler):
                 "$and": [
                     {"status": TEST_FINISHED},
                     {"time_finished": {
-                        "$gt": (datetime.utcnow() - timedelta(hours=24)).timestamp()}},
+                        "$gt": (datetime.utcnow() - timedelta(hours=48)).timestamp()}},
                 ],
             }
         else:

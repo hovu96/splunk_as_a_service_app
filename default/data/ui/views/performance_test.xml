@@ -28,7 +28,7 @@
           <refreshType>delay</refreshType>
         </search>
         <option name="count">100</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">row</option>
         <option name="rowNumbers">true</option>
         <format type="color" field="status">
           <colorPalette type="map">{"Running":#53A051,"Finished":#006D9C,"Stopping":#53A051,"Starting":#53A051}</colorPalette>
@@ -270,45 +270,6 @@
     <panel>
       <title>CPU Usage</title>
       <chart>
-        <title>Indexer Tier</title>
-        <search>
-          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.usage_rate" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,indexer)` BY pod-name `span_for_performance_test($test_id$)`
-| append [
-| mstats avg(_value) as limit WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,indexer)` BY name `span_for_performance_test($test_id$)`
-| rename name as pod-name
-]
-| rename pod-name as instance
-
-| stats avg(usage) as usage min(limit) as limit by _time instance
-
-| lookup instances _key as instance OUTPUT stack_id
-| `overlap_performance_test_cases(stack_id)`
-
-| streamstats limit=0 last(limit) as limit2 last(usage) as usage2 by instance
-| eval limit = coalesce(limit,limit2)
-| eval usage = coalesce(usage,usage2)
-| fields - limit2 usage2
-| eval usage_pct = (usage / limit) * 100
-
-| timechart limit=0 `span_for_performance_test($test_id$)` max(usage_pct) as usage by case</query>
-          <earliest>0</earliest>
-          <latest></latest>
-          <refresh>30s</refresh>
-          <refreshType>delay</refreshType>
-        </search>
-        <option name="charting.axisTitleX.visibility">collapsed</option>
-        <option name="charting.axisTitleY.visibility">collapsed</option>
-        <option name="charting.axisY.maximumNumber">100</option>
-        <option name="charting.axisY.minimumNumber">0</option>
-        <option name="charting.chart">column</option>
-        <option name="charting.chart.nullValueMode">connect</option>
-        <option name="charting.drilldown">none</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">standard</option>
-        <option name="charting.legend.placement">right</option>
-        <option name="refresh.display">none</option>
-      </chart>
-      <chart>
         <title>Search Head Tier</title>
         <search>
           <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.usage_rate" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,search-head)` BY pod-name `span_for_performance_test($test_id$)`
@@ -347,15 +308,54 @@
         <option name="charting.legend.placement">right</option>
         <option name="refresh.display">none</option>
       </chart>
+      <chart>
+        <title>Indexer Tier</title>
+        <search>
+          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.usage_rate" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,indexer)` BY pod-name `span_for_performance_test($test_id$)`
+| append [
+| mstats avg(_value) as limit WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.cpu.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,indexer)` BY name `span_for_performance_test($test_id$)`
+| rename name as pod-name
+]
+| rename pod-name as instance
+
+| stats avg(usage) as usage min(limit) as limit by _time instance
+
+| lookup instances _key as instance OUTPUT stack_id
+| `overlap_performance_test_cases(stack_id)`
+
+| streamstats limit=0 last(limit) as limit2 last(usage) as usage2 by instance
+| eval limit = coalesce(limit,limit2)
+| eval usage = coalesce(usage,usage2)
+| fields - limit2 usage2
+| eval usage_pct = (usage / limit) * 100
+
+| timechart limit=0 `span_for_performance_test($test_id$)` max(usage_pct) as usage by case</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisY.maximumNumber">100</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="refresh.display">none</option>
+      </chart>
     </panel>
     <panel>
       <title>Memory Usage</title>
       <chart>
-        <title>Indexer Tier</title>
+        <title>Search Head Tier</title>
         <search>
-          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.usage_bytes" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,indexer)` BY pod-name `span_for_performance_test($test_id$)`
+          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.usage_bytes" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,search-head)` BY pod-name `span_for_performance_test($test_id$)`
 | append [
-| mstats avg(_value) as request WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,indexer)` BY name `span_for_performance_test($test_id$)`
+| mstats avg(_value) as request WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,search-head)` BY name `span_for_performance_test($test_id$)`
 | rename name as pod-name
 ]
 | rename pod-name as instance
@@ -389,11 +389,11 @@
         <option name="refresh.display">progressbar</option>
       </chart>
       <chart>
-        <title>Search Head Tier</title>
+        <title>Indexer Tier</title>
         <search>
-          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.usage_bytes" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,search-head)` BY pod-name `span_for_performance_test($test_id$)`
+          <query>| mstats avg(_value) as usage WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.usage_bytes" "index"="em_metrics" `pod_filter_for_performance_test($test_id$,pod-name,indexer)` BY pod-name `span_for_performance_test($test_id$)`
 | append [
-| mstats avg(_value) as request WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,search-head)` BY name `span_for_performance_test($test_id$)`
+| mstats avg(_value) as request WHERE `time_range_filter_for_performance_test($test_id$)` metric_name="kube.pod.memory.request" index="em_metrics" `pod_filter_for_performance_test($test_id$,name,indexer)` BY name `span_for_performance_test($test_id$)`
 | rename name as pod-name
 ]
 | rename pod-name as instance
