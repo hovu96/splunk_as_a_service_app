@@ -1,0 +1,14 @@
+deployment_type,indexer_count,search_head_count,cpu_per_instance,memory_per_instance,etc_storage_in_gb,other_var_storage_in_gb,indexer_var_storage_in_gb,data_volume_in_gb_per_day,searches_per_day,search_template,user_count
+standalone,1,1,8,8Gi,1,50,600,50,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,100,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,150,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,200,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,250,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,300,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,450,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,500,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,550,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,600,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,650,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,700,10000,| search earliest=-1m latest=now index=main | stats count by planet,0
+standalone,1,1,8,8Gi,1,50,600,750,10000,| search earliest=-1m latest=now index=main | stats count by planet,0

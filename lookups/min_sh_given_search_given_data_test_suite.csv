@@ -1,0 +1,4 @@
+deployment_type,indexer_count,search_head_count,cpu_per_instance,memory_per_instance,etc_storage_in_gb,other_var_storage_in_gb,indexer_var_storage_in_gb,data_volume_in_gb_per_day,searches_per_day,search_template,user_count
+distributed,13,9,2,5Gi,1,50,500,500,100000,| search earliest=-2m latest=now index=main | localop | dedup p1 p2 p3 p4,0
+distributed,13,6,2,5Gi,1,50,500,500,100000,| search earliest=-2m latest=now index=main | localop | dedup p1 p2 p3 p4,0
+distributed,13,3,2,5Gi,1,50,500,500,100000,| search earliest=-2m latest=now index=main | localop | dedup p1 p2 p3 p4,0
