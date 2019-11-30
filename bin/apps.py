@@ -55,8 +55,15 @@ class AppHandler(BaseRestHandler):
     @property
     def app(self):
         path = self.request['path']
-        path, app_version = os.path.split(path)
-        _, app_name = os.path.split(path)
+        app_segment_index = path.index(os.sep + "app" + os.sep)
+        name_version_segments_path = path[app_segment_index + 5:]
+        name_version_sep_index = name_version_segments_path.find(os.sep)
+        if name_version_sep_index >= 0:
+            app_name = name_version_segments_path[:name_version_sep_index]
+            app_version = name_version_segments_path[name_version_sep_index + 1:]
+        else:
+            app_name = name_version_segments_path
+            app_version = ""
         return unquote(app_name), unquote(app_version)
 
     def handle_GET(self):
@@ -129,10 +136,9 @@ def parse_app_metadata(path):
                         app_title_from_manifest = app_info["title"]
             if info.name.endswith(os.sep + "default" + os.sep + "app.conf"):
                 conf_file = archive.extractfile(info)
-                conf_file_data = conf_file.read()
+                conf_file_data = conf_file.read().decode("utf-8")
                 conf_parser = SafeConfigParser()
-                # conf_parser.readfp(conf_file)
-                conf_parser.read(conf_file_data)
+                conf_parser.read_string(conf_file_data)
                 if conf_parser.has_section("id") and conf_parser.has_option("id", "name"):
                     app_name_from_conf = conf_parser.get("id", "name")
                 elif conf_parser.has_section("package") and conf_parser.has_option("package", "id"):
@@ -187,7 +193,7 @@ def remove_app(splunk, app_name, app_version):
 
 def add_chunks(splunk, path, app_name, app_version):
     stanza_name = create_stanza_name(app_name, app_version)
-    chunk_collection = splunk.kvstore["app_chunk"].data
+    chunk_collection = splunk.kvstore["app_chunks"].data
     CHUNK_SIZE = 1024 * 100
     chunk_index = 0
     with open(path, 'rb') as f:
@@ -207,7 +213,7 @@ def add_chunks(splunk, path, app_name, app_version):
 
 def remove_chunks(splunk, app_name, app_version):
     stanza_name = create_stanza_name(app_name, app_version)
-    chunk_collection = splunk.kvstore["app_chunk"].data
+    chunk_collection = splunk.kvstore["app_chunks"].data
     chunk_collection.delete(query=json.dumps({
         "app": stanza_name,
     }))

@@ -33,7 +33,13 @@ require([
     });
     $(".dashboard-view-controls").append(backButton);
 
-    endpoint.get('app/' + appName + "/" + appVersion, {}, function (err, response) {
+    var appURLPath;
+    if (appVersion) {
+        appURLPath = 'app/' + appName + "/" + appVersion;
+    } else {
+        appURLPath = 'app/' + appName + "/";
+    }
+    endpoint.get(appURLPath, {}, function (err, response) {
         if (err) {
             Utils.showErrorDialog("Error loading app details", err).footer.append($('<button>Retry</button>').attr({
                 type: 'button',
