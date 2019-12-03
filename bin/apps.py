@@ -12,6 +12,8 @@ import json
 from configparser import SafeConfigParser
 import base64
 from urllib.parse import unquote
+import io
+import re
 
 app_config_fields = set([
     "title",
@@ -51,23 +53,24 @@ class AppsHandler(BaseRestHandler):
         ])
 
 
+def get_app_from_path(path, parent_path_segment):
+    app_segment_index = path.index(os.sep + parent_path_segment + os.sep)
+    name_version_segments_path = path[app_segment_index +
+                                      len(parent_path_segment) + 2:]
+    name_version_sep_index = name_version_segments_path.find(os.sep)
+    if name_version_sep_index >= 0:
+        app_name = name_version_segments_path[:name_version_sep_index]
+        app_version = name_version_segments_path[name_version_sep_index + 1:]
+    else:
+        app_name = name_version_segments_path
+        app_version = ""
+    return unquote(app_name), unquote(app_version)
+
+
 class AppHandler(BaseRestHandler):
-    @property
-    def app(self):
-        path = self.request['path']
-        app_segment_index = path.index(os.sep + "app" + os.sep)
-        name_version_segments_path = path[app_segment_index + 5:]
-        name_version_sep_index = name_version_segments_path.find(os.sep)
-        if name_version_sep_index >= 0:
-            app_name = name_version_segments_path[:name_version_sep_index]
-            app_version = name_version_segments_path[name_version_sep_index + 1:]
-        else:
-            app_name = name_version_segments_path
-            app_version = ""
-        return unquote(app_name), unquote(app_version)
 
     def handle_GET(self):
-        app_name, app_version = self.app
+        app_name, app_version = get_app_from_path(self.request['path'], "app")
         stanza_name = create_stanza_name(app_name, app_version)
         app_config = self.splunk.confs["apps"][stanza_name]
         entry = {
@@ -76,20 +79,29 @@ class AppHandler(BaseRestHandler):
         self.send_json_response(entry)
 
     def handle_DELETE(self):
-        app_name, app_version = self.app
+        app_name, app_version = get_app_from_path(self.request['path'], "app")
         remove_app(self.splunk, app_name, app_version)
 
 
-# class AppStacksHandler(BaseRestHandler):
-#    @property
-#    def app(self):
-#        path = self.request['path']
-#        path, app_version = os.path.split(path)
-#        _, app_name = os.path.split(path)
-#        return unquote(app_name), unquote(app_version)
-#
-#    def handle_GET(self):
-#        self.send_entries([])
+class AppFilesHandler(BaseRestHandler):
+
+    def handle_GET(self):
+        app_name, app_version = get_app_from_path(
+            self.request['path'], "app_config")
+        response = {}
+        with open_app(self.splunk, app_name, app_version) as file:
+            with tarfile.open(fileobj=file) as archive:
+                for info in archive:
+                    match = re.match(
+                        r'^[^/]+/default/([^/]+\.conf)$', info.name)
+                    if not match:
+                        continue
+                    conf_name = match.group(1)
+                    conf_file = archive.extractfile(info)
+                    conf_file_data = conf_file.read().decode("utf-8")
+                    response[conf_name] = conf_file_data
+        self.send_json_response(response)
+
 
 def add_app(splunk, path):
     app_name, app_version, app_title = parse_app_metadata(path)
@@ -208,7 +220,7 @@ def add_chunks(splunk, path, app_name, app_version):
             }))
             chunk_index += 1
             chunk = f.read(CHUNK_SIZE)
-    return chunk_index + 1
+    return chunk_index
 
 
 def remove_chunks(splunk, app_name, app_version):
@@ -217,3 +229,29 @@ def remove_chunks(splunk, app_name, app_version):
     chunk_collection.delete(query=json.dumps({
         "app": stanza_name,
     }))
+
+
+def open_app(splunk, app_name, app_version):
+    stanza_name = create_stanza_name(app_name, app_version)
+    app_config = splunk.confs["apps"][stanza_name]
+    #raise Exception("app_name: %s" % app_name)
+    chunk_collection = splunk.kvstore["app_chunks"].data
+    chunks = chunk_collection.query(
+        query=json.dumps({
+            "app": stanza_name,
+        }),
+        sort="index:1",
+    )
+    app_file = io.BytesIO()
+    number_of_chunks_found = 0
+    for chunk in chunks:
+        data_encoded = chunk["data"].encode("ascii")
+        data_decoded = base64.decodebytes(data_encoded)
+        app_file.write(data_decoded)
+        number_of_chunks_found += 1
+    app_file.seek(0)
+    if int(app_config["chunks"]) != number_of_chunks_found:
+        raise Exception("unexpected number of chunks (excpected %s, found %s)" % (
+            app_config["chunks"], number_of_chunks_found))
+    # TODO validate of chunks
+    return app_file

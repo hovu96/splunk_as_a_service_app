@@ -9,7 +9,7 @@ require([
     Utils,
     _
 ) {
-    const backButton = $('<button class="btn btn-primary action-button">Back</button>');
+    const backButton = $('<button class="btn action-button">Back</button>');
     backButton.click(async function () {
         window.location.href = 'apps';
     });

@@ -1,0 +1,33 @@
+#wizard_row .dashboard-panel {
+    background-color: transparent;
+}
+
+#deploy_row .dashboard-panel {
+    background-color: transparent;
+}
+
+#default-config-wrapper {
+    width: 100%;
+    display: table;
+}
+
+#default-config-wrapper>div {
+    display: table-row;
+}
+
+#default-config-explorer {
+    width: 17em;
+    display: table-cell;
+    vertical-align: top;
+}
+
+#default-config-content {
+    display: table-cell;
+    vertical-align: top;
+}
+
+#default-config-content textarea {
+    width: 100%;
+    height: 25em;
+    font-family: monospace;
+}

@@ -27,11 +27,17 @@ require([
     };
     updateTitle(appName);
 
-    const backButton = $('<button class="btn btn-primary action-button">Back</button>');
+    const backButton = $('<button class="btn action-button">Back</button>');
     backButton.click(async function () {
         window.location.href = 'apps';
     });
     $(".dashboard-view-controls").append(backButton);
+
+    const deployButton = $('<button class="btn btn-primary action-button">Deploy</button>');
+    deployButton.click(async function () {
+        window.location.href = "app_deploy?name=" + encodeURIComponent(appName) + "&version=" + encodeURIComponent(appVersion);
+    });
+    $(".dashboard-view-controls").append(deployButton);
 
     var appURLPath;
     if (appVersion) {

@@ -14,7 +14,7 @@ require([
     var endpoint = Utils.createRestEndpoint();
     const tokens = mvc.Components.getInstance("submitted");
 
-    const backButton = $('<button class="btn btn-primary action-button">Back</button>');
+    const backButton = $('<button class="btn action-button">Back</button>');
     backButton.click(async function () {
         window.location.href = 'performance_tests';
     });

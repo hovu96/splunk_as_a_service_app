@@ -1,10 +1,16 @@
-<form script="app.js" stylesheet="app.css">
+<dashboard script="app.js" stylesheet="app.css">
   <label>App</label>
   <row>
     <panel>
-      <html>
-        TODO
-      </html>
+      <table>
+        <title>Installed on Stacks</title>
+        <search>
+          <query>| rest splunk_server=local services/saas/stacks_having_app | fields - splunk_server</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
     </panel>
   </row>
-</form>
+</dashboard>

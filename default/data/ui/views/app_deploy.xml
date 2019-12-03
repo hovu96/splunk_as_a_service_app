@@ -1,0 +1,96 @@
+<dashboard script="app_deploy.js" stylesheet="app_deploy.css,jstree/themes/default/style.min.css">
+  <label>Deploy App to Stack</label>
+  <row id="wizard_row">
+      <html>
+          <div id="step-control-wizard"></div>
+      </html>
+  </row>
+  <row depends="$step-stack$">
+      <panel>
+          <title>Select Stack as Deployment Target</title>
+          <html>
+            <div class="form-horizontal">
+              <splunk-control-group class="fix-label" label="Target Stack" help="">
+                <splunk-search-dropdown class="option" name="stack" search="| rest splunk_server=local services/saas/stacks" value-field="id" label-field="title">
+                </splunk-search-dropdown>
+              </splunk-control-group>
+              <splunk-control-group class="help" label="" help="">	
+                <p>
+                  Select the Splunk Stack you want to deploy the app to.
+                </p>
+              </splunk-control-group>
+            </div>
+          </html>
+      </panel>
+  </row>
+  <row depends="$step-app$">
+      <panel>
+          <title>Select App to Deploy</title>
+          <html>
+            <div class="form-horizontal">
+              <splunk-control-group class="fix-label" label="App" help="">
+                <splunk-search-dropdown class="option" name="app" search='| rest splunk_server=local services/saas/apps | eval title = name + " (" + version + ")" | eval value = name + ":" + version' value-field="value" label-field="title">
+                </splunk-search-dropdown>
+              </splunk-control-group>
+              <splunk-control-group class="help" label="" help="">	
+                <p>
+                  Select the app you want to deploy. In case
+                  you cannot find the version you want to deploy, simply
+                  <a href="app_add">add a App</a> you are looking to deploy.
+                </p>
+              </splunk-control-group>
+            </div>
+          </html>
+      </panel>
+  </row>
+  <row depends="$step-config$">
+      <panel>
+          <title>Default App Config</title>
+          <html>
+            <div id="default-config-wrapper">
+                <div>
+                    <div id="default-config-explorer">
+                    </div>
+                    <div id="default-config-content">
+                      <splunk-text-area>
+                      </splunk-text-area>
+                    </div>
+                </div>
+            </div>
+          </html>
+      </panel>
+  </row>
+  <row depends="$step-config$">
+      <panel>
+          <title>Customize App Config for Stack</title>
+          <html>
+            <div id="custom-config-explorer"></div>
+          </html>
+          <html>
+            <button id="add-config-button" class="btn btn-primary">Add Config</button>
+          </html>
+      </panel>
+  </row>
+  <row depends="$step-summary$">
+      <panel>
+          <title>Configuration summary</title>
+          <html>
+              <table class="table-bordered table table-striped" style="min-width: 10%;">
+                  <tr>
+                      <td>Stack</td>
+                      <td>$option_cluster$</td>
+                  </tr>
+                  <tr>
+                      <td>App</td>
+                      <td>$option_memory_per_instance$</td>
+                  </tr>
+              </table>
+          </html>
+      </panel>
+  </row>
+  <row depends="$step-summary$" id="deploy_row">
+      <html>
+          <button id="deploy-button" class="btn btn-primary">Deploy Now</button>
+      </html>
+  </row>
+</dashboard>
