@@ -6,28 +6,35 @@
     background-color: transparent;
 }
 
-#default-config-wrapper {
+.config-wrapper {
     width: 100%;
     display: table;
 }
 
-#default-config-wrapper>div {
+.config-wrapper>div {
     display: table-row;
 }
 
-#default-config-explorer {
+.config-explorer {
     width: 17em;
     display: table-cell;
     vertical-align: top;
 }
 
-#default-config-content {
+.config-content {
     display: table-cell;
     vertical-align: top;
 }
 
-#default-config-content textarea {
+.config-content textarea {
     width: 100%;
     height: 25em;
     font-family: monospace;
+    background-color: #00000005;
+    color: #000;
+    cursor: text;
+}
+
+#add-config-button {
+    margin: 2em;
 }

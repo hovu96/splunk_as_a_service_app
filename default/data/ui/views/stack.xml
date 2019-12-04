@@ -2,7 +2,7 @@
   <label>Stack</label>
   <fieldset submitButton="false"></fieldset>
   <row>
-    <panel>
+    <panel id="status_panel">
       <single>
         <search>
           <query>| rest splunk_server=local services/saas/stack/$id$ | table status</query>
@@ -29,7 +29,7 @@
         <option name="useThousandSeparators">1</option>
       </single>
     </panel>
-    <panel>
+    <panel id="endpoints_panel">
       <table>
         <title>Endpoints</title>
         <search>
@@ -75,6 +75,21 @@
           <colorPalette type="map">{"Running":#53A051,"Pending":#F8BE34}</colorPalette>
         </format>
       </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Apps</title>
+        <search>
+          <query>| rest splunk_server=local services/saas/stack_apps/$id$ | fields - splunk_server | rename app_* as * | table name version *</query>
+        </search>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_self">stack_app?stack=$id$&amp;name=$row.name$&amp;version=$row.version$&amp;back=stack</link>
+        </drilldown>
+      </table>
+      <html>
+        <button id="deploy-app-button" class="btn">Deploy App</button>
+      </html>
     </panel>
   </row>
   <row>

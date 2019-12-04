@@ -1,15 +1,18 @@
-<dashboard script="app.js" stylesheet="app.css">
+<dashboard script="app.js">
   <label>App</label>
   <row>
     <panel>
       <table>
-        <title>Installed on Stacks</title>
+        <title>Stacks</title>
         <search>
-          <query>| rest splunk_server=local services/saas/stacks_having_app | fields - splunk_server</query>
+          <query>| rest splunk_server=local services/saas/stacks_having_app/$name$/$version$ | fields - splunk_server</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
         </search>
-        <option name="drilldown">none</option>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_self">stack_app?stack=$row.stack_id$&amp;name=$name$&amp;version=$version$&amp;back=app</link>
+        </drilldown>
       </table>
     </panel>
   </row>

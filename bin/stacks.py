@@ -21,8 +21,19 @@ DELETING = "Deleting"
 DELETED = "Deleted"
 
 
-def get_stack_config(service, stack_id):
-    stacks = service.kvstore["stacks"].data
+def stack_exists(splunk, stack_id):
+    try:
+        get_stack_config(splunk, stack_id)
+        return True
+    except splunklib.binding.HTTPError as e:
+        if e.status == 404:
+            return False
+        else:
+            raise
+
+
+def get_stack_config(splunk, stack_id):
+    stacks = splunk.kvstore["stacks"].data
     return stacks.query_by_id(stack_id)
 
 

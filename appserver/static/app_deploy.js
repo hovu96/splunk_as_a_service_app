@@ -2,16 +2,18 @@ const appName = window.location.pathname.match(/..-..\/app\/(?<app>[^\/]+)/).gro
 
 require([
     "jquery",
-    "/static/app/" + appName + "/jstree/jstree.js",
+    "/static/app/" + appName + "/jstree/jstree.min.js",
     "/static/app/" + appName + "/utils.js",
+    "/static/app/" + appName + "/modal.js",
     'backbone',
     'splunkjs/mvc',
     'views/shared/controls/StepWizardControl',
     "splunkjs/ready!",
 ], function (
     $,
-    jstree,
+    _,
     Utils,
+    Modal,
     Backbone,
     mvc,
     StepWizardControl,
@@ -58,6 +60,10 @@ require([
             }
         }));
     }
+    /*stackOption.change(function () {
+        const stack = stackOption.attr('value');
+    });
+    stackOption.change();*/
 
     const appOption = $(".option[name='app']");
     if (defaultTokens.attributes.name && defaultTokens.attributes.version) {
@@ -105,10 +111,12 @@ require([
                 return;
             }
 
-            const textArea = $('#default-config-content textarea');
+            const defaultConfigTextArea = $('#default-config-content textarea');
+            defaultConfigTextArea.attr("readonly", "readonly");
             const confNames = Object.keys(response.data).sort();
             $('#default-config-explorer').jstree({
                 core: {
+                    'multiple': false,
                     themes: {
                         dots: false,
                     },
@@ -124,25 +132,113 @@ require([
                 }
             }).on('changed.jstree', function (e, data) {
                 if (data.selected.length == 0) {
-                    textArea.attr("value", "");
+                    defaultConfigTextArea.val("");
                 } else {
                     const node = data.instance.get_node(data.selected[0]);
                     const confName = node.text;
                     const text = response.data[confName];
-                    textArea.text(text);
+                    defaultConfigTextArea.val(text);
                 }
             });
         });
     });
     appOption.change();
 
+    const customConfig = {};
+    const customConfigTextArea = $('#custom-config-content textarea');
+    customConfigTextArea.attr("readonly", "readonly");
+    const createDataFromCustomConfig = function () {
+        return Object.keys(customConfig).sort().map(function (name) {
+            return {
+                text: name,
+                icon: "jstree-file",
+                id: name,
+            }
+        })
+    };
+    const customConfigExplorer = $('#custom-config-explorer').jstree({
+        core: {
+            'multiple': false,
+            themes: {
+                dots: false,
+            },
+            data: createDataFromCustomConfig(),
+        }
+    }).on('changed.jstree', function (e, data) {
+        if (data.selected.length == 0) {
+            customConfigTextArea.val("");
+            customConfigTextArea.attr("readonly", "readonly");
+        } else {
+            customConfigTextArea.removeAttr("readonly");
+            const node = data.instance.get_node(data.selected[0]);
+            const confName = node.text;
+            const text = customConfig[confName];
+            customConfigTextArea.val(text);
+        }
+    });
+    const updateCustomConfigExplorer = function () {
+        customConfigExplorer.jstree(true).settings.core.data = createDataFromCustomConfig();
+        customConfigExplorer.jstree(true).refresh();
+    };
     $("#add-config-button").click(function () {
-
+        const modal = new Modal(undefined, {
+            title: 'Add Config',
+            backdrop: 'static',
+            keyboard: false,
+            destroyOnHide: true,
+            type: 'normal',
+        });
+        modal.body.append($(`
+            <p>
+                Enter the name of the config file to add:
+            </p>
+            <p>
+                <input id="add-config-name" type="text" style="width: 100%;"></input>
+            </p>
+            `));
+        modal.footer.append($('<button>Cancel</button>').attr({
+            type: 'button',
+            'data-dismiss': 'modal',
+            class: "btn",
+        }));
+        modal.footer.append($('<button>Add</button>').attr({
+            type: 'button',
+            'data-dismiss': 'modal',
+            class: "btn btn-primary",
+        }).click(function () {
+            var confName = $("#add-config-name").val();
+            if (!confName.endsWith(".conf")) {
+                confName += ".conf";
+            }
+            if (!customConfig[confName]) {
+                customConfig[confName] = '';
+            }
+            updateCustomConfigExplorer();
+            customConfigExplorer.jstree("deselect_all");
+            customConfigExplorer.jstree().select_node(confName);
+        }));
+        modal.show();
+        setTimeout(function () {
+            $("#add-config-name").focus();
+        }, 500);
+    });
+    customConfigTextArea.bind('input propertychange', function () {
+        const confName = customConfigExplorer.jstree('get_selected');
+        if (confName.length == 0) return;
+        customConfig[confName] = this.value;
     });
 
     stepCollection.push(new Backbone.Model({
         value: "config",
         label: "Config",
+        validate: function (selectedModel, isSteppingNext) {
+            var promise = $.Deferred();
+            promise.resolve();
+            $("#summary-custom-config").text(Object.keys(customConfig).join(", "));
+            $("#summary-selected-app").text(appOption.attr("value"));
+            $("#summary-selected-stack").text(stackOption.attr("value"));
+            return promise;
+        }
     }));
 
     stepCollection.push(new Backbone.Model({
@@ -176,7 +272,38 @@ require([
 
     $('#step-control-wizard').append(stepWizard.render().el);
 
-    $("#deploy-button").click(function () {
-        alert("todo");
+    $("#deploy-button").click(async function () {
+
+        const stackID = stackOption.attr("value");
+        const appComps = appOption.attr("value").split(":")
+        const appName = appComps[0];
+        const appVersion = appComps[1];
+
+        const options = {
+            app_name: appName,
+            app_version: appVersion,
+        };
+
+        Object.keys(customConfig).forEach(function (confName) {
+            const nameWithoutExtension = confName.split('.')[0];
+            options["conf_" + nameWithoutExtension] = customConfig[confName];
+        });
+
+        try {
+            const progressIndicator = Utils.newLoadingIndicator({
+                title: "Deploying App ...",
+                subtitle: "Please wait.",
+            });
+            try {
+                const path = 'stack_apps/' + stackID;
+                const response = await endpoint.postAsync(path, options);
+                window.location.href = 'stack_app?stack=' + stackID + "&name=" + appName + "&version=" + appVersion + "&back=app";
+            } finally {
+                progressIndicator.hide();
+            }
+        }
+        catch (err) {
+            await Utils.showErrorDialog(null, err, true).wait();
+        }
     });
 });

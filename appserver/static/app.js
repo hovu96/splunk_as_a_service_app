@@ -39,12 +39,7 @@ require([
     });
     $(".dashboard-view-controls").append(deployButton);
 
-    var appURLPath;
-    if (appVersion) {
-        appURLPath = 'app/' + appName + "/" + appVersion;
-    } else {
-        appURLPath = 'app/' + appName + "/";
-    }
+    var appURLPath = 'app/' + appName + "/" + appVersion;
     endpoint.get(appURLPath, {}, function (err, response) {
         if (err) {
             Utils.showErrorDialog("Error loading app details", err).footer.append($('<button>Retry</button>').attr({

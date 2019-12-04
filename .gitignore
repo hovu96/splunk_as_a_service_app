@@ -9,3 +9,4 @@ local
 metadata/local.meta
 .vscode/.ropeproject 
 lookups/lookup_file_backups
+.vscode/tags

@@ -6,3 +6,11 @@ table.credentials td.name {
 table.credentials td.value {
     font-family: 'Courier New', Courier, monospace;
 }
+
+#status_panel {
+    width: 30% !important;
+}
+
+#endpoints_panel {
+    width: 70% !important;
+}
