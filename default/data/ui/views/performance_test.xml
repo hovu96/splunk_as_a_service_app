@@ -605,15 +605,6 @@
         <format type="color" field="level">
           <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
         </format>
-        <format type="color" field="level">
-          <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
-        </format>
-        <format type="color" field="level">
-          <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
-        </format>
-        <format type="color" field="level">
-          <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
-        </format>
       </table>
     </panel>
   </row>

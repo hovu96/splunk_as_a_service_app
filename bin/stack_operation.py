@@ -18,39 +18,37 @@ import os
 import errors
 import stacks
 import clusters
-from kubernetes import client as kubernetes
+from kubernetes import client as kuberneteslib
 import services
 import stack_deployment
+import app_deployment
+import time
 
 
 def up(splunk, stack_id):
     stack_config = stacks.get_stack_config(splunk, stack_id)
     cluster_name = stack_config["cluster"]
-    api_client = clusters.create_client(splunk, cluster_name)
-    core_api = kubernetes.CoreV1Api(api_client)
-    custom_objects_api = kubernetes.CustomObjectsApi(api_client)
+    kubernetes = clusters.create_client(splunk, cluster_name)
     cluster_config = clusters.get_cluster_config(splunk, cluster_name)
     status = stack_config["status"]
     if status == stacks.CREATING:
         stack_deployment.create_deployment(
-            splunk, core_api, custom_objects_api,
-            stack_id, stack_config, cluster_config
-        )
+            splunk, kubernetes, stack_id, stack_config, cluster_config)
         logging.info("created")
         stacks.update_config(splunk, stack_id, {
             "status": stacks.CREATED,
         })
     elif status == stacks.CREATED:
         #import instances
-        #if stack_config["deployment_type"] == "standalone":
+        # if stack_config["deployment_type"] == "standalone":
         #    inst = instances.create_client(
         #        core_api, stack_id, stack_config, services.standalone_role)
-        #elif stack_config["deployment_type"] == "distributed":
+        # elif stack_config["deployment_type"] == "distributed":
         #    inst = instances.create_client(
         #        core_api, stack_id, stack_config, services.search_head_role)
-        #inst.indexes["main"].submit("test")
-        #logging.warning("sent")
-        pass
+        # inst.indexes["main"].submit("test")
+        # logging.warning("sent")
+        app_deployment.update_apps(splunk, kubernetes, stack_id)
     else:
         logging.warning("unexpected status: %s", status)
 
@@ -62,8 +60,8 @@ def down(splunk, stack_id, force=False):
     stack_config = stacks.get_stack_config(splunk, stack_id)
     cluster_name = stack_config["cluster"]
     api_client = clusters.create_client(splunk, cluster_name)
-    core_api = kubernetes.CoreV1Api(api_client)
-    custom_objects_api = kubernetes.CustomObjectsApi(api_client)
+    core_api = kuberneteslib.CoreV1Api(api_client)
+    custom_objects_api = kuberneteslib.CustomObjectsApi(api_client)
     try:
         services.delete_all_load_balancers(
             core_api, stack_id, stack_config["namespace"])
@@ -136,14 +134,35 @@ class StackOperation(GeneratingCommand):
             os.path.dirname(__file__)), "..", "..", "..", "var", "log", "splunk", "saas_stack_operation_" + self.stack_id + ".log")
         file_handler = logging.handlers.RotatingFileHandler(
             log_file_path, maxBytes=25000000, backupCount=5)
+        tz = time.strftime("%Z")
         formatter = logging.Formatter(
-            '%(asctime)s stack_id=\"' + self.stack_id +
+            '%(asctime)s.%(msecs)03d ' + tz + ' stack_id=\"' + self.stack_id +
             '\" level=\"%(levelname)s\" %(message)s')
-        formatter.datefmt = "%m/%d/%Y %H:%M:%S %Z"
+        formatter.datefmt = "%m/%d/%Y %H:%M:%S"
         file_handler.setFormatter(formatter)
         root_logger = logging.getLogger()
         root_logger.setLevel("DEBUG")
         root_logger.addHandler(file_handler)
+
+        class EventBufferHandler(logging.Handler):
+            _events = None
+
+            def __init__(self):
+                logging.Handler.__init__(self)
+                self._events = []
+
+            def emit(self, record):
+                self._events.append({
+                    "level": record.levelname,
+                    "_time": record.created,
+                    "msg": record.getMessage(),
+                })
+
+            @property
+            def events(self):
+                return self._events
+        buffer_handler = EventBufferHandler()
+        root_logger.addHandler(buffer_handler)
 
         logging.debug("running '%s' command .." % self.command)
 
@@ -157,9 +176,6 @@ class StackOperation(GeneratingCommand):
                 return
             raise
 
-        if False:
-            yield
-
         try:
             if self.command == "up":
                 up(self.service, self.stack_id)
@@ -171,15 +187,20 @@ class StackOperation(GeneratingCommand):
                 logging.error("unknown command: %s" % self.command)
             logging.debug("will stop '%s' command" % self.command)
         except errors.RetryOperation as e:
-            logging.info("will retry because: %s" % e)
+            msg = "%s" % e
+            if msg:
+                logging.info("%s" % msg)
+            logging.debug("will check in 1m")
             return
         except:
             import traceback
-            logging.error(traceback.format_exc())
-            logging.debug("will retry %s" % self.command)
+            logging.error("%s\n(will try again in 1m)" %
+                          traceback.format_exc())
             return
         finally:
             logging.shutdown()
+            for e in buffer_handler.events:
+                yield e
 
         unschedule_operation(self.service, self.stack_id)
 

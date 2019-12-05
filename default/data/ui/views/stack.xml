@@ -94,12 +94,12 @@
   </row>
   <row>
     <panel>
-      <title>Operations Logs</title>
+      <title>Events</title>
       <input type="time" token="logs" searchWhenChanged="true">
         <label>Time</label>
         <default>
-          <earliest>rt-30m</earliest>
-          <latest>rt</latest>
+          <earliest>-4h</earliest>
+          <latest>now</latest>
         </default>
       </input>
       <input type="dropdown" token="log_level_filter" searchWhenChanged="true">
@@ -111,16 +111,19 @@
         <default>eventtype=stack_operation_info</default>
         <initialValue>eventtype=stack_operation_info</initialValue>
       </input>
-      <event>
+      <table>
         <search>
-          <query>sourcetype="stack_operator" stack_operation_stack_id="$id$" $log_level_filter$ | fields + eventtype | rename stack_operation_level as level</query>
+          <query>sourcetype="stack_operator" stack_operation_stack_id="$id$" $log_level_filter$ | rename stack_operation_level as level _raw as message | table _time level message | sort - _time</query>
           <earliest>$logs.earliest$</earliest>
           <latest>$logs.latest$</latest>
+          <refresh>10s</refresh>
+          <refreshType>delay</refreshType>
         </search>
-        <option name="list.drilldown">none</option>
         <option name="refresh.display">none</option>
-        <option name="type">list</option>
-      </event>
+        <format type="color" field="level">
+          <colorPalette type="map">{"WARNING":#F8BE34,"INFO":#53FF51,"ERROR":#DC4E41,"DEBUG":#708794}</colorPalette>
+        </format>
+      </table>
     </panel>
   </row>
 </form>

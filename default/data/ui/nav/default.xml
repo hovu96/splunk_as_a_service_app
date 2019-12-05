@@ -12,7 +12,5 @@
         <view name="settings" />
         <view name="performance_tests" />
         <view name="internal_usage" />
-        <view name="search" />
-        <view name="analysis_workspace" />
     </collection>
 </nav>

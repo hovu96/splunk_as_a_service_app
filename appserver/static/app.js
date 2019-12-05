@@ -34,7 +34,7 @@ require([
     $(".dashboard-view-controls").append(backButton);
 
     const deployButton = $('<button class="btn btn-primary action-button">Deploy</button>');
-    deployButton.click(async function () {
+    deployButton.click(function () {
         window.location.href = "app_deploy?name=" + encodeURIComponent(appName) + "&version=" + encodeURIComponent(appVersion);
     });
     $(".dashboard-view-controls").append(deployButton);

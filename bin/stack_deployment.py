@@ -5,7 +5,7 @@ bin_path = os.path.join(os.path.dirname(__file__))
 if bin_path not in sys.path:
     sys.path.insert(0, bin_path)
 
-from kubernetes import client as kubernetes
+from kubernetes import client as kuberneteslib
 import yaml
 import errors
 import logging
@@ -15,7 +15,9 @@ import app_deployment
 import instances
 
 
-def create_deployment(splunk, core_api, custom_objects_api, stack_id, stack_config, cluster_config):
+def create_deployment(splunk, kubernetes, stack_id, stack_config, cluster_config):
+    core_api = kuberneteslib.CoreV1Api(kubernetes)
+    custom_objects_api = kuberneteslib.CustomObjectsApi(kubernetes)
     if stack_config["license_master_mode"] == "local":
         if not license_exists(core_api, stack_id, stack_config):
             logging.info("deploying license ...")
@@ -30,8 +32,7 @@ def create_deployment(splunk, core_api, custom_objects_api, stack_id, stack_conf
     create_load_balancers(core_api, stack_id, stack_config)
     verify_all_splunk_instance_completed_startup(
         core_api, stack_id, stack_config)
-    app_deployment.install_base_apps(
-        splunk, core_api, stack_id)
+    app_deployment.deploy_support_apps(splunk, kubernetes, stack_id)
 
 
 def verify_pods_created(splunk, core_api, stack_id, stack_config):
@@ -55,7 +56,7 @@ def verify_pods_created(splunk, core_api, stack_id, stack_config):
     ).items
     if len(pods) == expected_number_of_instances:
         return
-    raise errors.RetryOperation("expecting %s pods (found %d)" %
+    raise errors.RetryOperation("still waiting for pods (expecting %s, found %d) ..." %
                                 (expected_number_of_instances, len(pods)))
 
 
@@ -115,7 +116,7 @@ def verify_all_splunk_instance_completed_startup(core_api, stack_id, stack_confi
         if instances.check_instance_startup_complated(core_api, stack_config, p):
             number_of_pods_completed += 1
     if number_of_pods_completed != len(pods):
-        raise errors.RetryOperation("%s out of %s pods completed startup ..." %
+        raise errors.RetryOperation("%s out of %s pods completed startup" %
                                     (number_of_pods_completed, len(pods)))
     logging.info("all pods completed startup")
 
@@ -127,7 +128,7 @@ def license_exists(core_api, stack_id, stack_config):
             name=stack_id,
         )
         return True
-    except kubernetes.rest.ApiException as e:
+    except kuberneteslib.rest.ApiException as e:
         if e.status == 404:
             return False
         raise
@@ -137,13 +138,13 @@ def create_license(core_api, stack_id, stack_config):
     enterprise_license = stack_config["enterprise_license"] if "enterprise_license" in stack_config else ""
     core_api.create_namespaced_config_map(
         stack_config["namespace"],
-        kubernetes.V1ConfigMap(
+        kuberneteslib.V1ConfigMap(
             data={
                 "enterprise.lic": enterprise_license,
             },
             api_version="v1",
             kind="ConfigMap",
-            metadata=kubernetes.V1ObjectMeta(
+            metadata=kuberneteslib.V1ObjectMeta(
                 name=stack_id,
                 namespace=stack_config["namespace"],
             )
@@ -167,7 +168,7 @@ def get_splunk(custom_objects_api, stack_id, stack_config):
             namespace=stack_config["namespace"],
             name=stack_id,
         )
-    except kubernetes.rest.ApiException as e:
+    except kuberneteslib.rest.ApiException as e:
         if e.status == 404:
             return None
         raise
@@ -299,5 +300,5 @@ def delete_splunk(custom_objects_api, stack_id, stack_config):
         name=stack_id,
         namespace=stack_config["namespace"],
         plural="splunkenterprises",
-        body=kubernetes.V1DeleteOptions(),
+        body=kuberneteslib.V1DeleteOptions(),
     )

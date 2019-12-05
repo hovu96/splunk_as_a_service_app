@@ -27,7 +27,7 @@ def create_client(core_api, stack_id, stack_config, role):
         namespace=stack_config["namespace"],
     )
     password = base64.b64decode(secrets.data["password"])
-    logging.info("%s" % hosts[0])
+    #logging.info("%s" % hosts[0])
     splunk = splunklib.client.Service(
         port=8089,
         scheme="https",

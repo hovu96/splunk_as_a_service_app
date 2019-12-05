@@ -296,8 +296,15 @@ require([
             });
             try {
                 const path = 'stack_apps/' + stackID;
-                const response = await endpoint.postAsync(path, options);
-                window.location.href = 'stack_app?stack=' + stackID + "&name=" + appName + "&version=" + appVersion + "&back=app";
+                await endpoint.postAsync(path, options);
+                var back;
+                if (defaultTokens.attributes.stack) {
+                    back = "stack";
+                }
+                else {
+                    back = "app";
+                }
+                window.location.href = 'stack_app?stack=' + stackID + "&name=" + appName + "&version=" + appVersion + "&back=" + back;
             } finally {
                 progressIndicator.hide();
             }

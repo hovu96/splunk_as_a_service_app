@@ -15,9 +15,9 @@ require([
 ) {
     var endpoint = Utils.createRestEndpoint();
     const tokens = mvc.Components.getInstance("submitted");
-    const deploymentID = tokens.attributes.id;
+    const stackID = tokens.attributes.id;
 
-    endpoint.get('stack/' + deploymentID, {}, function (err, response) {
+    endpoint.get('stack/' + stackID, {}, function (err, response) {
         if (err) {
             Utils.showErrorDialog(null, err).footer.append($('<button>Reload</button>').attr({
                 type: 'button',
@@ -32,7 +32,7 @@ require([
             if (deployment.title) {
                 title = deployment.title;
             } else {
-                title = deploymentID;
+                title = stackID;
             }
             const titleElement = $(".dashboard-title.dashboard-header-title");
             titleElement.text(titleElement.text() + ": " + title);
@@ -82,7 +82,7 @@ require([
                 subtitle: "Please wait.",
             });
             try {
-                await endpoint.delAsync('stack/' + deploymentID, {
+                await endpoint.delAsync('stack/' + stackID, {
                     force: $("#force-delete").prop("checked"),
                 });
                 progressIndicator.hide();
@@ -105,7 +105,7 @@ require([
         });
         var credentials;
         try {
-            const response = await endpoint.getAsync('credentials/' + deploymentID);
+            const response = await endpoint.getAsync('credentials/' + stackID);
             credentials = await Utils.getResponseContent(response);
             progressIndicator.hide();
         }
@@ -143,6 +143,10 @@ require([
         modal.show();
     });
     $(".dashboard-view-controls").append(passwordButton);
+
+    $("#deploy-app-button").click(function () {
+        window.location.href = "app_deploy?stack=" + stackID;
+    });
 
 }
 );

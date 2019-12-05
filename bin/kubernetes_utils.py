@@ -141,7 +141,7 @@ def tar_directory_to_pod(core_api, pod, namespace, local_path, remote_path):
         with tarfile.open(fileobj=tar_buffer, mode='w') as tar:
             tar.add(
                 name=local_path,
-                arcname="/"
+                arcname="/app/"
             )
         tar_buffer.seek(0)
         exec_in_pod(core_api, pod, namespace, tar_buffer,
@@ -185,7 +185,7 @@ def exec_in_pod(core_api, pod, namespace, stdin, command):
         if commands:
             c = commands.pop(0)
             # https://stackoverflow.com/questions/54108278/kubectl-cp-in-kubernetes-python-client
-            resp.write_stdin(c.decode())
+            resp.write_stdin(c)
         else:
             break
     resp.close()

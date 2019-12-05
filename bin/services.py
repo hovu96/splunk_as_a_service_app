@@ -111,12 +111,13 @@ def create_load_balancers(core_api, stack_id, role, namespace):
             target_port=9996,
         ))
     if role == indexer_role:
-        logging.info("creating load balancers for '%s' ..." % (role))
-        label_selector = ",".join([k+"="+v for k, v in selector.items()])
-        logging.info("label_selector: "+label_selector)
+        logging.debug("creating load balancers for '%s' ..." % (role))
+        label_selector = ",".join([k + "=" + v for k, v in selector.items()])
+        logging.debug("label_selector: " + label_selector)
         pods = core_api.list_namespaced_pod(
             namespace=namespace,
-            label_selector=",".join([k+"="+v for k, v in selector.items()]),
+            label_selector=",".join(
+                [k + "=" + v for k, v in selector.items()]),
         ).items
         existing_lbs = core_api.list_namespaced_service(
             namespace=namespace,
@@ -125,11 +126,13 @@ def create_load_balancers(core_api, stack_id, role, namespace):
         ).items
         lbs_to_delete = set([lb.metadata.name for lb in existing_lbs])
         for pod in pods:
-            load_balancer_name = pod.metadata.name+"-lb"
+            load_balancer_name = pod.metadata.name + "-lb"
             if load_balancer_name in lbs_to_delete:
                 lbs_to_delete.remove(load_balancer_name)
             if not get(core_api, load_balancer_name, namespace):
                 selector["statefulset.kubernetes.io/pod-name"] = pod.metadata.name
+                logging.info("creating load balancer for '%s' ..." %
+                             (pod.metadata.name))
                 core_api.create_namespaced_service(
                     namespace=namespace,
                     body=kubernetes.V1Service(
