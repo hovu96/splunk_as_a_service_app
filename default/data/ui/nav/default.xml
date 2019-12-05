@@ -7,18 +7,12 @@
     <view name="chargeback" />
     <view name="health" />
     <view name="infrastructure" />
-    <view name="configure" />
     <collection label="Other">
         <view name="clusters" />
+        <view name="settings" />
         <view name="performance_tests" />
         <view name="internal_usage" />
-        <collection label="Search">
-            <view name="search" />
-            <view name="analysis_workspace" />
-            <view name="datasets" />
-            <view name="reports" />
-            <view name="alerts" />
-            <view name="dashboards" />
-        </collection>
+        <view name="search" />
+        <view name="analysis_workspace" />
     </collection>
 </nav>

@@ -29,24 +29,15 @@ require([
             options[el.attr("name")] = value;
         });
 
-        endpoint.post('configure', options, function (err, response) {
+        endpoint.post('settings', options, function (err, response) {
             if (err) {
                 progressIndicator.hide();
-                console.log(err.response.headers["x-saas-is-configured"]);
-                const isConfigured = Utils.normalizeBoolean(err.response.headers["x-saas-is-configured"]);
                 const dialog = Utils.showErrorDialog(null, err);
-                dialog.footer.append($('<button>Continue Setup</button>').attr({
+                /*dialog.footer.append($('<button>Continue Setup</button>').attr({
                     type: 'button',
                     'data-dismiss': 'modal',
                     class: "btn btn-primary",
-                }));
-                if (isConfigured) {
-                    dialog.footer.append($('<button class="btn">Back to Home</button>').attr({
-                        type: 'button',
-                    }).on('click', function () {
-                        window.location.href = "/app/" + appName;
-                    }));
-                }
+                }));*/
             } else {
                 window.location.href = "/app/" + appName;
             }
@@ -57,7 +48,7 @@ require([
         title: "Loading Settings ...",
         subtitle: "Please wait."
     });
-    endpoint.get('configure', {}, function (err, response) {
+    endpoint.get('settings', {}, function (err, response) {
         loadingIndicator.hide();
         if (err) {
             Utils.showErrorDialog(null, err).footer.append($('<button>Retry</button>').attr({

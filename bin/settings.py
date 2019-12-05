@@ -13,7 +13,7 @@ import traceback
 import errors
 
 
-class ConfigureHandler(BaseRestHandler):
+class SettingsHandler(BaseRestHandler):
 
     default_fields = set([
         "cluster",
@@ -21,20 +21,15 @@ class ConfigureHandler(BaseRestHandler):
     defaults_prefix = "default_"
 
     def handle_POST(self):
-        self.response.setHeader(
-            'X-SAAS-Is-Configured', self.service.confs["app"]["install"]["is_configured"])
         params = parse_qs(self.request['payload'])
 
         self.update_defaults(params)
-
-        self.service.confs["app"]["install"].submit({
-            "is_configured": 1,
-        })
-        self.service.apps[self.app].reload()
+        # self.service.apps[self.app].reload()
 
     def update_defaults(self, params):
         defaults = splunklib.data.record({
-            k: params[self.defaults_prefix+k][0] if self.defaults_prefix+k in params else ""
+            k: params[self.defaults_prefix +
+                      k][0] if self.defaults_prefix + k in params else ""
             for k in self.default_fields})
 
         self.service.confs["defaults"]["general"].submit(defaults)
@@ -43,7 +38,7 @@ class ConfigureHandler(BaseRestHandler):
 
         defaults = self.service.confs["defaults"]["general"]
         defaults_data = {
-            self.defaults_prefix+k: defaults[k] if k in defaults else ""
+            self.defaults_prefix + k: defaults[k] if k in defaults else ""
             for k in self.default_fields}
 
         data = {}

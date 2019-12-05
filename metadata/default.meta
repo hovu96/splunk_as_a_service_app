@@ -6,7 +6,7 @@ export = none
 access = read : [ saas_admin ], write : [ saas_admin ]
 export = none
 
-[views/configure]
+[views/settings]
 access = read : [ saas_admin ]
 export = none
 

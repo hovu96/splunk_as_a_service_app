@@ -20,7 +20,7 @@ import time
 import clusters
 from kubernetes import client as kubernetes
 import services
-import credentials_handler
+import credentials
 
 TEST_PREPARING = "Preparing"
 TEST_RUNNING = "Running"
@@ -514,7 +514,7 @@ def run_cases(splunk, test_id, test):
                         raise
                     search_gen_deployment_already_exists = False
                 if not search_gen_deployment_already_exists:
-                    admin_password = credentials_handler.get_admin_password(
+                    admin_password = credentials.get_admin_password(
                         splunk, stack_id)
                     apps_api.create_namespaced_deployment(
                         namespace=stack_config["namespace"],

@@ -1,5 +1,5 @@
-<dashboard script="configure.js" stylesheet="configure.css">
-  <label>Configure</label>
+<dashboard script="settings.js" stylesheet="settings.css">
+  <label>Settings</label>
   <row>
     <panel>
       <title>Defaults</title>

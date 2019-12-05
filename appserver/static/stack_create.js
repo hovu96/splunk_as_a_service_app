@@ -41,7 +41,7 @@ require([
             title: "Loading Defaults ...",
             subtitle: "Please wait."
         });
-        endpoint.get('configure', {}, function (err, response) {
+        endpoint.get('settings', {}, function (err, response) {
             loadingIndicator.hide();
             if (err) {
                 Utils.showErrorDialog(null, err).footer.append($('<button>Retry</button>').attr({
