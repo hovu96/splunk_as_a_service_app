@@ -15,6 +15,20 @@ def get_stack_apps_collection(splunk):
     return splunk.kvstore["stack_apps"].data
 
 
+def get(splunk, stack_app_id):
+    stack_apps_collection = get_stack_apps_collection(splunk)
+    return stack_apps_collection.query_by_id(stack_app_id)
+
+
+def get_apps_in_stack(splunk, stack_id):
+    stack_apps_collection = get_stack_apps_collection(splunk)
+    return stack_apps_collection.query(
+        query=json.dumps({
+            "stack_id": stack_id,
+        }),
+    )
+
+
 class AppsInStack(BaseRestHandler):
     def handle_POST(self):
         path = self.request['path']
@@ -28,6 +42,7 @@ class AppsInStack(BaseRestHandler):
         existing_apps = stack_apps.query(
             query=json.dumps({
                 "app_name": app_name,
+                "stack_id": stack_id,
             }),
         )
         if len(existing_apps) > 0:
@@ -51,12 +66,7 @@ class AppsInStack(BaseRestHandler):
     def handle_GET(self):
         path = self.request['path']
         _, stack_id = os.path.split(path)
-        stack_apps_collection = get_stack_apps_collection(self.splunk)
-        stack_apps = stack_apps_collection.query(
-            query=json.dumps({
-                "stack_id": stack_id,
-            }),
-        )
+        stack_apps = get_apps_in_stack(self.splunk, stack_id)
         self.send_entries([{
             "app_name": stack_app["app_name"],
             "app_version": stack_app["app_version"],
@@ -65,8 +75,12 @@ class AppsInStack(BaseRestHandler):
 
 class AppInStack(BaseRestHandler):
     def handle_GET(self):
+        path = self.request['path']
+        _, stack_app_id = os.path.split(path)
+        stack_app = get(self.splunk, stack_app_id)
         self.send_result({
-            "test": "hallo",
+            "app_name": stack_app["app_name"],
+            "app_version": stack_app["app_version"],
         })
 
     def handle_DELETE(self):

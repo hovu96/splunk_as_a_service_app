@@ -32,7 +32,7 @@ def create_deployment(splunk, kubernetes, stack_id, stack_config, cluster_config
     create_load_balancers(core_api, stack_id, stack_config)
     verify_all_splunk_instance_completed_startup(
         core_api, stack_id, stack_config)
-    app_deployment.deploy_support_apps(splunk, kubernetes, stack_id)
+    app_deployment.update_apps(splunk, kubernetes, stack_id)
 
 
 def verify_pods_created(splunk, core_api, stack_id, stack_config):
