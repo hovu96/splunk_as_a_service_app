@@ -1,3 +1,47 @@
-<dashboard script="stack_app.js">
+<form script="stack_app.js">
   <label>Deployed App</label>
-</dashboard>
+  <fieldset submitButton="false">
+    <input type="time" token="time" searchWhenChanged="true">
+      <label>Time Range</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <chart>
+        <title>App Views (per hour)</title>
+        <search>
+          <query>index="_internal" user!="-" sourcetype=splunkd_ui_access "/app/$name$/" stack_id="$stack$"
+| bin span=1h _time
+| stats count as rpm by _time stack
+| timechart avg(rpm) by stack</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.nullValueMode">zero</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <event>
+        <title>Events</title>
+        <search>
+          <query>index="_internal" sourcetype="splunkd" stack_id="$stack$" "$name$"</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="list.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </event>
+    </panel>
+  </row>
+</form>
