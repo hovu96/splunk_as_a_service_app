@@ -81,8 +81,8 @@ def schedule_operation(splunk, stack_id, command):
         pass
     search = splunk.saved_searches.create(
         name=get_command_name(stack_id),
-        search="| stackoperation stack_id=\"%s\" command=\"%s\"" % (
-            stack_id, command),
+        search="| stackoperation stack_id=\"%s\" command=\"%s\" | collect index=summary marker=\"search_tag=stackoperation, stack_id=%s\"" % (
+            stack_id, command, stack_id),
         **{
             "cron_schedule": "* * * * *",
             "is_scheduled": 1,
@@ -122,19 +122,8 @@ class StackOperation(GeneratingCommand):
     stack_id = Option(require=True)
 
     def generate(self):
-        log_file_path = os.path.join(os.path.dirname(
-            os.path.dirname(__file__)), "..", "..", "..", "var", "log", "splunk", "saas_stack_operation_" + self.stack_id + ".log")
-        file_handler = logging.handlers.RotatingFileHandler(
-            log_file_path, maxBytes=25000000, backupCount=5)
-        tz = time.strftime("%Z")
-        formatter = logging.Formatter(
-            '%(asctime)s.%(msecs)03d ' + tz + ' stack_id=\"' + self.stack_id +
-            '\" level=\"%(levelname)s\" %(message)s')
-        formatter.datefmt = "%m/%d/%Y %H:%M:%S"
-        file_handler.setFormatter(formatter)
         root_logger = logging.getLogger()
         root_logger.setLevel("DEBUG")
-        root_logger.addHandler(file_handler)
 
         class EventBufferHandler(logging.Handler):
             _events = None

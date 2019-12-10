@@ -104,16 +104,16 @@
       </input>
       <input type="dropdown" token="log_level_filter" searchWhenChanged="true">
         <label>Level</label>
-        <choice value="eventtype=stack_operation_debug">Debug</choice>
-        <choice value="eventtype=stack_operation_info">Info</choice>
-        <choice value="eventtype=stack_operation_warning">Warning</choice>
-        <choice value="eventtype=stack_operation_error">Error</choice>
-        <default>eventtype=stack_operation_info</default>
-        <initialValue>eventtype=stack_operation_info</initialValue>
+        <choice value="eventtype=debug_level">Debug</choice>
+        <choice value="eventtype=info_level">Info</choice>
+        <choice value="eventtype=warning_level">Warning</choice>
+        <choice value="eventtype=error_level">Error</choice>
+        <default>eventtype=info_level</default>
+        <initialValue>eventtype=info_level</initialValue>
       </input>
       <table>
         <search>
-          <query>sourcetype="stack_operator" stack_operation_stack_id="$id$" $log_level_filter$ | rename stack_operation_level as level _raw as message | table _time level message | sort - _time</query>
+          <query>index=summary search_tag=stackoperation stack_id=$id$ | table _time level msg | search level!=DEBUG | reverse</query>
           <earliest>$logs.earliest$</earliest>
           <latest>$logs.latest$</latest>
           <refresh>10s</refresh>

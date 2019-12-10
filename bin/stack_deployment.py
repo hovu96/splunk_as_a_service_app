@@ -106,7 +106,6 @@ def create_load_balancers(core_api, stack_id, stack_config):
 
 
 def verify_all_splunk_instance_completed_startup(core_api, stack_id, stack_config):
-    logging.info("checking splunk instances to complete startup...")
     pods = core_api.list_namespaced_pod(
         namespace=stack_config["namespace"],
         label_selector="app=splunk,for=%s" % stack_id,
@@ -116,8 +115,9 @@ def verify_all_splunk_instance_completed_startup(core_api, stack_id, stack_confi
         if instances.check_instance_startup_complated(core_api, stack_config, p):
             number_of_pods_completed += 1
     if number_of_pods_completed != len(pods):
-        raise errors.RetryOperation("%s out of %s pods completed startup" %
-                                    (number_of_pods_completed, len(pods)))
+        not_completed = len(pods) - number_of_pods_completed
+        raise errors.RetryOperation("waiting for %s (out of %s) pods to complete startup ..." %
+                                    (not_completed, len(pods)))
     logging.info("all pods completed startup")
 
 
