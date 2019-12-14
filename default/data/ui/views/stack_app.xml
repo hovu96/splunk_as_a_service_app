@@ -1,4 +1,4 @@
-<form script="stack_app.js">
+<form script="stack_app.js" stylesheet="stack_app.css">
   <label>Deployed App</label>
   <fieldset submitButton="false">
     <input type="time" token="time" searchWhenChanged="true">
@@ -10,7 +10,34 @@
     </input>
   </fieldset>
   <row>
-    <panel>
+    <panel id="config_panel">
+      <table>
+        <title>Configuration</title>
+        <search>
+          <query>| rest splunk_server=local services/saas/stack_app/$stack$/$name$ 
+| fields - splunk_server 
+| rename app_* as * 
+| eval deploy_to = null() 
+| foreach deploy_to_* 
+    [ eval role_name = if(&lt;&lt;FIELD&gt;&gt;==1,"&lt;&lt;MATCHSTR&gt;&gt;",null()) 
+    | eval deploy_to = mvappend(deploy_to,role_name) 
+    | fields - role_name] 
+| fields - deploy_to_* 
+| table name version *
+| untable _ param value
+| table param value</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <html>
+        <button id="edit-config-button" class="btn">Edit</button>
+      </html>
+    </panel>
+    <panel id="views_panel">
       <chart>
         <title>App Views (per hour)</title>
         <search>

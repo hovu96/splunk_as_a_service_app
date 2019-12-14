@@ -1,7 +1,13 @@
 <dashboard script="app_deploy.js" stylesheet="app_deploy.css,jstree/themes/default/style.min.css">
-  <label>Deploy App to Stack</label>
+  <label>Deploy App</label>
   <row id="wizard_row">
       <html>
+          <p id="stack-selected-info" style="display: none;">
+            Stack: <b id="selected-stack"></b>
+          </p>
+          <p id="app-selected-info" style="display: none;">
+            App: <b id="selected-app"></b>
+          </p>
           <div id="step-control-wizard"></div>
       </html>
   </row>
@@ -38,6 +44,39 @@
                   you cannot find the version you want to deploy, simply
                   <a href="app_add">add a App</a> you are looking to deploy.
                 </p>
+              </splunk-control-group>
+            </div>
+          </html>
+      </panel>
+  </row>
+  <row depends="$step-target$">
+      <panel>
+          <title>Select Deployment Target</title>
+          <html>
+            <div class="form-horizontal">
+              <splunk-control-group class="distributed" label="Deploy To" help="">
+                <input type="checkbox" class="option" name="deploy_to_search_heads" id="deploy_to_search_heads"></input>
+                <label for="deploy_to_search_heads">Search Heads (via Deployer)</label>
+              </splunk-control-group>
+              <splunk-control-group class="distributed" label="" help="">
+                <input type="checkbox" class="option" name="deploy_to_indexers" id="deploy_to_indexers"></input>
+                <label for="deploy_to_indexers">Indexers (via Cluster Master)</label>
+              </splunk-control-group>
+              <splunk-control-group class="distributed" label="" help="">
+                <input type="checkbox" class="option" name="deploy_to_deployer" id="deploy_to_deployer"></input>
+                <label for="deploy_to_deployer">Deployer (as local App)</label>
+              </splunk-control-group>
+              <splunk-control-group class="distributed" label="" help="">
+                <input type="checkbox" class="option" name="deploy_to_cluster_master" id="deploy_to_cluster_master"></input>
+                <label for="deploy_to_cluster_master">Cluster Master (as local App)</label>
+              </splunk-control-group>
+              <splunk-control-group class="standalone" label="Deploy To" help="">
+                <input type="checkbox" class="option" name="deploy_to_standalone" id="deploy_to_standalone"></input>
+                <label for="deploy_to_standalone">Standalone Instance (as local App)</label>
+              </splunk-control-group>
+              <splunk-control-group class="standalone distributed" label="" help="">
+                <input type="checkbox" class="option" name="deploy_to_forwarders" id="deploy_to_forwarders"></input>
+                <label for="deploy_to_forwarders">Forwarders (via Deployment Server)</label>
               </splunk-control-group>
             </div>
           </html>
@@ -93,6 +132,10 @@
                       <td id="summary-selected-stack"></td>
                   </tr>
                   <tr>
+                      <td>Target</td>
+                      <td id="summary-selected-target"></td>
+                  </tr>
+                  <tr>
                       <td>Custom Config</td>
                       <td id="summary-custom-config"></td>
                   </tr>
@@ -102,7 +145,8 @@
   </row>
   <row depends="$step-summary$" id="deploy_row">
       <html>
-          <button id="deploy-button" class="btn btn-primary">Deploy App</button>
+          <button id="deploy-button" style="display: none;" class="btn btn-primary">Deploy App</button>
+          <button id="update-button" style="display: none;" class="btn btn-primary">Update App</button>
       </html>
   </row>
 </dashboard>

@@ -38,3 +38,7 @@
 #add-config-button {
     margin: 2em;
 }
+
+#stack-selected-info {
+    display: none;
+}

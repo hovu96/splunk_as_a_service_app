@@ -52,6 +52,12 @@ require([
         updateTitle(response.data.title);
     });
 
+    $("#edit-config-button").click(function () {
+        window.location.href = "app_deploy?name=" + encodeURIComponent(appName) +
+            "&version=" + encodeURIComponent(appVersion) +
+            "&stack=" + encodeURIComponent(stackID);
+    });
+
     const undeployButton = $('<button class="btn btn-primary action-button" style="background-color: red;">Undeploy</button>');
     undeployButton.click(async function () {
         const progressIndicator = Utils.newLoadingIndicator({
