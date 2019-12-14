@@ -4,6 +4,7 @@
   <row>
     <panel id="status_panel">
       <single>
+        <title>Status</title>
         <search>
           <query>| rest splunk_server=local services/saas/stack/$id$ | table status</query>
           <refresh>10s</refresh>
@@ -23,11 +24,40 @@
         <option name="trellis.size">medium</option>
         <option name="trendColorInterpretation">standard</option>
         <option name="trendDisplayMode">absolute</option>
-        <option name="underLabel">Status</option>
         <option name="unitPosition">after</option>
         <option name="useColors">0</option>
         <option name="useThousandSeparators">1</option>
       </single>
+      <table>
+        <search id="stack_config_search">
+          <query>| rest splunk_server=local services/saas/stack/$id$ 
+| table title cluster deployment_type
+| untable _ param value
+| table param value</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <html>
+        <button id="rename-button" class="btn">Rename</button>
+        <div id="rename-dialog" style="display: none">
+          <div class="body">
+            <p>
+              Enter the new Stack title:
+            </p>
+            <p>
+              <input type="text" name="title" value=""></input>
+            </p>
+          </div>
+          <div class="footer">
+            <button class="btn cancel" data-dismiss="modal">Cancel</button>
+            <button class="btn btn-primary ok" data-dismiss="modal">Rename</button>
+          </div>
+        </div>
+      </html>
     </panel>
     <panel id="endpoints_panel">
       <table>

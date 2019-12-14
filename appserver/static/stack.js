@@ -13,30 +13,62 @@ require([
     mvc,
     _
 ) {
+    console.log("test");
     var endpoint = Utils.createRestEndpoint();
     const tokens = mvc.Components.getInstance("submitted");
     const stackID = tokens.attributes.id;
 
-    endpoint.get('stack/' + stackID, {}, function (err, response) {
-        if (err) {
-            Utils.showErrorDialog(null, err).footer.append($('<button>Reload</button>').attr({
-                type: 'button',
-                class: "btn btn-primary",
-            }).on('click', function () {
-                window.location.reload();
-            }));
-            return;
-        }
-        Utils.getResponseContent(response).then(function (deployment) {
-            var title;
-            if (deployment.title) {
-                title = deployment.title;
-            } else {
-                title = stackID;
+    const titleElement = $(".dashboard-title.dashboard-header-title");
+    const initialTitle = titleElement.text();
+    const updateStackTitle = function () {
+        endpoint.get('stack/' + stackID, {}, function (err, response) {
+            if (err) {
+                Utils.showErrorDialog(null, err).footer.append($('<button>Reload</button>').attr({
+                    type: 'button',
+                    class: "btn btn-primary",
+                }).on('click', function () {
+                    window.location.reload();
+                }));
+                return;
             }
-            const titleElement = $(".dashboard-title.dashboard-header-title");
-            titleElement.text(titleElement.text() + ": " + title);
+            Utils.getResponseContent(response).then(function (stack) {
+                titleElement.text(initialTitle + ": " + stack.title);
+                $('#rename-dialog input[name="title"]').val(stack.title);
+            });
         });
+    };
+    updateStackTitle();
+
+    $('#rename-button').click(function () {
+        const modal = new Modal("rename-dialog", {
+            title: 'Rename Stack',
+            backdrop: 'static',
+            keyboard: false,
+            destroyOnHide: false,
+            type: 'normal',
+        });
+        modal.body.append($("#rename-dialog .body"));
+        modal.footer.append($("#rename-dialog .footer"));
+        modal.show();
+    });
+    $('#rename-dialog button.ok').click(async function () {
+        const progressIndicator = Utils.newLoadingIndicator({
+            title: "Renaming Stack ...",
+            subtitle: "Please wait.",
+        });
+        try {
+            await endpoint.postAsync('stack/' + stackID, {
+                title: $('#rename-dialog input[name="title"]').val(),
+            });
+            progressIndicator.hide();
+            updateStackTitle();
+            const stackConfigSearchManager = splunkjs.mvc.Components.getInstance('stack_config_search');
+            stackConfigSearchManager.startSearch();
+        }
+        catch (err) {
+            progressIndicator.hide();
+            await Utils.showErrorDialog(null, err, true).wait();
+        }
     });
 
     const backButton = $('<button class="btn action-button">Back</button>');
@@ -148,5 +180,4 @@ require([
         window.location.href = "app_deploy?stack=" + stackID;
     });
 
-}
-);
+});

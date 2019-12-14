@@ -14,3 +14,7 @@ table.credentials td.value {
 #endpoints_panel {
     width: 70% !important;
 }
+
+#rename-dialog .body input[type="text"] {
+    width: 100%;
+}

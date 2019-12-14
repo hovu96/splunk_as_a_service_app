@@ -143,6 +143,10 @@ class StackHandler(BaseRestHandler):
         result = {
             "status": stack["status"],
             "title": stack["title"] if "title" in stack else "",
+            "deployment_type": stack["deployment_type"],
+            "license_master_mode": stack["license_master_mode"],
+            "cluster": stack["cluster"],
+            "namespace": stack["namespace"],
         }
 
         api_client = clusters.create_client(
@@ -188,6 +192,20 @@ class StackHandler(BaseRestHandler):
                 "indexer_endpoint": ["%s:9997" % hostname for hostname in hosts],
             })
         self.send_result(result)
+
+    def handle_POST(self):
+        path = self.request['path']
+        _, stack_id = os.path.split(path)
+        get_stack_config(self.splunk, stack_id)
+        fields_names = set([
+            "title",
+        ])
+        request_params = parse_qs(self.request['payload'])
+        stack_updates = {
+            k: request_params[k][0]
+            for k in fields_names if k in request_params
+        }
+        update_config(self.splunk, stack_id, stack_updates)
 
     def handle_DELETE(self):
         path = self.request['path']
