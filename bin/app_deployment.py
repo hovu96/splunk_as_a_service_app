@@ -106,7 +106,10 @@ class UserApp(App):
         self.name = stack_app["app_name"]
         self.version = stack_app["app_version"]
         self.splunk = splunk
-        self.search_heads = True
+        self.search_heads = stack_app["deploy_to_search_heads"]
+        self.indexers = stack_app["deploy_to_indexers"]
+        self.deployer = stack_app["deploy_to_deployer"]
+        self.cluster_master = stack_app["deploy_to_cluster_master"]
 
     def open_file(self, path, mode):
         if mode != "r" and mode != "rb":
