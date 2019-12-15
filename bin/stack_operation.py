@@ -81,7 +81,7 @@ def schedule_operation(splunk, stack_id, command):
         pass
     search = splunk.saved_searches.create(
         name=get_command_name(stack_id),
-        search="| stackoperation stack_id=\"%s\" command=\"%s\" | collect index=summary marker=\"search_tag=stackoperation, stack_id=%s\"" % (
+        search="| stackoperation stack_id=\"%s\" command=\"%s\" | collect addtime=f index=summary marker=\"search_tag=stackoperation, stack_id=%s\"" % (
             stack_id, command, stack_id),
         **{
             "cron_schedule": "* * * * *",
@@ -133,10 +133,13 @@ class StackOperation(GeneratingCommand):
                 self._events = []
 
             def emit(self, record):
+                msg = record.getMessage().replace('"', '\\"')
                 self._events.append({
-                    "level": record.levelname,
-                    "_time": record.created,
-                    "msg": record.getMessage(),
+                    "_raw": "%.3f, level=\"%s\", msg=\"%s\"" % (
+                        record.created,
+                        record.levelname,
+                        msg
+                    ),
                 })
 
             @property

@@ -60,7 +60,7 @@ def get_bundle_path(handler):
     else:
         raise Exception("missing bundle type")
     if bundle_type == "deployer":
-        folder_path = "/opt/splunk/etc/shcluster"
+        folder_path = "/opt/splunk/etc/shcluster/apps"
     elif bundle_type == "cluster-master":
         folder_path = "/opt/splunk/etc/master-apps"
     else:

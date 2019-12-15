@@ -22,39 +22,55 @@ import pathlib
 
 
 def update_apps(splunk, kubernetes, stack_id):
-    apps = [
+    # collect apps to deploy
+    apps_to_deploy = [
         SupportApp(
             "saas_support_app_inventory",
             deployer=True,
             cluster_master=True,
+            standalone=True
         ),
         SupportApp(
             "saas_support_outputs",
             indexers=True,
+            standalone=True,
         ),
     ]
     for stack_app in stack_apps.get_apps_in_stack(splunk, stack_id):
-        apps.append(UserApp(splunk, stack_app))
-    deploy_apps(splunk, kubernetes, stack_id, apps)
-
-
-def deploy_apps(
-    splunk,
-    kubernetes,
-    stack_id,
-    apps,
-):
+        apps_to_deploy.append(UserApp(splunk, stack_app))
+    apps_to_deploy = {a.name: a for a in apps_to_deploy}
+    # deploy apps
     updated_deployer_bundle = False
     updated_master_bundle = False
-    for app in apps:
-        updated_deployer_bundle_, updated_master_bundle_ = deploy_app(
-            splunk,
-            kubernetes,
-            stack_id,
-            app
-        )
-        updated_deployer_bundle = updated_deployer_bundle or updated_deployer_bundle_
-        updated_master_bundle = updated_master_bundle or updated_master_bundle_
+    for app in apps_to_deploy.values():
+        if app.any_flag_set:
+            updated_deployer_bundle_, updated_master_bundle_ = deploy_app(
+                splunk,
+                kubernetes,
+                stack_id,
+                app
+            )
+            updated_deployer_bundle = updated_deployer_bundle or updated_deployer_bundle_
+            updated_master_bundle = updated_master_bundle or updated_master_bundle_
+    # undeploy apps
+    for deployed_app in collect_deployed_apps(splunk, kubernetes, stack_id):
+        if deployed_app.name in apps_to_deploy:
+            app_to_deploy = apps_to_deploy[deployed_app.name]
+            if app_to_deploy.search_heads:
+                deployed_app.search_heads = False
+            if app_to_deploy.indexers:
+                deployed_app.indexers = False
+            if app_to_deploy.deployer:
+                deployed_app.deployer = False
+            if app_to_deploy.cluster_master:
+                deployed_app.cluster_master = False
+            if app_to_deploy.standalone:
+                deployed_app.standalone = False
+        if deployed_app.any_flag_set:
+            updated_deployer_bundle_, updated_master_bundle_ = undeploy_app(splunk, kubernetes, stack_id, deployed_app)
+            updated_deployer_bundle = updated_deployer_bundle or updated_deployer_bundle_
+            updated_master_bundle = updated_master_bundle or updated_master_bundle_
+    # apply app bundles
     if updated_master_bundle:
         stack_config = stacks.get_stack_config(splunk, stack_id)
         core_api = kuberneteslib.CoreV1Api(kubernetes)
@@ -72,6 +88,14 @@ class App(object):
     indexers = False
     deployer = False
     cluster_master = False
+    standalone = False
+
+    @property
+    def any_flag_set(self):
+        return self.search_heads or self.indexers or self.deployer or self.cluster_master or self.standalone
+
+
+class DeployableApp(App):
 
     def open_file(self, path, mode):
         raise Exception("not implemented")
@@ -98,7 +122,7 @@ class App(object):
         raise Exception("not implemented")
 
 
-class UserApp(App):
+class UserApp(DeployableApp):
     splunk = None
     archive = None
 
@@ -110,6 +134,7 @@ class UserApp(App):
         self.indexers = stack_app["deploy_to_indexers"]
         self.deployer = stack_app["deploy_to_deployer"]
         self.cluster_master = stack_app["deploy_to_cluster_master"]
+        self.standalone = stack_app["deploy_to_standalone"]
 
     def open_file(self, path, mode):
         if mode != "r" and mode != "rb":
@@ -139,12 +164,13 @@ class UserApp(App):
                     self.archive = None
 
 
-class SupportApp(App):
+class SupportApp(DeployableApp):
     def __init__(self, name,
                  search_heads=False,
                  indexers=False,
                  deployer=False,
-                 cluster_master=False
+                 cluster_master=False,
+                 standalone=False,
                  ):
         self.name = name
         self.version = self.get_app_version(name)
@@ -152,6 +178,7 @@ class SupportApp(App):
         self.indexers = indexers
         self.deployer = deployer
         self.cluster_master = cluster_master
+        self.standalone = standalone
 
     def get_app_version(self, app_name):
         app_path = os.path.join(os.path.dirname(
@@ -203,50 +230,64 @@ class SupportApp(App):
         recursive_overwrite(app_path, target_dir)
 
 
-def deploy_app(
-    splunk,
-    kubernetes,
-    stack_id,
-    app,
-):
+def collect_deployed_apps(splunk, kubernetes, stack_id):
+    apps = {}
+    stack_config = stacks.get_stack_config(splunk, stack_id)
+    if stack_config["deployment_type"] == "standalone":
+        pass
+    elif stack_config["deployment_type"] == "distributed":
+        pass
+    return apps.values()
+
+
+def undeploy_app(splunk, kubernetes, stack_id, app):
+    updated_deployer_bundle = False
+    updated_cluster_master_bundle = False
+    if app.search_heads:
+        logging.warning("TODO: undeploy app \"%s\" from search heads" % app.name)
+    if app.indexers:
+        logging.warning("TODO: undeploy app \"%s\" from indexers" % app.name)
+    if app.deployer:
+        logging.warning("TODO: undeploy app \"%s\" from deployer" % app.name)
+    if app.cluster_master:
+        logging.warning("TODO: undeploy app \"%s\" from cluster master" % app.name)
+    if app.standalone:
+        logging.warning("TODO: undeploy app \"%s\" from standalone" % app.name)
+    return updated_deployer_bundle, updated_cluster_master_bundle
+
+
+def deploy_app(splunk, kubernetes, stack_id, app):
     updated_deployer_bundle = False
     updated_cluster_master_bundle = False
     stack_config = stacks.get_stack_config(splunk, stack_id)
     if stack_config["deployment_type"] == "standalone":
-        if not is_app_installed_locally(
-                splunk, kubernetes, stack_id, services.standalone_role, app):
-            # logging.warning("will install app %s ..." % app.name)
-            pod = get_pod(splunk, kubernetes, stack_id, "standalone")
-            install_app_into_pod(splunk, kubernetes, stack_id, pod, app)
-        else:
-            # logging.warning("app %s is already installed" % app.name)
-            pass
+        if app.standalone:
+            if not is_app_installed_locally(
+                    splunk, kubernetes, stack_id, services.standalone_role, app):
+                # logging.warning("will install app %s ..." % app.name)
+                pod = get_pod(splunk, kubernetes, stack_id, "standalone")
+                install_as_local_app(splunk, kubernetes, stack_id, pod, app)
+            else:
+                # logging.warning("app %s is already installed" % app.name)
+                pass
     elif stack_config["deployment_type"] == "distributed":
         if app.cluster_master:
             if not is_app_installed_locally(splunk, kubernetes, stack_id, services.cluster_master_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "cluster-master")
-                install_app_into_pod(splunk, kubernetes, stack_id, pod, app)
+                install_as_local_app(splunk, kubernetes, stack_id, pod, app)
         if app.deployer:
             if not is_app_installed_locally(splunk, kubernetes, stack_id, services.deployer_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "deployer")
-                install_app_into_pod(splunk, kubernetes, stack_id, pod, app)
+                install_as_local_app(splunk, kubernetes, stack_id, pod, app)
         if app.indexers:
             if not is_app_installed_in_folder(splunk, kubernetes, stack_id, services.cluster_master_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "cluster-master")
-                core_api = kuberneteslib.CoreV1Api(kubernetes)
-                cluster_config = clusters.get_cluster_config(
-                    splunk, stack_config["cluster"])
-                copy_app(splunk, core_api, cluster_config, stack_config,
-                         pod, app, "master-apps")
+                copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, "master-apps")
                 updated_cluster_master_bundle = True
         if app.search_heads:
             if not is_app_installed_in_folder(splunk, kubernetes, stack_id, services.deployer_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "deployer")
-                core_api = kuberneteslib.CoreV1Api(kubernetes)
-                cluster_config = clusters.get_cluster_config(
-                    splunk, stack_config["cluster"])
-                copy_app(splunk, core_api, cluster_config, stack_config, pod,
-                         app, "shcluster/apps")
+                copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, "shcluster/apps")
                 updated_deployer_bundle = True
     return updated_deployer_bundle, updated_cluster_master_bundle
 
@@ -258,7 +299,7 @@ def is_app_installed_locally(splunk, kubernetes, stack_id, instance_role, app):
         core_api, stack_id, stack_config, instance_role)
     try:
         installed_app = service.apps[app.name]
-        # logging.warning("installed_app: %s" % (installed_app.content))
+        logging.debug("installed_app: %s" % (installed_app.content))
         installed_version = ""
         if "version" in installed_app.content:
             installed_version = installed_app.content["version"]
@@ -326,7 +367,7 @@ def get_pod(splunk, kubernetes, stack_id, type_label):
 def is_sh_cluster_restart_in_progress(core_api, stack_id, stack_config):
     search_head_service = instances.create_client(
         core_api, stack_id, stack_config, services.search_head_role)
-    logging.info("checking search head cluster status ...")
+    #logging.info("checking search head cluster status ...")
     response = search_head_service.get(
         "shcluster/status",
         output_mode="json"
@@ -334,9 +375,9 @@ def is_sh_cluster_restart_in_progress(core_api, stack_id, stack_config):
     data = json.loads(response.body.read())
     restart_in_progress = data["entry"][0]["content"]["captain"]["rolling_restart_flag"]
     if restart_in_progress:
-        logging.info("search head cluster restart in progress")
+        logging.debug("search head cluster restart in progress")
     else:
-        logging.info("search head cluster restart not in progress")
+        logging.debug("search head cluster restart not in progress")
     return restart_in_progress
 
 
@@ -354,7 +395,6 @@ def push_deployer_bundle(core_api, stack_id, stack_config):
 
     service = instances.create_client(
         core_api, stack_id, stack_config, services.deployer_role)
-    logging.info("pushing deployer bundle...")
     service.post(
         "apps/deploy",
         target="https://%s:8089" % (search_head_hostname),
@@ -362,6 +402,7 @@ def push_deployer_bundle(core_api, stack_id, stack_config):
         advertising="true",
         force="true",
     )
+    logging.info("pushed SH deployer bundle")
 
     if is_sh_cluster_restart_in_progress(core_api, stack_id, stack_config):
         raise errors.RetryOperation(
@@ -375,7 +416,7 @@ def apply_cluster_bundle(core_api, stack_id, stack_config):
     try:
         service.post("cluster/master/control/default/apply",
                      ignore_identical_bundle=False)
-        logging.info("cluster bundle updated")
+        #logging.info("cluster bundle updated")
     except splunklib.binding.HTTPError as e:
         if e.status == 404:
             logging.info("cluster bundle did not change")
@@ -383,7 +424,7 @@ def apply_cluster_bundle(core_api, stack_id, stack_config):
             raise
 
 
-def install_app_into_pod(splunk, kubernetes, stack_id, pod, app):
+def install_as_local_app(splunk, kubernetes, stack_id, pod, app):
     core_api = kuberneteslib.CoreV1Api(kubernetes)
     stack_config = stacks.get_stack_config(splunk, stack_id)
     cluster_config = clusters.get_cluster_config(
@@ -415,12 +456,14 @@ def install_app_into_pod(splunk, kubernetes, stack_id, pod, app):
         )
     except splunklib.binding.HTTPError:
         raise
-    logging.info("installed app '%s' into '%s" % (app.name, pod.metadata.name))
+    logging.info("installed app '%s' to '%s" % (app.name, pod.metadata.name))
 
 
-def copy_app(service, core_api, cluster_config, stack_config, pod, app, target_parent_name):
-    logging.info("installing app '%s' into '%s' of '%s' ..." %
-                 (app.name, target_parent_name, pod.metadata.name))
+def copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, target_parent_name):
+    core_api = kuberneteslib.CoreV1Api(kubernetes)
+    stack_config = stacks.get_stack_config(splunk, stack_id)
+    cluster_config = clusters.get_cluster_config(
+        splunk, stack_config["cluster"])
     temp_dir = tempfile.mkdtemp()
     try:
         app.render(cluster_config, stack_config, temp_dir)
@@ -432,6 +475,7 @@ def copy_app(service, core_api, cluster_config, stack_config, pod, app, target_p
             remote_path="/opt/splunk/etc/%s/%s/" % (
                 target_parent_name, app.name),
         )
+        logging.info("copied app '%s' at '%s' to '%s'" % (app.name, target_parent_name, pod.metadata.name))
     finally:
         import shutil
         shutil.rmtree(temp_dir, ignore_errors=True)

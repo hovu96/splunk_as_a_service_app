@@ -118,7 +118,7 @@ def verify_all_splunk_instance_completed_startup(core_api, stack_id, stack_confi
         not_completed = len(pods) - number_of_pods_completed
         raise errors.RetryOperation("waiting for %s (out of %s) pods to complete startup ..." %
                                     (not_completed, len(pods)))
-    logging.info("all pods completed startup")
+    logging.debug("all pods completed startup")
 
 
 def license_exists(core_api, stack_id, stack_config):
