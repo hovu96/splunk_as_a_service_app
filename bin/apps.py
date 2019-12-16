@@ -9,7 +9,7 @@ import fix_path
 from base_handler import BaseRestHandler
 import tarfile
 import json
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 import base64
 from urllib.parse import unquote
 import io
@@ -149,7 +149,7 @@ def parse_app_metadata(path):
             if info.name.endswith(os.sep + "default" + os.sep + "app.conf"):
                 conf_file = archive.extractfile(info)
                 conf_file_data = conf_file.read().decode("utf-8")
-                conf_parser = SafeConfigParser()
+                conf_parser = ConfigParser()
                 conf_parser.read_string(conf_file_data)
                 if conf_parser.has_section("id") and conf_parser.has_option("id", "name"):
                     app_name_from_conf = conf_parser.get("id", "name")

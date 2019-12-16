@@ -12,7 +12,7 @@ import instances
 from kubernetes import client as kuberneteslib
 import errors
 import json
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 import apps
 import stack_apps
 import shutil
@@ -187,24 +187,24 @@ class SupportApp(DeployableApp):
         default_app_conf_path = os.path.join(app_path, "default", "app.conf")
         local_app_conf_path = os.path.join(app_path, "local", "app.conf")
         if os.path.exists(default_app_conf_path):
-            conf_parser = SafeConfigParser()
+            conf_parser = ConfigParser()
             conf_parser.read(default_app_conf_path)
             app_version = conf_parser.get(
                 "launcher", "version", fallback="")
         if not app_version:
             if os.path.exists(local_app_conf_path):
-                conf_parser = SafeConfigParser()
+                conf_parser = ConfigParser()
                 conf_parser.read(local_app_conf_path)
                 app_version = conf_parser.get(
                     "launcher", "version", fallback="")
         if not app_version and os.path.exists(default_app_conf_path):
-            conf_parser = SafeConfigParser()
+            conf_parser = ConfigParser()
             conf_parser.read(default_app_conf_path)
             app_version = conf_parser.get(
                 "id", "version", fallback="")
         if not app_version:
             if os.path.exists(local_app_conf_path):
-                conf_parser = SafeConfigParser()
+                conf_parser = ConfigParser()
                 conf_parser.read(local_app_conf_path)
                 app_version = conf_parser.get(
                     "id", "version", fallback="")
@@ -232,27 +232,57 @@ class SupportApp(DeployableApp):
 
 def collect_deployed_apps(splunk, kubernetes, stack_id):
     apps = {}
+
+    def get_app(app_info):
+        if app_info["name"] in apps:
+            app = apps[app_info["name"]]
+        else:
+            app = App()
+            app.name = app_info["name"]
+            app.version = app_info["version"]
+            apps[app_info["name"]] = app
+        return app
     stack_config = stacks.get_stack_config(splunk, stack_id)
     if stack_config["deployment_type"] == "standalone":
-        pass
+        for app_info in list_apps_installed(splunk, kubernetes, stack_id, services.standalone_role):
+            get_app(app_info).standalone = True
     elif stack_config["deployment_type"] == "distributed":
-        pass
+        for app_info in list_apps_installed(splunk, kubernetes, stack_id, services.search_head_role):
+            get_app(app_info).search_heads = True
+        for app_info in list_apps_installed(splunk, kubernetes, stack_id, services.deployer_role):
+            get_app(app_info).deployer = True
+        for app_info in list_apps_installed(splunk, kubernetes, stack_id, services.indexer_role):
+            get_app(app_info).indexers = True
+        for app_info in list_apps_installed(splunk, kubernetes, stack_id, services.cluster_master_role):
+            get_app(app_info).cluster_master = True
+
     return apps.values()
 
 
 def undeploy_app(splunk, kubernetes, stack_id, app):
     updated_deployer_bundle = False
     updated_cluster_master_bundle = False
+
+    def delete(target_role):
+        stack_config = stacks.get_stack_config(splunk, stack_id)
+        instance_role, location = get_apps_role_and_location(splunk, stack_id, target_role)
+        core_api = kuberneteslib.CoreV1Api(kubernetes)
+        service = instances.create_client(core_api, stack_id, stack_config, instance_role)
+        service.delete("saas_support/app/%s" % (app.name), location=location)
+        logging.info("undeployed app \"%s\" from %s" % (app.name, instance_role))
     if app.search_heads:
-        logging.warning("TODO: undeploy app \"%s\" from search heads" % app.name)
+        delete(services.search_head_role)
+        updated_deployer_bundle = True
     if app.indexers:
-        logging.warning("TODO: undeploy app \"%s\" from indexers" % app.name)
+        delete(services.indexer_role)
+        updated_cluster_master_bundle = True
     if app.deployer:
-        logging.warning("TODO: undeploy app \"%s\" from deployer" % app.name)
+        delete(services.deployer_role)
     if app.cluster_master:
-        logging.warning("TODO: undeploy app \"%s\" from cluster master" % app.name)
+        delete(services.cluster_master_role)
     if app.standalone:
-        logging.warning("TODO: undeploy app \"%s\" from standalone" % app.name)
+        delete(services.standalone_role)
+
     return updated_deployer_bundle, updated_cluster_master_bundle
 
 
@@ -262,93 +292,93 @@ def deploy_app(splunk, kubernetes, stack_id, app):
     stack_config = stacks.get_stack_config(splunk, stack_id)
     if stack_config["deployment_type"] == "standalone":
         if app.standalone:
-            if not is_app_installed_locally(
-                    splunk, kubernetes, stack_id, services.standalone_role, app):
-                # logging.warning("will install app %s ..." % app.name)
+            if not is_app_installed(splunk, kubernetes, stack_id, services.standalone_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "standalone")
                 install_as_local_app(splunk, kubernetes, stack_id, pod, app)
             else:
-                # logging.warning("app %s is already installed" % app.name)
                 pass
     elif stack_config["deployment_type"] == "distributed":
         if app.cluster_master:
-            if not is_app_installed_locally(splunk, kubernetes, stack_id, services.cluster_master_role, app):
+            if not is_app_installed(splunk, kubernetes, stack_id, services.cluster_master_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "cluster-master")
                 install_as_local_app(splunk, kubernetes, stack_id, pod, app)
         if app.deployer:
-            if not is_app_installed_locally(splunk, kubernetes, stack_id, services.deployer_role, app):
+            if not is_app_installed(splunk, kubernetes, stack_id, services.deployer_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "deployer")
                 install_as_local_app(splunk, kubernetes, stack_id, pod, app)
         if app.indexers:
-            if not is_app_installed_in_folder(splunk, kubernetes, stack_id, services.cluster_master_role, app):
+            if not is_app_installed(splunk, kubernetes, stack_id, services.indexer_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "cluster-master")
                 copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, "master-apps")
                 updated_cluster_master_bundle = True
         if app.search_heads:
-            if not is_app_installed_in_folder(splunk, kubernetes, stack_id, services.deployer_role, app):
+            if not is_app_installed(splunk, kubernetes, stack_id, services.search_head_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "deployer")
                 copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, "shcluster/apps")
                 updated_deployer_bundle = True
     return updated_deployer_bundle, updated_cluster_master_bundle
 
 
-def is_app_installed_locally(splunk, kubernetes, stack_id, instance_role, app):
-    core_api = kuberneteslib.CoreV1Api(kubernetes)
+def get_apps_role_and_location(splunk, stack_id, target_role):
     stack_config = stacks.get_stack_config(splunk, stack_id)
-    service = instances.create_client(
-        core_api, stack_id, stack_config, instance_role)
-    try:
-        installed_app = service.apps[app.name]
-        logging.debug("installed_app: %s" % (installed_app.content))
-        installed_version = ""
-        if "version" in installed_app.content:
-            installed_version = installed_app.content["version"]
-        logging.debug("installed_version: %s target_version: %s" %
-                      (installed_version, app.version))
-        if installed_version != app.version:
-            logging.warning("app '%s' is installed on '%s' but has different version '%s' (looking for version '%s')" %
-                            (app.name, instance_role, installed_version, app.version))
-            return False
-        logging.debug("app '%s' is installed on '%s'" %
-                      (app.name, instance_role))
-        return True
-    except KeyError:
-        logging.debug("app '%s' is not installed on '%s'" %
-                      (app.name, instance_role))
-        return False
+    if stack_config["deployment_type"] == "standalone":
+        if target_role == services.standalone_role:
+            service_role = services.standalone_role
+            location = "local-apps"
+        # elif target==services.forwarder_role:
+        #    service_role = services.deployment_server
+        #    location = "deploymentapps"
+        else:
+            raise Exception("target_role \"%s\" not supported" % target_role)
+    elif stack_config["deployment_type"] == "distributed":
+        if target_role == services.search_head_role:
+            service_role = services.deployer_role
+            location = "shcluster-apps"
+        elif target_role == services.deployer_role:
+            service_role = services.deployer_role
+            location = "local-apps"
+        elif target_role == services.cluster_master_role:
+            service_role = services.cluster_master_role
+            location = "local-apps"
+        elif target_role == services.indexer_role:
+            service_role = services.cluster_master_role
+            location = "master-apps"
+        # elif target_role==services.forwarder_role:
+        #    service_role = services.deployment_server
+        #    location = "deploymentapps"
+        else:
+            raise Exception("target_role \"%s\" not supported" % target_role)
+    return service_role, location
 
 
-def is_app_installed_in_folder(splunk, kubernetes, stack_id, instance_role, app):
-    core_api = kuberneteslib.CoreV1Api(kubernetes)
+def list_apps_installed(splunk, kubernetes, stack_id, target_role):
     stack_config = stacks.get_stack_config(splunk, stack_id)
-    service = instances.create_client(
-        core_api, stack_id, stack_config, instance_role)
-    if instance_role == services.deployer_role:
-        bundle_type = "deployer"
-    elif instance_role == services.cluster_master_role:
-        bundle_type = "cluster-master"
-    else:
-        raise Exception("invalid instance_role '%s'" % instance_role)
-    response = service.get(
-        "saas_support/app/%s" % (app.name),
-        bundle_type=bundle_type
-    )
+    service_role, location = get_apps_role_and_location(splunk, stack_id, target_role)
+    core_api = kuberneteslib.CoreV1Api(kubernetes)
+    service = instances.create_client(core_api, stack_id, stack_config, service_role)
+    response = service.get("saas_support/apps", location=location)
+    app_infos = json.loads(response.body.read())
+    return app_infos
+
+
+def is_app_installed(splunk, kubernetes, stack_id, target_role, app):
+    stack_config = stacks.get_stack_config(splunk, stack_id)
+    instance_role, location = get_apps_role_and_location(splunk, stack_id, target_role)
+    core_api = kuberneteslib.CoreV1Api(kubernetes)
+    service = instances.create_client(core_api, stack_id, stack_config, instance_role)
+    response = service.get("saas_support/app/%s" % (app.name), location=location)
     app_info = json.loads(response.body.read())
     if not app_info["installed"]:
-        logging.debug("app '%s' is not installed on '%s'" %
-                      (app.name, instance_role))
+        logging.debug("app '%s' is not installed on '%s'" % (app.name, instance_role))
         return False
     installed_version = ""
     if "version" in app_info:
         installed_version = app_info["version"]
-    logging.debug("installed_version: %s target_version: %s" %
-                  (installed_version, app.version))
+    logging.debug("installed_version: %s target_version: %s" % (installed_version, app.version))
     if installed_version != app.version:
-        logging.info("app '%s' is installed on '%s' but has different version '%s' (looking for version '%s')" %
-                     (app.name, instance_role, installed_version, app.version))
+        logging.info("app '%s' is installed on '%s' but has different version '%s' (looking for version '%s')" % (app.name, instance_role, installed_version, app.version))
         return False
-    logging.debug("app '%s' is installed on '%s'" %
-                  (app.name, instance_role))
+    logging.debug("app '%s' is installed on '%s'" % (app.name, instance_role))
     return True
 
 
@@ -424,6 +454,36 @@ def apply_cluster_bundle(core_api, stack_id, stack_config):
             raise
 
 
+def render_saas_app_data(path, app):
+    local_path = os.path.join(path, "local")
+    if not os.path.isdir(local_path):
+        os.makedirs(local_path)
+    local_app_conf_path = os.path.join(local_path, "app.conf")
+    conf = ConfigParser()  # comment_prefixes='/', allow_no_value=True
+    if os.path.exists(local_app_conf_path):
+        conf.read_file(local_app_conf_path)
+    if not conf.has_section("install"):
+        conf.add_section("install")
+    conf.set("install", "saas_managed", "1")
+    with open(local_app_conf_path, "w") as dest_file:
+        conf.write(dest_file)
+
+    readme_path = os.path.join(path, "README")
+    if os.path.isfile(readme_path):
+        os.remove(readme_path)
+    if not os.path.isdir(readme_path):
+        os.makedirs(readme_path)
+    app_conf_spec_path = os.path.join(readme_path, "app.conf.spec")
+    conf = ConfigParser()
+    if os.path.exists(app_conf_spec_path):
+        conf.read_file(app_conf_spec_path)
+    if not conf.has_section("install"):
+        conf.add_section("install")
+    conf.set("install", "saas_managed", "<boolean>")
+    with open(app_conf_spec_path, "w") as dest_file:
+        conf.write(dest_file)
+
+
 def install_as_local_app(splunk, kubernetes, stack_id, pod, app):
     core_api = kuberneteslib.CoreV1Api(kubernetes)
     stack_config = stacks.get_stack_config(splunk, stack_id)
@@ -433,6 +493,7 @@ def install_as_local_app(splunk, kubernetes, stack_id, pod, app):
     temp_dir = tempfile.mkdtemp()
     try:
         app.render(cluster_config, stack_config, temp_dir)
+        render_saas_app_data(temp_dir, app)
         kubernetes_utils.tar_directory_to_pod(
             core_api=core_api,
             pod=pod.metadata.name,
@@ -467,6 +528,7 @@ def copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, target_parent_n
     temp_dir = tempfile.mkdtemp()
     try:
         app.render(cluster_config, stack_config, temp_dir)
+        render_saas_app_data(temp_dir, app)
         kubernetes_utils.copy_directory_to_pod(
             core_api=core_api,
             pod=pod.metadata.name,
