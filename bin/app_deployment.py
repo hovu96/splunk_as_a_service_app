@@ -40,18 +40,11 @@ def update_apps(splunk, kubernetes, stack_id):
         apps_to_deploy.append(UserApp(splunk, stack_app))
     apps_to_deploy = {a.name: a for a in apps_to_deploy}
     # deploy apps
-    updated_deployer_bundle = False
-    updated_master_bundle = False
+    roles_requiring_update = set()
     for app in apps_to_deploy.values():
         if app.any_flag_set:
-            updated_deployer_bundle_, updated_master_bundle_ = deploy_app(
-                splunk,
-                kubernetes,
-                stack_id,
-                app
-            )
-            updated_deployer_bundle = updated_deployer_bundle or updated_deployer_bundle_
-            updated_master_bundle = updated_master_bundle or updated_master_bundle_
+            _updates = deploy_app(splunk, kubernetes, stack_id, app)
+            roles_requiring_update.update(_updates)
     # undeploy apps
     for deployed_app in collect_deployed_apps(splunk, kubernetes, stack_id):
         if deployed_app.name in apps_to_deploy:
@@ -67,18 +60,23 @@ def update_apps(splunk, kubernetes, stack_id):
             if app_to_deploy.standalone:
                 deployed_app.standalone = False
         if deployed_app.any_flag_set:
-            updated_deployer_bundle_, updated_master_bundle_ = undeploy_app(splunk, kubernetes, stack_id, deployed_app)
-            updated_deployer_bundle = updated_deployer_bundle or updated_deployer_bundle_
-            updated_master_bundle = updated_master_bundle or updated_master_bundle_
+            _updates = undeploy_app(splunk, kubernetes, stack_id, deployed_app)
+            roles_requiring_update.update(_updates)
     # apply app bundles
-    if updated_master_bundle:
+    if services.indexer_role in roles_requiring_update:
         stack_config = stacks.get_stack_config(splunk, stack_id)
         core_api = kuberneteslib.CoreV1Api(kubernetes)
         apply_cluster_bundle(core_api, stack_id, stack_config)
-    if updated_deployer_bundle:
+    if services.search_head_role in roles_requiring_update:
         stack_config = stacks.get_stack_config(splunk, stack_id)
         core_api = kuberneteslib.CoreV1Api(kubernetes)
         push_deployer_bundle(core_api, stack_id, stack_config)
+    if services.cluster_master_role in roles_requiring_update:
+        restart_instance(splunk, kubernetes, stack_id, services.cluster_master_role)
+    if services.deployer_role in roles_requiring_update:
+        restart_instance(splunk, kubernetes, stack_id, services.deployer_role)
+    if services.standalone_role in roles_requiring_update:
+        restart_instance(splunk, kubernetes, stack_id, services.standalone_role)
 
 
 class App(object):
@@ -260,63 +258,64 @@ def collect_deployed_apps(splunk, kubernetes, stack_id):
 
 
 def undeploy_app(splunk, kubernetes, stack_id, app):
-    updated_deployer_bundle = False
-    updated_cluster_master_bundle = False
+    roles_requiring_update = set()
 
     def delete(target_role):
         stack_config = stacks.get_stack_config(splunk, stack_id)
         instance_role, location = get_apps_role_and_location(splunk, stack_id, target_role)
         core_api = kuberneteslib.CoreV1Api(kubernetes)
         service = instances.create_client(core_api, stack_id, stack_config, instance_role)
-        service.delete("saas_support/app/%s" % (app.name), location=location)
+        response = service.delete("saas_support/app/%s" % (app.name), location=location)
+        delete_result = json.loads(response.body.read())
+        if delete_result["requires_update"]:
+            roles_requiring_update.add(target_role)
         logging.info("undeployed app \"%s\" from %s" % (app.name, instance_role))
     if app.search_heads:
         delete(services.search_head_role)
-        updated_deployer_bundle = True
     if app.indexers:
         delete(services.indexer_role)
-        updated_cluster_master_bundle = True
     if app.deployer:
         delete(services.deployer_role)
     if app.cluster_master:
         delete(services.cluster_master_role)
     if app.standalone:
         delete(services.standalone_role)
-
-    return updated_deployer_bundle, updated_cluster_master_bundle
+    return roles_requiring_update
 
 
 def deploy_app(splunk, kubernetes, stack_id, app):
-    updated_deployer_bundle = False
-    updated_cluster_master_bundle = False
+    roles_requiring_update = set()
     stack_config = stacks.get_stack_config(splunk, stack_id)
     if stack_config["deployment_type"] == "standalone":
         if app.standalone:
             if not is_app_installed(splunk, kubernetes, stack_id, services.standalone_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "standalone")
-                install_as_local_app(splunk, kubernetes, stack_id, pod, app)
+                if install_as_local_app(splunk, kubernetes, stack_id, pod, app):
+                    roles_requiring_update.add(services.standalone_role)
             else:
                 pass
     elif stack_config["deployment_type"] == "distributed":
         if app.cluster_master:
             if not is_app_installed(splunk, kubernetes, stack_id, services.cluster_master_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "cluster-master")
-                install_as_local_app(splunk, kubernetes, stack_id, pod, app)
+                if install_as_local_app(splunk, kubernetes, stack_id, pod, app):
+                    roles_requiring_update.add(services.cluster_master_role)
         if app.deployer:
             if not is_app_installed(splunk, kubernetes, stack_id, services.deployer_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "deployer")
-                install_as_local_app(splunk, kubernetes, stack_id, pod, app)
+                if install_as_local_app(splunk, kubernetes, stack_id, pod, app):
+                    roles_requiring_update.add(services.deployer_role)
         if app.indexers:
             if not is_app_installed(splunk, kubernetes, stack_id, services.indexer_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "cluster-master")
                 copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, "master-apps")
-                updated_cluster_master_bundle = True
+                roles_requiring_update.add(services.indexer_role)
         if app.search_heads:
             if not is_app_installed(splunk, kubernetes, stack_id, services.search_head_role, app):
                 pod = get_pod(splunk, kubernetes, stack_id, "deployer")
                 copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, "shcluster/apps")
-                updated_deployer_bundle = True
-    return updated_deployer_bundle, updated_cluster_master_bundle
+                roles_requiring_update.add(services.search_head_role)
+    return roles_requiring_update
 
 
 def get_apps_role_and_location(splunk, stack_id, target_role):
@@ -454,6 +453,20 @@ def apply_cluster_bundle(core_api, stack_id, stack_config):
             raise
 
 
+def restart_instance(splunk, kubernetes, stack_id, role):
+    core_api = kuberneteslib.CoreV1Api(kubernetes)
+    stack_config = stacks.get_stack_config(splunk, stack_id)
+    service = instances.create_client(core_api, stack_id, stack_config, role)
+    try:
+        service.restart()
+        logging.info("requested \"%s\" restart" % (role))
+    except splunklib.binding.HTTPError as e:
+        if e.status == 404:
+            logging.info("cluster bundle did not change")
+        else:
+            raise
+
+
 def render_saas_app_data(path, app):
     local_path = os.path.join(path, "local")
     if not os.path.isdir(local_path):
@@ -518,6 +531,7 @@ def install_as_local_app(splunk, kubernetes, stack_id, pod, app):
     except splunklib.binding.HTTPError:
         raise
     logging.info("installed app '%s' to '%s" % (app.name, pod.metadata.name))
+    return False
 
 
 def copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, target_parent_name):

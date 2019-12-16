@@ -131,12 +131,18 @@ class AppHandler(BaseRestHandler):
         path = self.request['path']
         _, app_name = os.path.split(path)
         location = get_app_location(self)
+        requires_update = False
         if location == "local-apps":
             app = self.splunk.apps[app_name]
             app.delete()
+            requires_update = self.splunk.restart_required
         else:
             folder_path = get_apps_path(self)
             app_path = os.path.join(folder_path, app_name)
             if not is_saas_managed(app_path):
                 raise Exception("is not saas-managed app")
             shutil.rmtree(app_path)
+            requires_update = True
+        self.send_json_response({
+            "requires_update": requires_update,
+        })
