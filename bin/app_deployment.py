@@ -180,7 +180,7 @@ class SupportApp(DeployableApp):
 
     def get_app_version(self, app_name):
         app_path = os.path.join(os.path.dirname(
-            os.path.dirname(__file__)), "apps", app_name)
+            os.path.dirname(__file__)), "support_apps", app_name)
         app_version = ""
         default_app_conf_path = os.path.join(app_path, "default", "app.conf")
         local_app_conf_path = os.path.join(app_path, "local", "app.conf")
@@ -213,7 +213,7 @@ class SupportApp(DeployableApp):
 
     def render(self, cluster_config, stack_config, target_dir):
         app_path = os.path.join(os.path.dirname(
-            os.path.dirname(__file__)), "apps", self.name)
+            os.path.dirname(__file__)), "support_apps", self.name)
 
         def recursive_overwrite(src, dest):
             if os.path.isdir(src):
