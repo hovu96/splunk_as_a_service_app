@@ -97,11 +97,11 @@ def get_app_location(handler):
 
 def get_apps_path(handler):
     location = get_app_location(handler)
-    if location == "shcluster-apps":
+    if location == "shcluster/apps":
         folder_path = "/opt/splunk/etc/shcluster/apps"
     elif location == "master-apps":
         folder_path = "/opt/splunk/etc/master-apps"
-    elif location == "local-apps":
+    elif location == "apps":
         folder_path = "/opt/splunk/etc/apps"
     else:
         raise Exception("unexpected location '%s'" % (location))
@@ -132,7 +132,7 @@ class AppHandler(BaseRestHandler):
         _, app_name = os.path.split(path)
         location = get_app_location(self)
         requires_update = False
-        if location == "local-apps":
+        if location == "apps":
             app = self.splunk.apps[app_name]
             app.delete()
             requires_update = self.splunk.restart_required
