@@ -155,7 +155,7 @@
       </input>
       <table>
         <search>
-          <query>index=summary search_tag=stackoperation stack_id=$id$ level!=DEBUG | table _time level msg | sort - _time</query>
+          <query>index=summary search_tag=stackoperation stack_id=$id$ $log_level_filter$ | table _time level msg | sort - _time</query>
           <earliest>$logs.earliest$</earliest>
           <latest>$logs.latest$</latest>
           <refresh>10s</refresh>
