@@ -75,10 +75,6 @@ def get_command_name(stack_id):
 
 
 def schedule_operation(splunk, stack_id, command):
-    try:
-        unschedule_operation(splunk, stack_id)
-    except KeyError:
-        pass
     search = splunk.saved_searches.create(
         name=get_command_name(stack_id),
         search="| stackoperation stack_id=\"%s\" command=\"%s\" | collect addtime=f index=summary marker=\"search_tag=stackoperation, stack_id=%s\"" % (
@@ -109,7 +105,19 @@ def start(splunk, stack_id):
     schedule_operation(splunk, stack_id, "up")
 
 
+def trigger(splunk, stack_id):
+    try:
+        unschedule_operation(splunk, stack_id)
+    except KeyError:
+        pass
+    schedule_operation(splunk, stack_id, "up")
+
+
 def stop(splunk, stack_id, force=False):
+    try:
+        unschedule_operation(splunk, stack_id)
+    except KeyError:
+        pass
     if force:
         schedule_operation(splunk, stack_id, "kill")
     else:
@@ -127,6 +135,7 @@ class StackOperation(GeneratingCommand):
 
         class EventBufferHandler(logging.Handler):
             _events = None
+            _last_time = None
 
             def __init__(self):
                 logging.Handler.__init__(self)
@@ -134,9 +143,13 @@ class StackOperation(GeneratingCommand):
 
             def emit(self, record):
                 msg = record.getMessage().replace('"', '\\"')
+                time = round(record.created, 3)
+                if self._last_time and time <= self._last_time:
+                    time = self._last_time + 0.001
+                self._last_time = time
                 self._events.append({
                     "_raw": "%.3f, level=\"%s\", msg=\"%s\"" % (
-                        record.created,
+                        time,
                         record.levelname,
                         msg
                     ),
