@@ -22,44 +22,53 @@
       </search>
     </input>
   </fieldset>
-  <row>
-    <panel>
-      <title>Indexers</title>
-      <chart>
-        <title>CPU</title>
-        <search>
-          <query>| mstats avg(_value) as usage WHERE metric_name="kube.pod.cpu.usage_rate" AND "index"="em_metrics" BY pod-name span=auto
+  <search id="all_usage">
+    <query>| mstats avg(_value) as usage WHERE metric_name="kube.pod.cpu.usage_rate" AND "index"="em_metrics" BY pod-name span=auto
 | append [
 | mstats avg(_value) as limit WHERE metric_name="kube.pod.cpu.request" AND index="em_metrics" BY name span=auto
 | rename name as pod-name
 ]
-| rex field=pod-name "^splunk-(?&lt;stack_id&gt;[0-9|a-f]+)-(?&lt;role&gt;.+)-(?&lt;id&gt;.+)" 
-| where isnotnull(stack_id) and isnotnull(role) and isnotnull(id)
+| eval resource = "cpu"
+
+| append [
+| mstats avg(_value) as usage WHERE metric_name="kube.pod.memory.usage_bytes" "index"="em_metrics" BY pod-name span=auto
+| eval usage=usage/1024/1024
+| append [
+| mstats avg(_value) as limit WHERE metric_name="kube.pod.memory.request" index="em_metrics" BY name span=auto
+| rename name as pod-name
+]
+| eval resource = "memory"
+]
+
+| lookup instances _key as pod-name OUTPUT stack_id role
+| where isnotnull(stack_id) and isnotnull(role)
 | lookup stacks _key as stack_id OUTPUT title as stack cluster deployment_type
 | search cluster="$cluster$"
-| where (deployment_type=="standalone" and role=="standalone" and id==0) or (deployment_type=="distributed" and role=="indexer")
-| stats avg(usage) as usage min(limit) as limit by _time pod-name stack
-| streamstats limit=0 last(limit) as limit2 last(usage) as usage2 by pod-name
+| stats avg(usage) as usage min(limit) as limit by _time resource role stack
+| streamstats limit=0 last(limit) as limit2 last(usage) as usage2 by resource pod-name
 | eval limit = coalesce(limit,limit2)
 | eval usage = coalesce(usage,usage2)
 | fields - limit2 usage2
-| eval usage_pct = (usage / limit) * 100
-| timechart max(usage_pct) as usage by stack</query>
-          <earliest>$earliest$</earliest>
-          <latest>$latest$</latest>
-          <sampleRatio>1</sampleRatio>
-          <refresh>1m</refresh>
-          <refreshType>delay</refreshType>
+| eval usage_pct = (usage / limit) * 100</query>
+    <earliest>$earliest$</earliest>
+    <latest>$latest$</latest>
+    <sampleRatio>1</sampleRatio>
+  </search>
+  <row>
+    <panel>
+      <chart>
+        <title>Utilisation by Stack</title>
+        <search base="all_usage">
+          <query>stats max(usage_pct) as usage_pct by _time role stack
+| stats max(usage_pct) as usage_pct by _time stack
+| timechart limit=0 max(usage_pct) as usage_pct by stack</query>
         </search>
-        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
-        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
         <option name="charting.axisTitleX.visibility">collapsed</option>
-        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Percent</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
         <option name="charting.axisTitleY2.visibility">visible</option>
         <option name="charting.axisX.abbreviation">none</option>
-        <option name="charting.axisX.scale">linear</option>
-        <option name="charting.axisY.abbreviation">auto</option>
-        <option name="charting.axisY.includeZero">1</option>
+        <option name="charting.axisY.abbreviation">none</option>
         <option name="charting.axisY.maximumNumber">100</option>
         <option name="charting.axisY.minimumNumber">0</option>
         <option name="charting.axisY.scale">linear</option>
@@ -67,91 +76,25 @@
         <option name="charting.axisY2.enabled">0</option>
         <option name="charting.axisY2.scale">inherit</option>
         <option name="charting.chart">line</option>
-        <option name="charting.chart.bubbleMaximumSize">50</option>
-        <option name="charting.chart.bubbleMinimumSize">10</option>
-        <option name="charting.chart.bubbleSizeBy">area</option>
-        <option name="charting.chart.nullValueMode">connect</option>
-        <option name="charting.chart.showDataLabels">none</option>
-        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
-        <option name="charting.chart.stackMode">default</option>
-        <option name="charting.chart.style">shiny</option>
         <option name="charting.drilldown">none</option>
-        <option name="charting.fieldColors">{"Avg":"#1e93c6"}</option>
-        <option name="charting.fieldDashStyles">{}</option>
-        <option name="charting.gridLinesX.showMajorLines">1</option>
-        <option name="charting.layout.splitSeries">0</option>
-        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">seriesCompare</option>
-        <option name="charting.legend.placement">right</option>
-        <option name="charting.lineWidth">2</option>
         <option name="refresh.display">progressbar</option>
         <option name="trellis.enabled">0</option>
         <option name="trellis.scales.shared">1</option>
         <option name="trellis.size">medium</option>
       </chart>
     </panel>
+  </row>
+  <row>
     <panel>
-      <title>Search Heads</title>
-      <chart>
-        <title>CPU</title>
-        <search>
-          <query>| mstats avg(_value) as usage WHERE metric_name="kube.pod.cpu.usage_rate" AND "index"="em_metrics" BY pod-name span=auto
-| append [
-| mstats avg(_value) as request WHERE metric_name="kube.pod.cpu.request" AND index="em_metrics" BY name span=auto
-| rename name as pod-name
-]
-| rex field=pod-name "^splunk-(?&lt;stack_id&gt;[0-9|a-f]+)-(?&lt;role&gt;.+)-(?&lt;id&gt;.+)" 
-| where isnotnull(stack_id) and isnotnull(role) and isnotnull(id)
-| lookup stacks _key as stack_id OUTPUT title as stack cluster deployment_type
-| search cluster="*"
-| where (deployment_type=="standalone" and role=="standalone" and id==0) or (deployment_type=="distributed" and role=="search-head")
-| stats avg(usage) as usage min(request) as request by _time pod-name stack
-| streamstats limit=0 last(request) as request2 last(usage) as usage2 by pod-name
-| eval request = coalesce(request,request2)
-| eval usage = coalesce(usage,usage2)
-| fields - request2 usage2
-| eval usage_pct = (usage / request) * 100
-| timechart max(usage_pct) as usage by stack</query>
-          <earliest>$earliest$</earliest>
-          <latest>$latest$</latest>
-          <sampleRatio>1</sampleRatio>
-          <refresh>1m</refresh>
-          <refreshType>delay</refreshType>
+      <table>
+        <title>Top Utilisation by Stack Role Resource</title>
+        <search base="all_usage">
+          <query>stats sparkline(avg(usage_pct)) as sparkline latest(usage_pct) as usage_pct by resource role stack
+| sort - usage_pct
+| head 50 | table stack role resource *</query>
         </search>
-        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
-        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.visibility">visible</option>
-        <option name="charting.axisTitleY.visibility">visible</option>
-        <option name="charting.axisTitleY2.visibility">visible</option>
-        <option name="charting.axisX.abbreviation">none</option>
-        <option name="charting.axisX.scale">linear</option>
-        <option name="charting.axisY.abbreviation">none</option>
-        <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.abbreviation">none</option>
-        <option name="charting.axisY2.enabled">0</option>
-        <option name="charting.axisY2.scale">inherit</option>
-        <option name="charting.chart">line</option>
-        <option name="charting.chart.bubbleMaximumSize">50</option>
-        <option name="charting.chart.bubbleMinimumSize">10</option>
-        <option name="charting.chart.bubbleSizeBy">area</option>
-        <option name="charting.chart.nullValueMode">gaps</option>
-        <option name="charting.chart.showDataLabels">none</option>
-        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
-        <option name="charting.chart.stackMode">default</option>
-        <option name="charting.chart.style">shiny</option>
-        <option name="charting.drilldown">none</option>
-        <option name="charting.layout.splitSeries">0</option>
-        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">standard</option>
-        <option name="charting.legend.placement">right</option>
-        <option name="charting.lineWidth">2</option>
-        <option name="refresh.display">progressbar</option>
-        <option name="trellis.enabled">0</option>
-        <option name="trellis.scales.shared">1</option>
-        <option name="trellis.size">medium</option>
-      </chart>
+        <option name="drilldown">row</option>
+      </table>
     </panel>
   </row>
 </form>
