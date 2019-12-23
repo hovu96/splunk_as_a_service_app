@@ -23,4 +23,10 @@ require([
         titleElement.text(initialTitle + ": " + title);
     };
     updateTitle(bundleName);
+
+    const backButton = $('<button class="btn action-button">Back</button>');
+    backButton.click(async function () {
+        window.location.href = 'apps';
+    });
+    $(".dashboard-view-controls").append(backButton);
 });

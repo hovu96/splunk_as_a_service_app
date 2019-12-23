@@ -13,4 +13,18 @@
       </table>
     </panel>
   </row>
+  <row>
+    <panel>
+      <table>
+        <title>Bundles</title>
+        <search>
+          <query>| rest splunk_server=local services/saas/app_bundles | fields - splunk_server | table name *</query>
+        </search>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_self">app_bundle?name=$row.name$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
 </dashboard>

@@ -1,6 +1,6 @@
 # Splunk as a Service App
 
-A Splunk app to deploy, manage and monitor other Splunk environments in remote Kubernetes clusters.
+A Splunk app to deploy, manage and monitor Splunk environments in remote Kubernetes clusters.
 
 ![Service-Overview](docs/ServiceOverview.png)
 
@@ -8,14 +8,15 @@ This is an early prototype and should not be used in a production environment.
 
 ## Features
 
-- Managing any number of Splunk environments
-- REST endpoints for integrating into service portals
+- Managing Splunk environments
 - Activity tracking
-- Changeback analytics
-- App management
-- Health tracking
 - Capacity monitoring
+- Application management
+- Changeback analytics
+- Health tracking
 - Performance testing
+- REST API for managing resources
+- RBAC capabilities for access management
 
 ## Prerequisites
 

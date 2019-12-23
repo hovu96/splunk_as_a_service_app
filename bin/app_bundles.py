@@ -15,7 +15,23 @@ import apps
 conf_name = "app_bundles"
 
 
-class Apps(BaseRestHandler):
+class Bundles(BaseRestHandler):
+    def handle_GET(self):
+        bundles = self.splunk.confs[conf_name]
+
+        def item(bundle):
+            entry = {
+                "name": bundle.name,
+                "apps": len(bundle.apps.split(","))
+            }
+            return entry
+        self.send_entries([
+            item(bundle)
+            for bundle in bundles
+        ])
+
+
+class BundleApps(BaseRestHandler):
     def handle_GET(self):
         path = self.request['path']
         _, bundle_name = os.path.split(path)
