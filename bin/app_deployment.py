@@ -489,7 +489,6 @@ def install_as_local_app(splunk, kubernetes, stack_id, pod, app):
             remote_path=pod_local_path,
         )
     finally:
-        import shutil
         shutil.rmtree(temp_dir, ignore_errors=True)
     service = instances.create_client(core_api, stack_id, stack_config, pod.metadata.labels["type"])
     try:
@@ -525,5 +524,4 @@ def copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, target_parent_n
         )
         logging.info("copied app '%s' at '%s' to '%s'" % (app.name, target_parent_name, pod.metadata.name))
     finally:
-        import shutil
         shutil.rmtree(temp_dir, ignore_errors=True)

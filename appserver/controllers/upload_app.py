@@ -2,7 +2,7 @@ import os
 import sys
 
 #bin_path = os.path.join(os.path.dirname(__file__), "..", "..", "bin")
-#if bin_path not in sys.path:
+# if bin_path not in sys.path:
 #    sys.path.insert(0, bin_path)
 
 import os
@@ -44,17 +44,19 @@ class UploadAppController(controllers.BaseController):
 
             import capabilities
             import apps
+            import app_bundles
 
             import importlib
             importlib.reload(capabilities)
             importlib.reload(apps)
+            importlib.reload(app_bundles)
 
             if not capabilities.has("saas_manage_apps") and not capabilities.has("admin_all_objects"):
                 cherrypy.response.status = 403
                 return "missing capability"
 
             app_field = kwargs.get('app')
-            #if not isinstance(app_field, cgi.FieldStorage):
+            # if not isinstance(app_field, cgi.FieldStorage):
             #    cherrypy.response.status = 400
             #    return "Missing app field: %s" % dir(app_field)
 
@@ -71,8 +73,19 @@ class UploadAppController(controllers.BaseController):
                     shutil.copyfileobj(app_field.file, temp_file)
                     app_path = temp_file.name
 
-                app_name, app_version = apps.add_app(splunk, app_path)
-                return self.render_json(dict(name=app_name, version=app_version))
+                if app_bundles.is_bundle(app_path):
+                    bundle_name = app_bundles.add_bundle(splunk, app_path, app_field.filename)
+                    return self.render_json(dict(
+                        kind="bundle",
+                        name=bundle_name,
+                    ))
+                else:
+                    app_name, app_version = apps.add_app(splunk, app_path)
+                    return self.render_json(dict(
+                        kind="app",
+                        name=app_name,
+                        version=app_version
+                    ))
             finally:
                 if app_path:
                     os.remove(app_path)

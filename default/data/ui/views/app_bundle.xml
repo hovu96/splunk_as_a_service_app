@@ -1,0 +1,17 @@
+<dashboard script="app_bundle.js">
+  <label>App Bundle</label>
+  <row>
+    <panel>
+      <table>
+        <title>Apps</title>
+        <search>
+          <query>| rest splunk_server=local services/saas/app_bundle_apps/$name$ | fields - splunk_server</query>
+        </search>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_self">app?name=$row.name$&amp;version=$version$&amp;bundle=$name$&amp;back=bundle</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</dashboard>

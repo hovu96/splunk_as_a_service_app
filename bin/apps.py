@@ -135,17 +135,20 @@ def parse_app_metadata(path):
         for info in archive:
             if info.name.endswith(os.sep + "app.manifest"):
                 manifest_file = archive.extractfile(info)
-                manifest = json.load(manifest_file)
-                if "info" in manifest:
-                    app_info = manifest["info"]
-                    if "id" in app_info:
-                        app_info_id = app_info["id"]
-                        if "name" in app_info_id:
-                            app_name_from_manifest = app_info_id["name"]
-                        if "version" in app_info_id:
-                            app_version_from_manifest = app_info_id["version"]
-                    if "title" in app_info:
-                        app_title_from_manifest = app_info["title"]
+                try:
+                    manifest = json.load(manifest_file)
+                    if "info" in manifest:
+                        app_info = manifest["info"]
+                        if "id" in app_info:
+                            app_info_id = app_info["id"]
+                            if "name" in app_info_id:
+                                app_name_from_manifest = app_info_id["name"]
+                            if "version" in app_info_id:
+                                app_version_from_manifest = app_info_id["version"]
+                        if "title" in app_info:
+                            app_title_from_manifest = app_info["title"]
+                except json.decoder.JSONDecodeError:
+                    pass
             if info.name.endswith(os.sep + "default" + os.sep + "app.conf"):
                 conf_file = archive.extractfile(info)
                 conf_file_data = conf_file.read().decode("utf-8")
