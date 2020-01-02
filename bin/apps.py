@@ -12,12 +12,10 @@ import json
 from configparser import ConfigParser
 import base64
 from urllib.parse import unquote
+from urllib.parse import parse_qs
 import io
 import re
-
-app_config_fields = set([
-    "title",
-])
+import services
 
 
 def create_stanza_name(name, version):
@@ -35,17 +33,32 @@ def parse_stanza_name(stanza_name):
         return stanza_name[:i], stanza_name[i + 1:]
 
 
+def parse_deploy_to(deploy_to):
+    if not deploy_to:
+        return []
+    roles = set()
+    for name in deploy_to.split(","):
+        s = name.strip()
+        if s:
+            roles.add(s)
+    return list(roles)
+
+
+def format_deploy_to(roles):
+    return ", ".join(roles)
+
+
 class AppsHandler(BaseRestHandler):
     def handle_GET(self):
         def item(app):
-            entry = {
-                k: app[k] for k in app_config_fields if k in app
-            }
             name, version = parse_stanza_name(app.name)
-            entry.update({
+            entry = {
                 "name": name,
                 "version": version,
-            })
+                "title": app["title"],
+                "standalone_deploy_to": parse_deploy_to(app["standalone_deploy_to"]),
+                "distributed_deploy_to": parse_deploy_to(app["distributed_deploy_to"]),
+            }
             return entry
         self.send_entries([
             item(app)
@@ -59,7 +72,7 @@ def get_app_from_path(path, parent_path_segment):
                                       len(parent_path_segment) + 2:]
     name_version_sep_index = name_version_segments_path.find(os.sep)
     if name_version_sep_index >= 0:
-        app_name = name_version_segments_path[:name_version_sep_index]
+        app_name = name_version_segments_path[: name_version_sep_index]
         app_version = name_version_segments_path[name_version_sep_index + 1:]
     else:
         app_name = name_version_segments_path
@@ -74,9 +87,23 @@ class AppHandler(BaseRestHandler):
         stanza_name = create_stanza_name(app_name, app_version)
         app_config = self.splunk.confs["apps"][stanza_name]
         entry = {
-            k: app_config[k] for k in app_config_fields if k in app_config
+            "name": app_name,
+            "version": app_version,
+            "title": app_config["title"],
+            "standalone_deploy_to": parse_deploy_to(app_config["standalone_deploy_to"]),
+            "distributed_deploy_to": parse_deploy_to(app_config["distributed_deploy_to"]),
         }
-        self.send_json_response(entry)
+        self.send_result(entry)
+
+    def handle_POST(self):
+        app_name, app_version = get_app_from_path(self.request['path'], "app")
+        stanza_name = create_stanza_name(app_name, app_version)
+        app_config = self.splunk.confs["apps"][stanza_name]
+        request_params = parse_qs(self.request['payload'])
+        app_config.submit({
+            "standalone_deploy_to": request_params["standalone_deploy_to"][0] if "standalone_deploy_to" in request_params else "",
+            "distributed_deploy_to": request_params["distributed_deploy_to"][0] if "distributed_deploy_to" in request_params else "",
+        })
 
     def handle_DELETE(self):
         app_name, app_version = get_app_from_path(self.request['path'], "app")
@@ -104,7 +131,7 @@ class AppFilesHandler(BaseRestHandler):
 
 
 def add_app(splunk, path):
-    app_name, app_version, app_title = parse_app_metadata(path)
+    app_name, app_version, app_title, target_roles = parse_app_metadata(path)
 
     remove_chunks(splunk, app_name, app_version)
     chunk_count = add_chunks(splunk, path, app_name, app_version)
@@ -118,6 +145,8 @@ def add_app(splunk, path):
     app.submit({
         "title": app_title,
         "chunks": chunk_count,
+        "distributed_deploy_to": format_deploy_to(target_roles),
+        #"standalone_deploy_to": "",
     })
 
     return app_name, app_version
@@ -131,6 +160,9 @@ def parse_app_metadata(path):
     app_title_from_manifest = False
     app_title_from_conf = False
     top_level_dir_names = set()
+    target_roles_from_manifest = set()
+    target_roles_interred_from_confs = set()
+    target_roles_interred_from_name = set()
     with tarfile.open(path) as archive:
         for info in archive:
             if info.name.endswith(os.sep + "app.manifest"):
@@ -147,6 +179,21 @@ def parse_app_metadata(path):
                                 app_version_from_manifest = app_info_id["version"]
                         if "title" in app_info:
                             app_title_from_manifest = app_info["title"]
+                    if "targetWorkloads" not in manifest:
+                        manifest["targetWorkloads"] = ["*"]
+                    target_workloads = manifest["targetWorkloads"]
+                    for target_workload in target_workloads:
+                        if target_workload == "_search_heads":
+                            target_roles_from_manifest.add(services.search_head_role)
+                        if target_workload == "_indexers":
+                            target_roles_from_manifest.add(services.indexer_role)
+                        if target_workload == "_forwarders":
+                            # target_roles_from_manifest.add(services.forwarder_role)
+                            pass
+                        if target_workload == "*":
+                            target_roles_from_manifest.add(services.search_head_role)
+                            target_roles_from_manifest.add(services.indexer_role)
+                            # target_roles_from_manifest.add(services.forwarder_role)
                 except json.decoder.JSONDecodeError:
                     pass
             if info.name.endswith(os.sep + "default" + os.sep + "app.conf"):
@@ -197,7 +244,19 @@ def parse_app_metadata(path):
     else:
         app_title = ""
 
-    return app_name, app_version, app_title
+    if app_name.upper().startswith("DA_") or app_name.upper().startswith("DA-"):
+        target_roles_interred_from_name.add(services.search_head_role)
+    if app_name.upper().startswith("SA_") or app_name.upper().startswith("SA-"):
+        target_roles_interred_from_name.add(services.search_head_role)
+
+    if len(target_roles_from_manifest):
+        target_roles = list(target_roles_from_manifest)
+    elif len(target_roles_interred_from_name):
+        target_roles = list(target_roles_interred_from_name)
+    else:
+        target_roles = list(target_roles_interred_from_confs)
+
+    return app_name, app_version, app_title, target_roles
 
 
 def remove_app(splunk, app_name, app_version):
@@ -237,7 +296,7 @@ def remove_chunks(splunk, app_name, app_version):
 def open_app(splunk, app_name, app_version):
     stanza_name = create_stanza_name(app_name, app_version)
     app_config = splunk.confs["apps"][stanza_name]
-    #raise Exception("app_name: %s" % app_name)
+    # raise Exception("app_name: %s" % app_name)
     chunk_collection = splunk.kvstore["app_chunks"].data
     chunks = chunk_collection.query(
         query=json.dumps({

@@ -39,8 +39,14 @@ require([
     });
     $(".dashboard-view-controls").append(deployButton);
 
+    $("#edit-config-button").click(function () {
+        window.location.href = "app_edit?name=" + encodeURIComponent(appName) +
+            "&version=" + encodeURIComponent(appVersion) +
+            "&back=" + encodeURIComponent(window.location);
+    });
+
     var appURLPath = 'app/' + appName + "/" + appVersion;
-    endpoint.get(appURLPath, {}, function (err, response) {
+    endpoint.get(appURLPath, {}, async function (err, response) {
         if (err) {
             Utils.showErrorDialog("Error loading app details", err).footer.append($('<button>Retry</button>').attr({
                 type: 'button',
@@ -50,7 +56,8 @@ require([
             }));
             return;
         }
-        updateTitle(response.data.title);
+        const app = await Utils.getResponseContent(response);
+        updateTitle(app.title);
     });
 
     const deleteButton = $('<button class="btn btn-primary action-button" style="background-color: red;">Delete</button>');

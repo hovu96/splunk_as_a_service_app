@@ -9,7 +9,7 @@
         </search>
         <option name="drilldown">row</option>
         <drilldown>
-          <link target="_self">app?name=$row.name$&amp;version=$version$&amp;bundle=$name$&amp;back=bundle</link>
+          <link target="_self">app?name=$row.name$&amp;version=$row.version$&amp;bundle=$name$&amp;back=bundle</link>
         </drilldown>
       </table>
     </panel>

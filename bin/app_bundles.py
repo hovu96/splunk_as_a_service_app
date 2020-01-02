@@ -98,6 +98,10 @@ def add_bundle(splunk, bundle_path, name):
                 app_stanza_name = apps.create_stanza_name(app_name, app_version)
                 bundle_apps.append(app_stanza_name)
     bundle_name = name
+    bundle_name_suffix_number = 0
+    while bundle_name in splunk.confs[conf_name]:
+        bundle_name_suffix_number += 1
+        bundle_name = name + "_%s" % bundle_name_suffix_number
     bundle = splunk.confs[conf_name].create(bundle_name)
     bundle.submit({
         "apps": ",".join(bundle_apps),

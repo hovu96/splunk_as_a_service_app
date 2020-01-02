@@ -1,0 +1,67 @@
+<dashboard script="app_edit.js" stylesheet="app_deploy.css">
+  <label>Edit App</label>
+  <row id="wizard_row">
+      <html>
+          <div id="step-control-wizard"></div>
+      </html>
+  </row>
+  <row depends="$step-target$">
+      <panel>
+          <title>Deployment Target</title>
+          <html>
+            <div class="form-horizontal deployment_target">
+              <splunk-control-group class="distributed" label="Distributed Stacks" help="">
+                <input type="checkbox" class="option" name="forwarder" id="deploy_to_forwarders"></input>
+                <label for="deploy_to_forwarders">Forwarders (via Deployment Server)</label>
+              </splunk-control-group>
+              <splunk-control-group class="distributed" label="" help="">
+                <input type="checkbox" class="option" name="search-head" id="deploy_to_search_heads"></input>
+                <label for="deploy_to_search_heads">Search Heads (via Deployer)</label>
+              </splunk-control-group>
+              <splunk-control-group class="distributed" label="" help="">
+                <input type="checkbox" class="option" name="indexer" id="deploy_to_indexers"></input>
+                <label for="deploy_to_indexers">Indexers (via Cluster Master)</label>
+              </splunk-control-group>
+              <splunk-control-group class="distributed" label="" help="">
+                <input type="checkbox" class="option" name="deployer" id="deploy_to_deployer"></input>
+                <label for="deploy_to_deployer">Deployer (as local App)</label>
+              </splunk-control-group>
+              <splunk-control-group class="distributed" label="" help="">
+                <input type="checkbox" class="option" name="cluster-master" id="deploy_to_cluster_master"></input>
+                <label for="deploy_to_cluster_master">Cluster Master (as local App)</label>
+              </splunk-control-group>
+              <splunk-control-group class="standalone" label="Standalone Stacks" help="">
+                <input type="checkbox" class="option" name="forwarder" id="deploy_to_forwarders_standalone"></input>
+                <label for="deploy_to_forwarders_standalone">Forwarders (via Standalone Instance)</label>
+              </splunk-control-group>
+              <splunk-control-group class="standalone" label="" help="">
+                <input type="checkbox" class="option" name="standalone" id="deploy_to_standalone"></input>
+                <label for="deploy_to_standalone">Standalone Instance (as local App)</label>
+              </splunk-control-group>
+            </div>
+          </html>
+      </panel>
+  </row>
+  <row depends="$step-summary$">
+      <panel>
+          <title>Configuration Summary</title>
+          <html>
+              <table class="table-bordered table table-striped" style="min-width: 10%;">
+                  <tr>
+                      <td>Target (In Distributed Stacks)</td>
+                      <td id="summary-selected-target-distributed"></td>
+                  </tr>
+                  <tr>
+                      <td>Target (In Standalone Stacks)</td>
+                      <td id="summary-selected-target-standalone"></td>
+                  </tr>
+              </table>
+          </html>
+      </panel>
+  </row>
+  <row depends="$step-summary$" id="deploy_row">
+      <html>
+          <button id="update-button" class="btn btn-primary">Update App</button>
+      </html>
+  </row>
+</dashboard>

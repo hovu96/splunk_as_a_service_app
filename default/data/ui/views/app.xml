@@ -1,7 +1,27 @@
-<dashboard script="app.js">
+<dashboard script="app.js" stylesheet="app.css">
   <label>App</label>
   <row>
-    <panel>
+    <panel id="config_panel">
+      <table>
+        <title>Configuration</title>
+        <search>
+          <query>| rest splunk_server=local services/saas/app/$name$/$version$ 
+| fields - splunk_server title 
+| table name version *
+| untable _ param value
+| table param value</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <html>
+        <button id="edit-config-button" class="btn">Edit</button>
+      </html>
+    </panel>
+    <panel id="stacks_panel">
       <table>
         <title>Stacks</title>
         <search>
