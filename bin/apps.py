@@ -59,6 +59,8 @@ class AppsHandler(BaseRestHandler):
                 "standalone_deploy_to": parse_deploy_to(app["standalone_deploy_to"]),
                 "distributed_deploy_to": parse_deploy_to(app["distributed_deploy_to"]),
             }
+            if "size" in app:
+                entry["size"] = app["size"]
             return entry
         self.send_entries([
             item(app)
@@ -85,14 +87,16 @@ class AppHandler(BaseRestHandler):
     def handle_GET(self):
         app_name, app_version = get_app_from_path(self.request['path'], "app")
         stanza_name = create_stanza_name(app_name, app_version)
-        app_config = self.splunk.confs["apps"][stanza_name]
+        app = self.splunk.confs["apps"][stanza_name]
         entry = {
             "name": app_name,
             "version": app_version,
-            "title": app_config["title"],
-            "standalone_deploy_to": parse_deploy_to(app_config["standalone_deploy_to"]),
-            "distributed_deploy_to": parse_deploy_to(app_config["distributed_deploy_to"]),
+            "title": app["title"],
+            "standalone_deploy_to": parse_deploy_to(app["standalone_deploy_to"]),
+            "distributed_deploy_to": parse_deploy_to(app["distributed_deploy_to"]),
         }
+        if "size" in app:
+            entry["size"] = app["size"]
         self.send_result(entry)
 
     def handle_POST(self):
@@ -134,7 +138,7 @@ def add_app(splunk, path):
     app_name, app_version, app_title, target_roles = parse_app_metadata(path)
 
     remove_chunks(splunk, app_name, app_version)
-    chunk_count = add_chunks(splunk, path, app_name, app_version)
+    chunk_count, byte_count = add_chunks(splunk, path, app_name, app_version)
 
     stanza_name = create_stanza_name(app_name, app_version)
     apps = splunk.confs["apps"]
@@ -147,6 +151,7 @@ def add_app(splunk, path):
         "chunks": chunk_count,
         "distributed_deploy_to": format_deploy_to(target_roles),
         # "standalone_deploy_to": "",
+        "size": byte_count,
     })
 
     return app_name, app_version
@@ -278,9 +283,11 @@ def add_chunks(splunk, path, app_name, app_version):
     chunk_collection = get_app_chunk_collection(splunk)
     CHUNK_SIZE = 1024 * 1000
     chunk_count = 0
+    byte_count = 0
     with open(path, 'rb') as f:
         chunk = f.read(CHUNK_SIZE)
         while chunk:
+            byte_count += len(chunk)
             chunk_encoded = base64.encodestring(chunk)
             chunk_ascii = chunk_encoded.decode('ascii')
             chunk_id = get_app_chunk_id(app_name, app_version, chunk_count)
@@ -293,7 +300,7 @@ def add_chunks(splunk, path, app_name, app_version):
             chunk_collection.insert(chunk_record)
             chunk_count += 1
             chunk = f.read(CHUNK_SIZE)
-    return chunk_count
+    return chunk_count, byte_count
 
 
 def remove_chunks(splunk, app_name, app_version):

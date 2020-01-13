@@ -49,12 +49,10 @@ require([
                 return;
             }
             const stack = await Utils.getResponseContent(response);
-            $("#deploy_to_search_heads").prop('checked', stack["deploy_to_search_heads"]);
-            $("#deploy_to_indexers").prop('checked', stack["deploy_to_indexers"]);
-            $("#deploy_to_deployer").prop('checked', stack["deploy_to_deployer"]);
-            $("#deploy_to_cluster_master").prop('checked', stack["deploy_to_cluster_master"]);
-            $("#deploy_to_standalone").prop('checked', stack["deploy_to_standalone"]);
-            $("#deploy_to_forwarders").prop('checked', stack["deploy_to_forwarders"]);
+            const deployTo = stack["deploy_to"];
+            deployTo.forEach(function (role) {
+                $(`.deployment-targets input[name=\"${role}\"]`).prop('checked', true);
+            });
         });
     }
 
@@ -71,6 +69,104 @@ require([
         }
     });
     $(".dashboard-view-controls").append(backButton);
+
+    var stack;
+    var app;
+    const appOrStackChanged = async function () {
+
+        const appValue = appOption.attr('value');
+        if (!appValue) return;
+        const comps = appValue.split(":")
+        const appName = comps[0];
+        const appVersion = comps[1];
+
+        const stackID = stackOption.attr('value');
+        if (!stackID) return;
+
+        try {
+            const appConfPromise = endpoint.getAsync('app_config/' + encodeURIComponent(appName) + "/" + encodeURIComponent(appVersion));
+            const stackPromise = endpoint.getAsync('stack/' + stackID);
+            const appPromise = endpoint.getAsync('app/' + encodeURIComponent(appName) + "/" + encodeURIComponent(appVersion));
+
+            const appConfResponse = await appConfPromise;
+            const stackResponse = await stackPromise;
+            const appResponse = await appPromise;
+
+            stack = await Utils.getResponseContent(stackResponse);
+            app = await Utils.getResponseContent(appResponse);
+
+            const deploymentType = stack["deployment_type"];
+            if (deploymentType == "standalone") {
+                $("splunk-control-group.distributed").hide();
+                $("splunk-control-group.standalone").show();
+            } else if (deploymentType == "distributed") {
+                $("splunk-control-group.standalone").hide();
+                $("splunk-control-group.distributed").show();
+            } else {
+                $("splunk-control-group.standalone").hide();
+                $("splunk-control-group.distributed").hide();
+                console.warn("unexpected deployment type: " + deploymentType);
+            }
+
+            if (defaultTokens.attributes.stack && defaultTokens.attributes.name && defaultTokens.attributes.version) {
+            }
+            else {
+                $(".deployment-targets input[type=\"checkbox\"]").each(function () {
+                    $(this).prop('checked', false);
+                });
+                if (deploymentType == "standalone") {
+                    app["standalone_deploy_to"].forEach(function (role) {
+                        $(`.deployment-targets input[name=\"${role}\"]`).prop('checked', true);
+                    });
+                } else if (deploymentType == "distributed") {
+                    app["distributed_deploy_to"].forEach(function (role) {
+                        $(`.deployment-targets input[name=\"${role}\"]`).prop('checked', true);
+                    });
+                }
+            }
+
+            const confNames = Object.keys(appConfResponse.data).sort();
+            const defaultConfigTextArea = $('#default-config-content textarea');
+            defaultConfigTextArea.attr("readonly", "readonly");
+            $("#default-config-explorer").jstree('destroy');
+            $('#default-config-explorer').jstree({
+                core: {
+                    'multiple': false,
+                    themes: {
+                        dots: false,
+                    },
+                    data: confNames.map(function (name) {
+                        return {
+                            text: name,
+                            icon: "jstree-file",
+                            state: {
+                                selected: name == confNames[0],
+                            }
+                        }
+                    }),
+                }
+            }).on('changed.jstree', function (e, data) {
+                if (data.selected.length == 0) {
+                    defaultConfigTextArea.val("");
+                } else {
+                    const node = data.instance.get_node(data.selected[0]);
+                    const confName = node.text;
+                    const text = appConfResponse.data[confName];
+                    defaultConfigTextArea.val(text);
+                }
+            });
+
+        }
+        catch (err) {
+            Utils.showErrorDialog("Error Loading Details", err).footer.append($('<button>Reload</button>').attr({
+                type: 'button',
+                class: "btn btn-primary",
+            }).on('click', function () {
+                window.location.reload();
+            }));
+            return;
+        }
+    };
 
     const stepCollection = [];
 
@@ -98,35 +194,7 @@ require([
             }
         }));
     }
-    stackOption.change(function () {
-        const stackID = stackOption.attr('value');
-        if (!stackID) return;
-        endpoint.get('stack/' + stackID, {}, async function (err, response) {
-            if (err) {
-                Utils.showErrorDialog("Error loading Stack details", err).footer.append($('<button>Reload</button>').attr({
-                    type: 'button',
-                    class: "btn btn-primary",
-                }).on('click', function () {
-                    window.location.reload();
-                }));
-                return;
-            }
-            const stack = await Utils.getResponseContent(response);
-            const deploymentType = stack["deployment_type"];
-            if (deploymentType == "standalone") {
-                $("splunk-control-group.distributed").hide();
-                $("splunk-control-group.standalone").show();
-            } else if (deploymentType == "distributed") {
-                $("splunk-control-group.standalone").hide();
-                $("splunk-control-group.distributed").show();
-            } else {
-                $("splunk-control-group.standalone").hide();
-                $("splunk-control-group.distributed").hide();
-                console.warn("unexpected deployment type: " + deploymentType);
-            }
-        });
-    });
-    stackOption.change();
+    stackOption.change(appOrStackChanged);
 
     const appOption = $(".option[name='app']");
     if (defaultTokens.attributes.name && defaultTokens.attributes.version) {
@@ -154,58 +222,9 @@ require([
             }
         }));
     }
+    appOption.change(appOrStackChanged);
 
-    appOption.change(function () {
-        const app = appOption.attr('value');
-        if (!app) return;
-        console.log(app);
-        const comps = app.split(":")
-        const appName = comps[0];
-        const appVersion = comps[1];
-        const path = 'app_config/' + encodeURIComponent(appName) + "/" + encodeURIComponent(appVersion);
-        endpoint.get(path, {}, function (err, response) {
-            if (err) {
-                Utils.showErrorDialog("Error loading app contents", err).footer.append($('<button>Retry</button>').attr({
-                    type: 'button',
-                    class: "btn btn-primary",
-                }).on('click', function () {
-                    window.location.reload();
-                }));
-                return;
-            }
-
-            const defaultConfigTextArea = $('#default-config-content textarea');
-            defaultConfigTextArea.attr("readonly", "readonly");
-            const confNames = Object.keys(response.data).sort();
-            $('#default-config-explorer').jstree({
-                core: {
-                    'multiple': false,
-                    themes: {
-                        dots: false,
-                    },
-                    data: confNames.map(function (name) {
-                        return {
-                            text: name,
-                            icon: "jstree-file",
-                            state: {
-                                selected: name == confNames[0],
-                            }
-                        }
-                    }),
-                }
-            }).on('changed.jstree', function (e, data) {
-                if (data.selected.length == 0) {
-                    defaultConfigTextArea.val("");
-                } else {
-                    const node = data.instance.get_node(data.selected[0]);
-                    const confName = node.text;
-                    const text = response.data[confName];
-                    defaultConfigTextArea.val(text);
-                }
-            });
-        });
-    });
-    appOption.change();
+    appOrStackChanged()
 
     const customConfig = {};
     const customConfigTextArea = $('#custom-config-content textarea');
@@ -296,23 +315,27 @@ require([
         label: "Target",
         validate: function (selectedModel, isSteppingNext) {
             var promise = $.Deferred();
-            const deployToSearchHeads = $("#deploy_to_search_heads").is(':checked');
-            const deployToIndexers = $("#deploy_to_indexers").is(':checked');
-            const deployToDeployer = $("#deploy_to_deployer").is(':checked');
-            const deployToClusterMaster = $("#deploy_to_cluster_master").is(':checked');
-            const deployToStandalone = $("#deploy_to_standalone").is(':checked');
-            const deployToForwarders = $("#deploy_to_forwarders").is(':checked');
-            if (deployToSearchHeads ||
-                deployToIndexers ||
-                deployToDeployer ||
-                deployToClusterMaster ||
-                deployToStandalone ||
-                deployToForwarders) {
+            if (!isSteppingNext) {
                 promise.resolve();
-            } else {
-                Utils.showErrorDialog("Select Deployment Target", "Select the target Splunk roles to deploy the app to.", true);
-                promise.reject();
+                return promise;
             }
+            const deploymentType = stack["deployment_type"];
+            const targetLabels = [];
+            $(".deployment-targets ." + deploymentType + " input[type=\"checkbox\"]").each(function () {
+                const checkbox = $(this);
+                if (checkbox.is(":checked")) {
+                    const targetID = checkbox.attr("id");
+                    const targetLabel = $(`label[for="${targetID}"]`).text();
+                    targetLabels.push(targetLabel);
+                }
+            });
+            if (targetLabels.length > 0) {
+                $("#summary-selected-target").text(targetLabels.join(", "));
+                promise.resolve();
+                return promise;
+            }
+            Utils.showErrorDialog("Select Deployment Target", "Select the target Splunk roles to deploy the app to.", true);
+            promise.reject();
             return promise;
         }
     }));
@@ -326,26 +349,6 @@ require([
             $("#summary-custom-config").text(Object.keys(customConfig).join(", "));
             $("#summary-selected-app").text(appOption.attr("value"));
             $("#summary-selected-stack").text(stackOption.attr("value"));
-            const targets = [];
-            if ($("#deploy_to_search_heads").is(':checked')) {
-                targets.push("Search Heads");
-            }
-            if ($("#deploy_to_indexers").is(':checked')) {
-                targets.push("Indexers");
-            }
-            if ($("#deploy_to_deployer").is(':checked')) {
-                targets.push("Deployer");
-            }
-            if ($("#deploy_to_cluster_master").is(':checked')) {
-                targets.push("Cluster Master");
-            }
-            if ($("#deploy_to_standalone").is(':checked')) {
-                targets.push("Standalone Instance");
-            }
-            if ($("#deploy_to_forwarders").is(':checked')) {
-                targets.push("Forwarders");
-            }
-            $("#summary-selected-target").text(targets.join(", "));
             return promise;
         }
     }));
@@ -381,16 +384,20 @@ require([
 
     $('#step-control-wizard').append(stepWizard.render().el);
 
-    if (defaultTokens.attributes.stack && defaultTokens.attributes.name) {
-        $("#update-button").show().click(async function () {
-            const options = {
-                deploy_to_search_heads: $("#deploy_to_search_heads").is(':checked'),
-                deploy_to_indexers: $("#deploy_to_indexers").is(':checked'),
-                deploy_to_deployer: $("#deploy_to_deployer").is(':checked'),
-                deploy_to_cluster_master: $("#deploy_to_cluster_master").is(':checked'),
-                deploy_to_standalone: $("#deploy_to_standalone").is(':checked'),
-                deploy_to_forwarders: $("#deploy_to_forwarders").is(':checked'),
-            };
+    $("#update-button").show().click(async function () {
+        const deploymentType = stack["deployment_type"];
+        const deployToNames = [];
+        $(".deployment-targets ." + deploymentType + " input[type=\"checkbox\"]").each(function () {
+            const checkbox = $(this);
+            if (checkbox.is(":checked")) {
+                const targetName = checkbox.attr("name");
+                deployToNames.push(targetName);
+            }
+        });
+        const options = {
+            deploy_to: deployToNames.join(","),
+        };
+        if (defaultTokens.attributes.stack && defaultTokens.attributes.name) {
             try {
                 const progressIndicator = Utils.newLoadingIndicator({
                     title: "Updating App ...",
@@ -407,24 +414,14 @@ require([
             catch (err) {
                 await Utils.showErrorDialog(null, err, true).wait();
             }
-        });
-    }
-    else {
-        $("#deploy-button").show().click(async function () {
+        }
+        else {
             const stackID = stackOption.attr("value");
             const appComps = appOption.attr("value").split(":")
             const appName = appComps[0];
             const appVersion = appComps[1];
-            const options = {
-                app_name: appName,
-                app_version: appVersion,
-                deploy_to_search_heads: $("#deploy_to_search_heads").is(':checked'),
-                deploy_to_indexers: $("#deploy_to_indexers").is(':checked'),
-                deploy_to_deployer: $("#deploy_to_deployer").is(':checked'),
-                deploy_to_cluster_master: $("#deploy_to_cluster_master").is(':checked'),
-                deploy_to_standalone: $("#deploy_to_standalone").is(':checked'),
-                deploy_to_forwarders: $("#deploy_to_forwarders").is(':checked'),
-            };
+            options["app_name"] = appName;
+            options["app_version"] = appVersion;
             Object.keys(customConfig).forEach(function (confName) {
                 const nameWithoutExtension = confName.split('.')[0];
                 options["conf_" + nameWithoutExtension] = customConfig[confName];
@@ -452,6 +449,6 @@ require([
             catch (err) {
                 await Utils.showErrorDialog(null, err, true).wait();
             }
-        });
-    }
+        }
+    });
 });

@@ -179,9 +179,9 @@ def exec_in_pod(core_api, pod, namespace, stdin, command):
     while resp.is_open():
         resp.update(timeout=1)
         #if resp.peek_stdout():
-        #    logging.debug("STDOUT: %s" % resp.read_stdout())
+        #    logging.warn("STDOUT: %s" % resp.read_stdout())
         #if resp.peek_stderr():
-        #    logging.debug("STDERR: %s" % resp.read_stderr())
+        #    logging.warn("STDERR: %s" % resp.read_stderr())
         if commands:
             c = commands.pop(0)
             # https://stackoverflow.com/questions/54108278/kubectl-cp-in-kubernetes-python-client

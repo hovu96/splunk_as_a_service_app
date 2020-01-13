@@ -13,7 +13,6 @@ require([
     mvc,
     _
 ) {
-    console.log("test");
     var endpoint = Utils.createRestEndpoint();
     const tokens = mvc.Components.getInstance("submitted");
     const stackID = tokens.attributes.id;

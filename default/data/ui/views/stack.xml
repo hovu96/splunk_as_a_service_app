@@ -113,12 +113,6 @@
           <query>| rest splunk_server=local services/saas/stack_apps/$id$ 
 | fields - splunk_server 
 | rename app_* as * 
-| eval deploy_to = null() 
-| foreach deploy_to_* 
-    [ eval role_name = if(&lt;&lt;FIELD&gt;&gt;==1,"&lt;&lt;MATCHSTR&gt;&gt;",null()) 
-    | eval deploy_to = mvappend(deploy_to,role_name) 
-    | fields - role_name] 
-| fields - deploy_to_* 
 | table name version *</query>
           <earliest>$earliest$</earliest>
           <latest>$latest$</latest>

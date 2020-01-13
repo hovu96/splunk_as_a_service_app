@@ -124,18 +124,8 @@ class UserApp(DeployableApp):
     archive = None
 
     def __init__(self, splunk, stack_app):
-        roles = []
-        if stack_app["deploy_to_search_heads"]:
-            roles.append(services.search_head_role)
-        if stack_app["deploy_to_indexers"]:
-            roles.append(services.indexer_role)
-        if stack_app["deploy_to_deployer"]:
-            roles.append(services.deployer_role)
-        if stack_app["deploy_to_cluster_master"]:
-            roles.append(services.cluster_master_role)
-        if stack_app["deploy_to_standalone"]:
-            roles.append(services.standalone_role)
         self.splunk = splunk
+        roles = apps.parse_deploy_to(stack_app["deploy_to"])
         DeployableApp.__init__(self,
                                name=stack_app["app_name"],
                                version=stack_app["app_version"],
@@ -460,15 +450,18 @@ def render_saas_app_data(path, app):
         os.remove(readme_path)
     if not os.path.isdir(readme_path):
         os.makedirs(readme_path)
-    app_conf_spec_path = os.path.join(readme_path, "app.conf.spec")
-    conf = ConfigParser()
-    if os.path.exists(app_conf_spec_path):
-        conf.read_file(app_conf_spec_path)
-    if not conf.has_section("install"):
-        conf.add_section("install")
-    conf.set("install", "saas_managed", "<boolean>")
-    with open(app_conf_spec_path, "w") as dest_file:
-        conf.write(dest_file)
+    try:
+        app_conf_spec_path = os.path.join(readme_path, "app.conf.spec")
+        conf = ConfigParser()
+        if os.path.exists(app_conf_spec_path):
+            conf.read_file(app_conf_spec_path)
+        if not conf.has_section("install"):
+            conf.add_section("install")
+        conf.set("install", "saas_managed", "<boolean>")
+        with open(app_conf_spec_path, "w") as dest_file:
+            conf.write(dest_file)
+    except Exception as e:
+        logging.warning("error updating app.conf.spec: %s" % e)
 
 
 def install_as_local_app(splunk, kubernetes, stack_id, pod, app):
