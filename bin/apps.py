@@ -146,7 +146,7 @@ def add_app(splunk, path):
         "title": app_title,
         "chunks": chunk_count,
         "distributed_deploy_to": format_deploy_to(target_roles),
-        #"standalone_deploy_to": "",
+        # "standalone_deploy_to": "",
     })
 
     return app_name, app_version
@@ -265,29 +265,40 @@ def remove_app(splunk, app_name, app_version):
     remove_chunks(splunk, app_name, app_version)
 
 
+def get_app_chunk_collection(splunk):
+    return splunk.kvstore["app_chunks"].data
+
+
+def get_app_chunk_id(app_name, app_version, chunk_index):
+    return "app-%s_version-%s_index-%s" % (app_name, app_version, chunk_index)
+
+
 def add_chunks(splunk, path, app_name, app_version):
     stanza_name = create_stanza_name(app_name, app_version)
-    chunk_collection = splunk.kvstore["app_chunks"].data
-    CHUNK_SIZE = 1024 * 100
-    chunk_index = 0
+    chunk_collection = get_app_chunk_collection(splunk)
+    CHUNK_SIZE = 1024 * 1000
+    chunk_count = 0
     with open(path, 'rb') as f:
         chunk = f.read(CHUNK_SIZE)
         while chunk:
             chunk_encoded = base64.encodestring(chunk)
             chunk_ascii = chunk_encoded.decode('ascii')
-            chunk_collection.insert(json.dumps({
-                "index": chunk_index,
+            chunk_id = get_app_chunk_id(app_name, app_version, chunk_count)
+            chunk_record = json.dumps({
+                "index": chunk_count,
                 "app": stanza_name,
                 "data": chunk_ascii,
-            }))
-            chunk_index += 1
+                "_key": chunk_id
+            })
+            chunk_collection.insert(chunk_record)
+            chunk_count += 1
             chunk = f.read(CHUNK_SIZE)
-    return chunk_index
+    return chunk_count
 
 
 def remove_chunks(splunk, app_name, app_version):
     stanza_name = create_stanza_name(app_name, app_version)
-    chunk_collection = splunk.kvstore["app_chunks"].data
+    chunk_collection = get_app_chunk_collection(splunk)
     chunk_collection.delete(query=json.dumps({
         "app": stanza_name,
     }))
@@ -296,24 +307,15 @@ def remove_chunks(splunk, app_name, app_version):
 def open_app(splunk, app_name, app_version):
     stanza_name = create_stanza_name(app_name, app_version)
     app_config = splunk.confs["apps"][stanza_name]
-    # raise Exception("app_name: %s" % app_name)
-    chunk_collection = splunk.kvstore["app_chunks"].data
-    chunks = chunk_collection.query(
-        query=json.dumps({
-            "app": stanza_name,
-        }),
-        sort="index:1",
-    )
+    chunk_count = int(app_config["chunks"])
+    chunk_collection = get_app_chunk_collection(splunk)
     app_file = io.BytesIO()
-    number_of_chunks_found = 0
-    for chunk in chunks:
+    for chunk_index in range(chunk_count):
+        chunk_id = get_app_chunk_id(app_name, app_version, chunk_index)
+        chunk = chunk_collection.query_by_id(chunk_id)
         data_encoded = chunk["data"].encode("ascii")
         data_decoded = base64.decodebytes(data_encoded)
         app_file.write(data_decoded)
-        number_of_chunks_found += 1
     app_file.seek(0)
-    if int(app_config["chunks"]) != number_of_chunks_found:
-        raise Exception("unexpected number of chunks (excpected %s, found %s)" % (
-            app_config["chunks"], number_of_chunks_found))
     # TODO validate of chunks
     return app_file
