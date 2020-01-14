@@ -360,7 +360,7 @@ def get_pod(splunk, kubernetes, stack_id, type_label):
 def is_sh_cluster_restart_in_progress(core_api, stack_id, stack_config):
     search_head_service = instances.create_client(
         core_api, stack_id, stack_config, services.search_head_role)
-    #logging.info("checking search head cluster status ...")
+    # logging.info("checking search head cluster status ...")
     response = search_head_service.get(
         "shcluster/status",
         output_mode="json"
@@ -409,7 +409,7 @@ def apply_cluster_bundle(core_api, stack_id, stack_config):
     try:
         service.post("cluster/master/control/default/apply",
                      ignore_identical_bundle=False)
-        #logging.info("cluster bundle updated")
+        # logging.info("cluster bundle updated")
     except splunklib.binding.HTTPError as e:
         if e.status == 404:
             logging.info("cluster bundle did not change")
@@ -530,8 +530,17 @@ def tar_directory_to_pod(core_api, pod, namespace, local_path, remote_path):
                 arcname="/app/"
             )
         tar_buffer.seek(0)
-        exec_in_pod(core_api, pod, namespace, tar_buffer,
-                    ['tee', remote_path])
+        copy_into_pod(core_api, pod, namespace, tar_buffer, remote_path)
+
+
+def copy_into_pod(core_api, pod, namespace, f, remote_path):
+    exec_in_pod(core_api, pod, namespace, None, ['rm', remote_path])
+    while True:
+        chunk = f.read(10000000)
+        if not chunk or len(chunk) == 0:
+            break
+        chunk_stream = io.BytesIO(chunk)
+        exec_in_pod(core_api, pod, namespace, chunk_stream, ['tee', '-a', remote_path])
 
 
 def copy_directory_to_pod(core_api, pod, namespace, local_path, remote_path):
@@ -544,8 +553,10 @@ def copy_directory_to_pod(core_api, pod, namespace, local_path, remote_path):
                 arcname=remote_path
             )
         tar_buffer.seek(0)
-        exec_in_pod(core_api, pod, namespace, tar_buffer,
-                    ['tar', 'xvf', '-', '-C', '/'])
+        tmp_path = "/tmp/file"
+        copy_into_pod(core_api, pod, namespace, tar_buffer, tmp_path)
+        exec_in_pod(core_api, pod, namespace, None, ['tar', 'xmf', tmp_path, '-C', '/'])
+        exec_in_pod(core_api, pod, namespace, None, ['rm', tmp_path])
 
 
 def exec_in_pod(core_api, pod, namespace, stdin, command):
@@ -556,22 +567,24 @@ def exec_in_pod(core_api, pod, namespace, stdin, command):
         command=command,
         stderr=True,
         stdin=True,
-        stdout=True,
+        stdout=False,
         tty=False,
         _preload_content=False
     )
-    commands = []
-    commands.append(stdin.read())
-    while resp.is_open():
-        resp.update(timeout=1)
-        # if resp.peek_stdout():
-        #    logging.warn("STDOUT: %s" % resp.read_stdout())
-        # if resp.peek_stderr():
-        #    logging.warn("STDERR: %s" % resp.read_stderr())
-        if commands:
-            c = commands.pop(0)
-            # https://stackoverflow.com/questions/54108278/kubectl-cp-in-kubernetes-python-client
-            resp.write_stdin(c)
-        else:
-            break
-    resp.close()
+
+    try:
+        while resp.is_open():
+            resp.update(timeout=1)
+            # if resp.peek_stdout():
+            #    logging.warn("STDOUT: %s" % resp.read_stdout())
+            # if resp.peek_stderr():
+            #    logging.warn("STDERR: %s" % resp.read_stderr())
+            if stdin:
+                # https://stackoverflow.com/questions/54108278/kubectl-cp-in-kubernetes-python-client
+                data = stdin.read()
+                resp.write_stdin(data)
+                stdin = None
+            else:
+                break
+    finally:
+        resp.close()
