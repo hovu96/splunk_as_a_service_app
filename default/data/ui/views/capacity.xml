@@ -1,27 +1,5 @@
 <form>
   <label>Capacity</label>
-  <fieldset submitButton="false">
-    <input type="time" searchWhenChanged="true">
-      <label>Time</label>
-      <default>
-        <earliest>-24h@h</earliest>
-        <latest>now</latest>
-      </default>
-    </input>
-    <input type="dropdown" token="cluster" searchWhenChanged="true">
-      <label>Cluster</label>
-      <choice value="*">All</choice>
-      <default>*</default>
-      <initialValue>*</initialValue>
-      <fieldForLabel>name</fieldForLabel>
-      <fieldForValue>name</fieldForValue>
-      <search>
-        <query>| rest splunk_server=local services/saas/clusters | table name</query>
-        <earliest>-24h@h</earliest>
-        <latest>now</latest>
-      </search>
-    </input>
-  </fieldset>
   <search id="all_usage">
     <query>| mstats avg(_value) as usage WHERE metric_name="kube.pod.cpu.usage_rate" AND "index"="em_metrics" BY pod-name span=auto
 | append [
@@ -54,6 +32,28 @@
     <latest>$latest$</latest>
     <sampleRatio>1</sampleRatio>
   </search>
+  <fieldset submitButton="false">
+    <input type="time" searchWhenChanged="true">
+      <label>Time</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="cluster" searchWhenChanged="true">
+      <label>Cluster</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>| rest splunk_server=local services/saas/clusters | table name</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+  </fieldset>
   <row>
     <panel>
       <chart>
@@ -87,13 +87,21 @@
   <row>
     <panel>
       <table>
-        <title>Top Utilisation by Stack Role Resource</title>
+        <title>Top Utilisation by Stack/Role/Resource</title>
         <search base="all_usage">
           <query>stats sparkline(avg(usage_pct)) as sparkline latest(usage_pct) as usage_pct by resource role stack
 | sort - usage_pct
 | head 50 | table stack role resource *</query>
         </search>
         <option name="drilldown">row</option>
+        <format type="number" field="usage_pct">
+          <option name="precision">0</option>
+          <option name="unit">%</option>
+        </format>
+        <format type="color" field="usage_pct">
+          <colorPalette type="minMidMax" maxColor="#FF0000" midColor="#F8BE34" minColor="#53A051"></colorPalette>
+          <scale type="minMidMax" maxValue="100" midValue="85" minValue="70"></scale>
+        </format>
       </table>
     </panel>
   </row>
