@@ -10,7 +10,6 @@ import fix_path
 from base_handler import BaseRestHandler
 import stacks
 from kubernetes import client as kubernetes
-import kubernetes_utils
 import base64
 import clusters
 
