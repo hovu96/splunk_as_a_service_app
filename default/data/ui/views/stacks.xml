@@ -1,26 +1,51 @@
 <form script="stacks.js">
   <label>Stacks</label>
-  <description>List of all Splunk stacks managed by this app.</description>
   <fieldset submitButton="false">
     <input type="dropdown" token="cluster" searchWhenChanged="true">
       <label>Cluster</label>
-      <choice value="*">All</choice>
+      <choice value="*">No Filter</choice>
       <default>*</default>
       <initialValue>*</initialValue>
-      <fieldForLabel>name</fieldForLabel>
+      <fieldForLabel>label</fieldForLabel>
       <fieldForValue>name</fieldForValue>
       <search>
-        <query>| rest splunk_server=local services/saas/clusters | table name</query>
+        <query>| rest splunk_server=local services/saas/clusters | table name | eval label="Only Stack in "+name</query>
         <earliest>-24h@h</earliest>
         <latest>now</latest>
       </search>
+    </input>
+    <input type="dropdown" token="phase" searchWhenChanged="true">
+      <label>Phase</label>
+      <choice value="living">Currently Running</choice>
+      <choice value="deleted">Already Deleted</choice>
+      <default>living</default>
+      <initialValue>living</initialValue>
+      <change>
+        <condition value="deleted">
+          <set token="deleted_phase">1</set>
+        </condition>
+        <condition value="living">
+          <unset token="deleted_phase" />
+        </condition>
+      </change>
+    </input>
+    <input type="time" token="deleted_time" searchWhenChanged="true" depends="$deleted_phase$">
+      <label>Deleted in Period</label>
+      <default>
+        <earliest>-90d@d</earliest>
+        <latest>now</latest>
+      </default>
+      <change>
+        <eval token="deleted_after">if(isnum('earliest'),'earliest',relative_time(now(),'earliest')</eval>
+        <eval token="deleted_before">if(isnum('latest'),'latest',relative_time(now(),'latest')</eval>
+      </change>
     </input>
   </fieldset>
   <row>
     <panel>
       <table>
         <search>
-          <query>| rest splunk_server=local services/saas/stacks | table id title status cluster | search cluster="$cluster$"</query>
+          <query>| rest splunk_server=local services/saas/stacks phase=$phase$ cluster="$cluster$" deleted_after="$deleted_after$" deleted_before="$deleted_before$" | table id title status cluster</query>
           <refresh>20s</refresh>
           <refreshType>delay</refreshType>
         </search>

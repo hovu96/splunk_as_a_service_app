@@ -48,6 +48,7 @@ def up(splunk, stack_id):
 def down(splunk, stack_id, force=False):
     stacks.update_config(splunk, stack_id, {
         "status": stacks.DELETING,
+        "deleted_time": time.time(),
     })
     stack_config = stacks.get_stack_config(splunk, stack_id)
     cluster_name = stack_config["cluster"]

@@ -21,6 +21,10 @@ DELETING = "Deleting"
 DELETED = "Deleted"
 
 
+def get_stacks(splunk):
+    return splunk.kvstore["stacks"].data
+
+
 def stack_exists(splunk, stack_id):
     try:
         get_stack_config(splunk, stack_id)
@@ -33,12 +37,12 @@ def stack_exists(splunk, stack_id):
 
 
 def get_stack_config(splunk, stack_id):
-    stacks = splunk.kvstore["stacks"].data
+    stacks = get_stacks(splunk)
     return stacks.query_by_id(stack_id)
 
 
-def update_config(service, stack_id, updates):
-    stacks = service.kvstore["stacks"].data
+def update_config(splunk, stack_id, updates):
+    stacks = get_stacks(splunk)
     config = stacks.query_by_id(stack_id)
     config.update(updates)
     stacks.update(stack_id, json.dumps(config))
@@ -46,22 +50,38 @@ def update_config(service, stack_id, updates):
 
 class StacksHandler(BaseRestHandler):
     def handle_GET(self):
-        query = self.stacks.query(query=json.dumps({
-            "status": {"$ne": DELETED}
-        }))
+        stacks = get_stacks(self.splunk)
+        request_query = self.request['query']
+        phase = request_query.get("phase", "living")
+        cluster = request_query.get("cluster", "*")
+        deleted_after = int(request_query.get("deleted_after", time.time() - 60 * 60 * 24 * 30))
+        deleted_before = int(request_query.get("deleted_before", time.time()))
+
+        query = {}
+        if phase == "living":
+            query["status"] = {"$ne": DELETED}
+        elif phase == "deleted":
+            query["status"] = DELETED
+            query["$and"] = [
+                {"deleted_time": {"$gt": deleted_after}},
+                {"deleted_time": {"$lt": deleted_before}}
+            ]
+        if cluster and cluster != "*":
+            query["cluster"] = cluster
+        query = stacks.query(query=json.dumps(query))
 
         def map(d):
             return {
                 "id": d["_key"],
                 "status": d["status"],
-                "title": d["title"] if "title" in d else "",
+                "title": d["deleted_time"],  # d["title"] if "title" in d else "",
                 "cluster": d["cluster"],
             }
-        self.send_entries([map(d) for d in query])
+        self.send_entries([map(d) for d in query if "deleted_time" in d])
 
     def handle_POST(self):
-
-        defaults = self.service.confs["defaults"]["general"]
+        stacks = get_stacks(self.splunk)
+        defaults = self.splunk.confs["defaults"]["general"]
 
         # create stack record
         stack_record = {
@@ -122,8 +142,7 @@ class StacksHandler(BaseRestHandler):
             stack_record["memory_per_instance"] = "4Gi"
 
         # save stack
-        stack_id = self.stacks.insert(
-            json.dumps(stack_record))["_key"]
+        stack_id = stacks.insert(json.dumps(stack_record))["_key"]
 
         # start operator
         stack_operation.start(self.service, stack_id)
@@ -136,9 +155,10 @@ class StacksHandler(BaseRestHandler):
 
 class StackHandler(BaseRestHandler):
     def handle_GET(self):
+        stacks = get_stacks(self.splunk)
         path = self.request['path']
         _, stack_id = os.path.split(path)
-        stack = self.stacks.query_by_id(stack_id)
+        stack = stacks.query_by_id(stack_id)
 
         result = {
             "status": stack["status"],

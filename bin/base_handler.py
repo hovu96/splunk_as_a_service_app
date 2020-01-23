@@ -66,7 +66,3 @@ class BaseRestHandler(splunk.rest.BaseRestHandler):
     @property
     def app(self):
         return __file__.split(os.sep)[-3]
-
-    @property
-    def stacks(self):
-        return self.service.kvstore["stacks"].data
