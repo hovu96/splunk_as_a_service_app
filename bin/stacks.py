@@ -74,7 +74,7 @@ class StacksHandler(BaseRestHandler):
             return {
                 "id": d["_key"],
                 "status": d["status"],
-                "title": d["deleted_time"],  # d["title"] if "title" in d else "",
+                "title": d["title"] if "title" in d else "",
                 "cluster": d["cluster"],
             }
         self.send_entries([map(d) for d in query if "deleted_time" in d])
