@@ -7,9 +7,10 @@ require([
     'splunkjs/mvc',
     'views/shared/controls/StepWizardControl',
     "/static/app/" + appName + "/utils.js",
+    "/static/app/" + appName + "/name_generator.js",
     'splunkjs/mvc/simplexml/ready!',
 ],
-    function ($, _, Backbone, mvc, StepWizardControl, Utils) {
+    function ($, _, Backbone, mvc, StepWizardControl, Utils, NameGenerator) {
         var endpoint = Utils.createRestEndpoint();
 
         const steps = new Backbone.Collection([
@@ -22,6 +23,17 @@ require([
             }), new Backbone.Model({
                 value: "naming",
                 label: "Naming",
+                initialize: function () {
+                    const textBox = $("#stack-name-text-input");
+                    const capitalize = function (s) {
+                        return s.replace(/(?:^|\s)\S/g, function (a) { return a.toUpperCase(); });
+                    };
+                    const stackName = capitalize(NameGenerator.run(" "));
+                    if (textBox.attr("value") == "") {
+                        textBox.attr("value", stackName);
+                    }
+                    $("input", textBox).focus();
+                }
             }), new Backbone.Model({
                 value: "resources",
                 label: "Resources",
@@ -100,17 +112,21 @@ require([
         const wizardModel = new Backbone.Model({
             currentStep: "",
         });
-        wizardModel.on('change:currentStep', function (model, currentStep) {
+        wizardModel.on('change:currentStep', function (model, currentStepName) {
             steps.each(function (step) {
                 const tokenName = "step-" + step.get("value");
                 tokens.set(tokenName, undefined);
             });
-            var step = steps.find(function (step) {
-                return step.get('value') == currentStep;
-            });
-            const tokenName = "step-" + currentStep;
+            const tokenName = "step-" + currentStepName;
             tokens.set(tokenName, true);
             setDeploymentOptionsAsTokens();
+            const currentStepModel = steps.find(function (step) {
+                return step.get("value") == currentStepName;
+            });
+            const initializeFunc = currentStepModel.get("initialize");
+            if (initializeFunc) {
+                initializeFunc();
+            }
         }.bind(this));
         wizardModel.set("currentStep", "cluster");
 

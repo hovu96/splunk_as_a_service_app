@@ -111,7 +111,7 @@
             <html>
                 <div class="deployment-options form-horizontal">
                     <splunk-control-group label="Title" help="">	
-                        <splunk-text-input class="option" name="title" value="">	
+                        <splunk-text-input class="option" name="title" value="" id="stack-name-text-input">	
                         </splunk-text-input>
                     </splunk-control-group>
                 </div>
