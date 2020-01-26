@@ -3,7 +3,7 @@
     <description>Specify how Splunk should be deployed.</description>
     <row id="wizard_row">
         <html>
-            <div id="step-control-wizard"></div>
+            <div id="create-stack-wizard"></div>
         </html>
     </row>
     <row depends="$step-cluster$">
@@ -199,11 +199,11 @@
                 <table class="table-bordered table table-striped" style="min-width: 10%;">
                     <tr>
                         <td>Cluster</td>
-                        <td>$option_cluster$</td>
+                        <td id="summary-cluster"></td>
                     </tr>
                     <tr>
-                        <td>Memory per Instance</td>
-                        <td>$option_memory_per_instance$</td>
+                        <td>Topology</td>
+                        <td id="summary-topology"></td>
                     </tr>
                 </table>
             </html>

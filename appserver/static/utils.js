@@ -11,6 +11,7 @@ define([
         }
 
         return {
+            capitalize: capitalize,
             parseError: function (err) {
                 var errorMessage;
 
