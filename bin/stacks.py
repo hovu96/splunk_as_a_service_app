@@ -77,7 +77,7 @@ class StacksHandler(BaseRestHandler):
                 "title": d["title"] if "title" in d else "",
                 "cluster": d["cluster"],
             }
-        self.send_entries([map(d) for d in query if "deleted_time" in d])
+        self.send_entries([map(d) for d in query])
 
     def handle_POST(self):
         stacks = get_stacks(self.splunk)
