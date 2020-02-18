@@ -22,7 +22,7 @@ This is an early prototype and should not be used in a production environment.
 
 - Splunk Enterprise 8.0+ (to run this app)
 - One or more Kubernetes Clusters 1.12+ (being the deployment targets)
-- [Splunk Operator for Kubernetes](https://github.com/splunk/splunk-operator) 0.0.6
+- [Splunk Operator for Kubernetes](https://github.com/splunk/splunk-operator) v1alpha2
 - [Splunk Connect for Kubernetes](https://github.com/splunk/splunk-connect-for-kubernetes)
 
 ## Architecture
