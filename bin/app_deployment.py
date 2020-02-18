@@ -350,7 +350,7 @@ def get_pod(splunk, kubernetes, stack_id, type_label):
     stack_config = stacks.get_stack_config(splunk, stack_id)
     pods = core_api.list_namespaced_pod(
         namespace=stack_config["namespace"],
-        label_selector="app=splunk,for=%s,type=%s" % (stack_id, type_label),
+        label_selector="app=saas,stack_id=%s,app.kubernetes.io/name=%s" % (stack_id, type_label),
     ).items
     if len(pods) != 1:
         raise Exception("expected 1 %s pod (got %d)" % (type_label, len(pods)))
@@ -483,7 +483,12 @@ def install_as_local_app(splunk, kubernetes, stack_id, pod, app):
         )
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
-    service = instances.create_client(core_api, stack_id, stack_config, pod.metadata.labels["type"])
+    service = instances.create_client(
+        core_api,
+        stack_id,
+        stack_config,
+        pod.metadata.labels["app.kubernetes.io/name"]
+    )
     try:
         service.post(
             "apps/local",

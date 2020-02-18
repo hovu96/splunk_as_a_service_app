@@ -52,17 +52,13 @@ def down(splunk, stack_id, force=False):
     })
     stack_config = stacks.get_stack_config(splunk, stack_id)
     cluster_name = stack_config["cluster"]
+    cluster_config = clusters.get_cluster_config(splunk, cluster_name)
     api_client = clusters.create_client(splunk, cluster_name)
     core_api = kuberneteslib.CoreV1Api(api_client)
     custom_objects_api = kuberneteslib.CustomObjectsApi(api_client)
     try:
-        services.delete_all_load_balancers(
-            core_api, stack_id, stack_config["namespace"])
-        if stack_deployment.get_splunk(custom_objects_api, stack_id, stack_config):
-            stack_deployment.delete_splunk(
-                custom_objects_api, stack_id, stack_config)
-        if stack_deployment.license_exists(core_api, stack_id, stack_config):
-            stack_deployment.delete_license(core_api, stack_id, stack_config)
+        services.delete_all_load_balancers(core_api, stack_id, stack_config["namespace"])
+        stack_deployment.delete_objects(api_client, stack_id, stack_config, cluster_config)
     except:
         if not force:
             raise

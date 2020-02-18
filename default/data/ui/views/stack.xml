@@ -49,7 +49,7 @@
               Enter the new Stack title:
             </p>
             <p>
-              <input type="text" name="title" value=""></input>
+              <input type="text" name="title" value=""/>
             </p>
           </div>
           <div class="footer">
@@ -63,15 +63,20 @@
       <table>
         <title>Endpoints</title>
         <search>
-          <query>| rest splunk_server=local services/saas/stack/$id$ | fields *_endpoint | rename *_endpoint as * | transpose 0 column_name="type" | rename "row 1" as url</query>
+          <query>| rest splunk_server=local services/saas/stack/$id$ 
+| fields *_endpoint *_password 
+| foreach *_* 
+    [ eval &lt;&lt;MATCHSEG1&gt;&gt; = mvappend(&lt;&lt;MATCHSEG1&gt;&gt;,&lt;&lt;FIELD&gt;&gt;) ]
+| fields - *_endpoint *_password
+| transpose 0 column_name="name" | rename "row 1" as data
+| eval url = mvindex(data,0,mvcount(data)-2)
+| eval password = mvindex(data,mvcount(data)-1)
+| table name url password</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
           <refresh>10s</refresh>
           <refreshType>delay</refreshType>
         </search>
-        <drilldown>
-          <link target="_blank">
-            <![CDATA[ $row.url|n$ ]]>
-          </link>
-        </drilldown>
         <option name="count">20</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">row</option>
@@ -80,6 +85,11 @@
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
+        <drilldown>
+          <link target="_blank">
+            <![CDATA[ $row.url|n$ ]]>
+          </link>
+        </drilldown>
       </table>
     </panel>
   </row>
@@ -88,7 +98,7 @@
       <table>
         <title>Instances</title>
         <search>
-          <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.for"="$id$" | dedup metadata.name | rex field=metadata.name ".*-(?&lt;id&gt;.+)$$" | rename metadata.labels.type as role status.phase as phase | eval last_seen=floor(((now()-_time)/60)%60) | eval last_seen=if(last_seen&gt;0,last_seen." mins ago","just now") | table role id phase last_seen | sort role id</query>
+          <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"="saas" "metadata.labels.stack_id"="$id$" | dedup metadata.name | rex field=metadata.name ".*-(?&lt;id&gt;.+)$" | rename metadata.labels.app.kubernetes.io/name as role status.phase as phase | eval last_seen=floor(((now()-_time)/60)%60) | eval last_seen=if(last_seen&gt;0,last_seen." mins ago","just now") | table role id phase last_seen | sort role id</query>
           <earliest>-15m</earliest>
           <latest>now</latest>
           <refresh>10s</refresh>
@@ -98,6 +108,7 @@
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>
         <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>

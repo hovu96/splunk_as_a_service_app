@@ -43,7 +43,7 @@
       <title>Instances</title>
       <single>
         <search>
-          <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"=splunk | timechart dc(metadata.name) as count</query>
+          <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"=saas | timechart dc(metadata.name) as count</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>

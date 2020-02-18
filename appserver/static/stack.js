@@ -128,53 +128,6 @@ require([
     });
     $(".dashboard-view-controls").append(deleteButton);
 
-    const passwordButton = $('<button class="btn action-button">Credentials</button>');
-    passwordButton.click(async function () {
-        const progressIndicator = Utils.newLoadingIndicator({
-            title: "Retrieving Credentials...",
-            subtitle: "Please wait.",
-        });
-        var credentials;
-        try {
-            const response = await endpoint.getAsync('credentials/' + stackID);
-            credentials = await Utils.getResponseContent(response);
-            progressIndicator.hide();
-        }
-        catch (err) {
-            progressIndicator.hide();
-            await Utils.showErrorDialog(null, err, true).wait();
-            return;
-        }
-
-        const modal = new Modal("show-password", {
-            title: 'Access Credentials',
-            backdrop: 'static',
-            destroyOnHide: true,
-            type: 'normal',
-        });
-        const table = $(`
-            <table class="credentials">
-                <tr>
-                    <td class="name">Username:</td>
-                    <td class="value">admin</td>
-                </tr>
-                <tr>
-                    <td class="name">Password:</td>
-                    <td class="value admin_password"></td>
-                </tr>
-            </table>
-            `);
-        $(".admin_password", table).text(credentials.admin)
-        modal.body.append(table);
-        modal.footer.append($('<button>Close</button>').attr({
-            type: 'button',
-            'data-dismiss': 'modal',
-            class: "btn btn-primary",
-        }));
-        modal.show();
-    });
-    $(".dashboard-view-controls").append(passwordButton);
-
     $("#deploy-app-button").click(function () {
         window.location.href = "app_deploy?stack=" + stackID;
     });

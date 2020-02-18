@@ -14,6 +14,7 @@ import time
 import stack_operation
 import services
 import clusters
+import instances
 
 CREATING = "Creating"
 CREATED = "Created"
@@ -155,61 +156,72 @@ class StacksHandler(BaseRestHandler):
 
 class StackHandler(BaseRestHandler):
     def handle_GET(self):
-        stacks = get_stacks(self.splunk)
         path = self.request['path']
         _, stack_id = os.path.split(path)
-        stack = stacks.query_by_id(stack_id)
+        stack_config = get_stack_config(self.splunk, stack_id)
 
         result = {
-            "status": stack["status"],
-            "title": stack["title"] if "title" in stack else "",
-            "deployment_type": stack["deployment_type"],
-            "license_master_mode": stack["license_master_mode"],
-            "cluster": stack["cluster"],
-            "namespace": stack["namespace"],
+            "status": stack_config["status"],
+            "title": stack_config["title"] if "title" in stack_config else "",
+            "deployment_type": stack_config["deployment_type"],
+            "license_master_mode": stack_config["license_master_mode"],
+            "cluster": stack_config["cluster"],
+            "namespace": stack_config["namespace"],
         }
 
         api_client = clusters.create_client(
-            self.service, stack["cluster"])
+            self.service, stack_config["cluster"])
         from kubernetes import client as kubernetes
         core_api = kubernetes.CoreV1Api(api_client)
 
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.search_head_role, stack["namespace"])
+            core_api, stack_id, services.search_head_role, stack_config["namespace"])
         if hosts:
+            admin_password = instances.get_admin_password(core_api, stack_id, stack_config, services.search_head_role)
             result.update({
                 "search_head_endpoint": ["http://%s" % hostname for hostname in hosts],
+                "search_head_password": admin_password,
             })
-        if stack["license_master_mode"] == "local":
+        if stack_config["license_master_mode"] == "local":
             hosts = services.get_load_balancer_hosts(
-                core_api, stack_id, services.license_master_role, stack["namespace"])
+                core_api, stack_id, services.license_master_role, stack_config["namespace"])
             if hosts:
+                admin_password = instances.get_admin_password(core_api, stack_id, stack_config, services.license_master_role)
                 result.update({
                     "license_master_endpoint": ["http://%s" % hostname for hostname in hosts],
+                    "license_master_password": admin_password,
                 })
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.cluster_master_role, stack["namespace"])
+            core_api, stack_id, services.cluster_master_role, stack_config["namespace"])
         if hosts:
+            admin_password = instances.get_admin_password(core_api, stack_id, stack_config, services.cluster_master_role)
             result.update({
                 "cluster_master_endpoint": ["http://%s" % hostname for hostname in hosts],
+                "cluster_master_password": admin_password,
             })
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.deployer_role, stack["namespace"])
+            core_api, stack_id, services.deployer_role, stack_config["namespace"])
         if hosts:
+            admin_password = instances.get_admin_password(core_api, stack_id, stack_config, services.deployer_role)
             result.update({
                 "deployer_endpoint": ["http://%s" % hostname for hostname in hosts],
+                "deployer_password": admin_password,
             })
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.standalone_role, stack["namespace"])
+            core_api, stack_id, services.standalone_role, stack_config["namespace"])
         if hosts:
+            admin_password = instances.get_admin_password(core_api, stack_id, stack_config, services.standalone_role)
             result.update({
                 "standalone_endpoint": ["http://%s" % hostname for hostname in hosts],
+                "standalone_password": admin_password,
             })
         hosts = services.get_load_balancer_hosts(
-            core_api, stack_id, services.indexer_role, stack["namespace"])
+            core_api, stack_id, services.indexer_role, stack_config["namespace"])
         if hosts:
+            admin_password = instances.get_admin_password(core_api, stack_id, stack_config, services.indexer_role)
             result.update({
                 "indexer_endpoint": ["%s:9997" % hostname for hostname in hosts],
+                "indexer_password": admin_password,
             })
         self.send_result(result)
 

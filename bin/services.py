@@ -17,8 +17,6 @@ indexer_role = "indexer"
 cluster_master_role = "cluster-master"
 license_master_role = "license-master"
 
-load_balancer_kind = "load-balancer"
-
 
 def get(core_api, service_name, namespace):
     try:
@@ -28,17 +26,6 @@ def get(core_api, service_name, namespace):
         if e.status == 404:
             return None
         raise
-
-
-def wait_for(core_api, service_name, seconds, namespace):
-    service = None
-    t_end = time.time() + seconds
-    while time.time() < t_end:
-        service = get(core_api, service_name, namespace)
-        if service:
-            break
-        time.sleep(1)
-    return service
 
 
 def delete(core_api, service_name, namespace):
@@ -58,26 +45,26 @@ def create_load_balancers(core_api, stack_id, role, namespace):
     splunktcp = False
     tcp = False
     selector = {
-        "app": "splunk",
-        "for": stack_id,
+        "app": "saas",
+        "stack_id": stack_id,
     }
     if role == standalone_role:
-        selector["type"] = "standalone"
+        selector["app.kubernetes.io/name"] = "standalone"
         web = mgmt = splunktcp = tcp = True
     elif role == indexer_role:
-        selector["type"] = "indexer"
+        selector["app.kubernetes.io/name"] = "indexer"
         splunktcp = tcp = True
     elif role == cluster_master_role:
-        selector["type"] = "cluster-master"
+        selector["app.kubernetes.io/name"] = "cluster-master"
         web = mgmt = True
     elif role == deployer_role:
-        selector["type"] = "deployer"
+        selector["app.kubernetes.io/name"] = "deployer"
         web = mgmt = True
     elif role == license_master_role:
-        selector["type"] = "license-master"
+        selector["app.kubernetes.io/name"] = "license-master"
         web = mgmt = True
     elif role == search_head_role:
-        selector["type"] = "search-head"
+        selector["app.kubernetes.io/name"] = "search-head"
         web = mgmt = True
     else:
         raise Exception("unexpected role")
@@ -121,8 +108,8 @@ def create_load_balancers(core_api, stack_id, role, namespace):
         ).items
         existing_lbs = core_api.list_namespaced_service(
             namespace=namespace,
-            label_selector="for=%s,kind=%s,role=%s" % (
-                stack_id, load_balancer_kind, indexer_role),
+            label_selector="app=saas,stack_id=%s,role=%s" % (
+                stack_id, indexer_role),
         ).items
         lbs_to_delete = set([lb.metadata.name for lb in existing_lbs])
         for pod in pods:
@@ -142,8 +129,8 @@ def create_load_balancers(core_api, stack_id, role, namespace):
                             name=load_balancer_name,
                             namespace=namespace,
                             labels={
-                                "for": stack_id,
-                                "kind": load_balancer_kind,
+                                "app": "saas",
+                                "stack_id": stack_id,
                                 "role": role,
                                 "pod": pod.metadata.name,
                             },
@@ -171,8 +158,8 @@ def create_load_balancers(core_api, stack_id, role, namespace):
                         name=load_balancer_name,
                         namespace=namespace,
                         labels={
-                            "for": stack_id,
-                            "kind": load_balancer_kind,
+                            "app": "saas",
+                            "stack_id": stack_id,
                             "role": role,
                         },
                     ),
@@ -188,7 +175,7 @@ def create_load_balancers(core_api, stack_id, role, namespace):
 def delete_all_load_balancers(core_api, stack_id, namespace):
     load_balancers = core_api.list_namespaced_service(
         namespace=namespace,
-        label_selector="for=%s,kind=%s" % (stack_id, load_balancer_kind),
+        label_selector="app=saas,stack_id=%s" % (stack_id),
     ).items
     for lb in load_balancers:
         delete(core_api, lb.metadata.name, namespace)
@@ -198,8 +185,8 @@ def get_load_balancer_hosts(core_api, stack_id, role, namespace):
     result = []
     load_balancers = core_api.list_namespaced_service(
         namespace=namespace,
-        label_selector="for=%s,kind=%s,role=%s" % (
-            stack_id, load_balancer_kind, role),
+        label_selector="app=saas,stack_id=%s,role=%s" % (
+            stack_id, role),
     ).items
     for service in load_balancers:
         if not service.status:
@@ -214,3 +201,4 @@ def get_load_balancer_hosts(core_api, stack_id, role, namespace):
             if ingress.ip:
                 result.append(ingress.ip)
     return result
+

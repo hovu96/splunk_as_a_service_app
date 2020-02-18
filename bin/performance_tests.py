@@ -20,7 +20,7 @@ import time
 import clusters
 from kubernetes import client as kubernetes
 import services
-import credentials
+import instances
 
 TEST_PREPARING = "Preparing"
 TEST_RUNNING = "Running"
@@ -487,21 +487,21 @@ def run_cases(splunk, test_id, test):
                                 stack_config["deployment_type"])
             searches_per_day = int(case["searches_per_day"])
             logging.debug("searches_per_day=%s" %
-                         (searches_per_day))
+                          (searches_per_day))
             searches_per_second = searches_per_day / 24 / 60 / 60
             logging.debug("searches_per_second=%s" %
-                         (searches_per_second))
+                          (searches_per_second))
             max_searches_per_second_per_generator = 5
             logging.debug("max_searches_per_second_per_generator=%s" %
-                         (max_searches_per_second_per_generator))
+                          (max_searches_per_second_per_generator))
             number_of_search_generators = max(
                 int(searches_per_second / max_searches_per_second_per_generator) + 1, 1)
             logging.debug("number_of_search_generators=%s" %
-                         (number_of_search_generators))
+                          (number_of_search_generators))
             searches_per_second_per_generator = searches_per_second / \
                 number_of_search_generators
             logging.debug("searches_per_second_per_generator=%s" %
-                         (searches_per_second_per_generator))
+                          (searches_per_second_per_generator))
             search_template = case["search_template"]
             if searches_per_day > 0 and search_template:
                 deployment_name = "searchgen-%s" % (stack_id)
@@ -514,8 +514,12 @@ def run_cases(splunk, test_id, test):
                         raise
                     search_gen_deployment_already_exists = False
                 if not search_gen_deployment_already_exists:
-                    admin_password = credentials.get_admin_password(
-                        splunk, stack_id)
+                    admin_password = instances.get_admin_password(
+                        core_api,
+                        stack_id,
+                        stack_config,
+                        services.search_head_role
+                    )
                     apps_api.create_namespaced_deployment(
                         namespace=stack_config["namespace"],
                         body=kubernetes.V1Deployment(
