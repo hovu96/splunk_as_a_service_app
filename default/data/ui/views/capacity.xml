@@ -3,8 +3,8 @@
   <search id="all_usage">
     <query>| mstats avg(_value) as usage WHERE metric_name="kube.pod.cpu.usage_rate" AND "index"="em_metrics" BY pod-name span=auto
 | append [
-| mstats avg(_value) as limit WHERE metric_name="kube.pod.cpu.request" AND index="em_metrics" BY name span=auto
-| rename name as pod-name
+| mstats avg(_value) as limit WHERE metric_name="kube.pod.spec.cpu.shares" AND index="em_metrics" BY pod_name span=auto
+| rename pod_name as pod-name
 ]
 | eval resource = "cpu"
 
@@ -20,10 +20,11 @@
 
 | lookup instances _key as pod-name OUTPUT stack_id role
 | where isnotnull(stack_id) and isnotnull(role)
+
 | lookup stacks _key as stack_id OUTPUT title as stack cluster deployment_type
 | search cluster="$cluster$"
 | stats avg(usage) as usage min(limit) as limit by _time resource role stack
-| streamstats limit=0 last(limit) as limit2 last(usage) as usage2 by resource pod-name
+| streamstats limit=0 last(limit) as limit2 last(usage) as usage2 by resource role stack
 | eval limit = coalesce(limit,limit2)
 | eval usage = coalesce(usage,usage2)
 | fields - limit2 usage2
