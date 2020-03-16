@@ -292,6 +292,7 @@ def deploy_license_master(api_client, stack_id, stack_config, cluster_config):
     }
     spec = {
         "image": cluster_config.default_splunk_image,
+        "imagePullPolicy": "Always",
         "resources": {
             "requests": {
                 "memory": stack_config["memory_per_instance"],
@@ -400,6 +401,7 @@ def deploy_standalone(api_client, stack_id, stack_config, cluster_config):
         }
     spec = {
         "image": cluster_config.default_splunk_image,
+        "imagePullPolicy": "Always",
         "resources": {
             "requests": {
                 "memory": stack_config["memory_per_instance"],
@@ -510,6 +512,7 @@ def deploy_indexer_cluster(api_client, stack_id, stack_config, cluster_config):
     spec = {
         "replicas": int(stack_config["indexer_count"]),
         "image": cluster_config.default_splunk_image,
+        "imagePullPolicy": "Always",
         "resources": {
             "requests": {
                 "memory": stack_config["memory_per_instance"],
@@ -605,6 +608,7 @@ def deploy_search_head_cluster(api_client, stack_id, stack_config, cluster_confi
     spec = {
         "replicas": int(stack_config["search_head_count"]),
         "image": cluster_config.default_splunk_image,
+        "imagePullPolicy": "Always",
         "resources": {
             "requests": {
                 "memory": stack_config["memory_per_instance"],
