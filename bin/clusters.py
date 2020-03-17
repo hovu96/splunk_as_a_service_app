@@ -36,6 +36,7 @@ cluster_fields = set([
     "default_splunk_image",
     "indexer_server",
     "license_master_url",
+    "license_master_pass4symmkey",
     "license_master_mode",
     "deployment_type",
     "indexer_count",

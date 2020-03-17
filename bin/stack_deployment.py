@@ -396,7 +396,10 @@ def deploy_standalone(api_client, stack_id, stack_config, cluster_config):
             "content": {
                 "license": {
                     "master_uri": cluster_config.license_master_url,
-                }
+                },
+                "general": {
+                    "pass4SymmKey": cluster_config.license_master_pass4symmkey,
+                },
             }
         }
     spec = {
@@ -506,7 +509,10 @@ def deploy_indexer_cluster(api_client, stack_id, stack_config, cluster_config):
             "content": {
                 "license": {
                     "master_uri": cluster_config.license_master_url,
-                }
+                },
+                "general": {
+                    "pass4SymmKey": cluster_config.license_master_pass4symmkey,
+                },
             }
         }
     spec = {
@@ -602,7 +608,10 @@ def deploy_search_head_cluster(api_client, stack_id, stack_config, cluster_confi
             "content": {
                 "license": {
                     "master_uri": cluster_config.license_master_url,
-                }
+                },
+                "general": {
+                    "pass4SymmKey": cluster_config.license_master_pass4symmkey,
+                },
             }
         }
     spec = {

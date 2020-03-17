@@ -150,13 +150,17 @@
               Make sure the Splunk as a Service app has access to the internal logs from the license master for chargeback analytics.
             </p>
           </splunk-control-group>
-          <splunk-control-group label="Shared License Master URL" help="" class="license_master_mode remote">
+          <splunk-control-group label="Shared License Master URL" help="">
             <splunk-text-input name="license_master_url" class="option">
             </splunk-text-input>
           </splunk-control-group>
-          <splunk-control-group class="help license_master_mode remote" label="" help="">
+          <splunk-control-group label="Shared License Master Pass4SymmKey" help="">
+            <splunk-text-input name="license_master_pass4symmkey" class="option">
+            </splunk-text-input>
+          </splunk-control-group>
+          <splunk-control-group class="help" label="" help="">
             <p>
-              URL of the Splunk License Master (https://[hostname]:[port]) to be used by the deployed Splunk instances.
+              URL and Pass4SymmKey key of the Splunk License Master (https://[hostname]:[port]) to be used by the deployed Splunk instances.
               (only used when Splunk stacks doesn't consist if a License Master itself)
             </p>
           </splunk-control-group>
