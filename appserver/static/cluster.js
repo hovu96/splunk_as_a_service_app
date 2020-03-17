@@ -149,28 +149,4 @@ require([
             window.location.href = 'clusters';
         });
     });
-
-    /*const authModeRadioInput = $("splunk-radio-input[name='auth_mode']");
-    authModeRadioInput.change(function () {
-        const authMode = authModeRadioInput.attr("value");
-        if (authMode == "cert-key") {
-            $('.mode_aws_iam').css("display", "none");
-            $('.mode_user_token').css("display", "none");
-            $('.mode_cert_key').css("display", "");
-        } else if (authMode == "aws-iam") {
-            $('.mode_cert_key').css("display", "none");
-            $('.mode_user_token').css("display", "none");
-            $('.mode_aws_iam').css("display", "");
-        } else if (authMode == "user-token") {
-            $('.mode_cert_key').css("display", "none");
-            $('.mode_aws_iam').css("display", "none");
-            $('.mode_user_token').css("display", "");
-        } else {
-            $('.mode_cert_key').css("display", "none");
-            $('.mode_aws_iam').css("display", "none");
-            $('.mode_user_token').css("display", "none");
-            console.warn("invalid auth mode: " + authMode)
-        }
-    });
-    authModeRadioInput.change();*/
 });
