@@ -199,7 +199,7 @@ def delete_objects(api_client, stack_id, stack_config, cluster_config):
         namespace=stack_config["namespace"],
         group="enterprise.splunk.com",
         version="v1alpha2",
-        plural="searchheads",
+        plural="searchheadclusters",
         label_selector="app=saas,stack_id=%s" % stack_id,
     )["items"]
     for search_head in search_heads:
@@ -207,7 +207,7 @@ def delete_objects(api_client, stack_id, stack_config, cluster_config):
             namespace=stack_config["namespace"],
             group="enterprise.splunk.com",
             version="v1alpha2",
-            plural="searchheads",
+            plural="searchheadclusters",
             name=search_head["metadata"]["name"],
             body=kuberneteslib.V1DeleteOptions(),
         )
@@ -231,7 +231,7 @@ def delete_objects(api_client, stack_id, stack_config, cluster_config):
         namespace=stack_config["namespace"],
         group="enterprise.splunk.com",
         version="v1alpha2",
-        plural="indexers",
+        plural="indexerclusters",
         label_selector="app=saas,stack_id=%s" % stack_id,
     )["items"]
     for indexer in indexers:
@@ -239,7 +239,7 @@ def delete_objects(api_client, stack_id, stack_config, cluster_config):
             namespace=stack_config["namespace"],
             group="enterprise.splunk.com",
             version="v1alpha2",
-            plural="indexers",
+            plural="indexerclusters",
             name=indexer["metadata"]["name"],
             body=kuberneteslib.V1DeleteOptions(),
         )
@@ -484,7 +484,7 @@ def deploy_indexer_cluster(api_client, stack_id, stack_config, cluster_config):
     indexers = custom_objects_api.list_namespaced_custom_object(
         group="enterprise.splunk.com",
         version="v1alpha2",
-        plural="indexers",
+        plural="indexerclusters",
         namespace=stack_config["namespace"],
         label_selector="app=saas,stack_id=%s" % stack_id,
     )["items"]
@@ -568,10 +568,10 @@ def deploy_indexer_cluster(api_client, stack_id, stack_config, cluster_config):
         group="enterprise.splunk.com",
         version="v1alpha2",
         namespace=stack_config["namespace"],
-        plural="indexers",
+        plural="indexerclusters",
         body={
             "apiVersion": "enterprise.splunk.com/v1alpha2",
-            "kind": "Indexer",
+            "kind": "IndexerCluster",
             "metadata": {
                 "name": stack_id,
                 "finalizers": ["enterprise.splunk.com/delete-pvc"],
@@ -590,7 +590,7 @@ def deploy_search_head_cluster(api_client, stack_id, stack_config, cluster_confi
     search_heads = custom_objects_api.list_namespaced_custom_object(
         group="enterprise.splunk.com",
         version="v1alpha2",
-        plural="searchheads",
+        plural="searchheadclusters",
         namespace=stack_config["namespace"],
         label_selector="app=saas,stack_id=%s" % stack_id,
     )["items"]
@@ -670,10 +670,10 @@ def deploy_search_head_cluster(api_client, stack_id, stack_config, cluster_confi
         group="enterprise.splunk.com",
         version="v1alpha2",
         namespace=stack_config["namespace"],
-        plural="searchheads",
+        plural="searchheadclusters",
         body={
             "apiVersion": "enterprise.splunk.com/v1alpha2",
-            "kind": "SearchHead",
+            "kind": "SearchHeadCluster",
             "metadata": {
                 "name": stack_id,
                 "finalizers": ["enterprise.splunk.com/delete-pvc"],
