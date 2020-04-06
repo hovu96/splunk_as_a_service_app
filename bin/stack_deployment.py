@@ -313,9 +313,6 @@ def deploy_license_master(api_client, stack_id, stack_config, cluster_config):
             }
         }],
         "licenseUrl": "/mnt/licenses/enterprise.lic",
-        "indexerRef": {
-            "name": "%s" % stack_id,
-        },
     }
     if cluster_config.node_selector:
         labels = cluster_config.node_selector.split(",")
@@ -631,7 +628,7 @@ def deploy_search_head_cluster(api_client, stack_id, stack_config, cluster_confi
         "etcStorage": '%sGi' % stack_config["etc_storage_in_gb"],
         "varStorage": '%sGi' % stack_config["other_var_storage_in_gb"],
         "defaults": yaml.dump(splunk_defaults),
-        "indexerRef": {
+        "indexerClusterRef": {
             "name": "%s" % stack_id,
         }
     }
