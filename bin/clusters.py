@@ -52,14 +52,84 @@ cluster_fields = set([
     "indexer_var_storage_in_gb",
 ])
 
+cluster_password_fields = set([
+    "aws_secret_access_key",
+])
+
 cluster_status_connected = "connected"
 cluster_status_disconnected = "disconnected"
 cluster_status_unknown = "unknown"
 
+cluster_passwords_realm = "saas_cluster"
 
-def get_cluster_config(splunk, cluster_name):
-    clusters = splunk.confs["clusters"]
-    return clusters[cluster_name]
+
+def get_cluster_conf(splunk):
+    return splunk.confs["clusters"]
+
+
+def get_cluster(splunk, cluster_stanza):
+    cluster_name = cluster_stanza.name
+    record = splunklib.data.record(cluster_stanza.content)
+    record["name"] = cluster_name
+    for field_name in cluster_password_fields:
+        username = cluster_name + "." + field_name
+        realm = cluster_passwords_realm
+        storage_password_name = "%s:%s" % (
+            splunklib.binding.UrlEncoded(cluster_passwords_realm, encode_slash=True),
+            splunklib.binding.UrlEncoded(username, encode_slash=True),
+        )
+        if storage_password_name in splunk.storage_passwords:
+            storage_password = splunk.storage_passwords[storage_password_name]
+        else:
+            storage_password = None
+        if storage_password:
+            record[field_name] = storage_password.clear_password
+        else:
+            record[field_name] = ""
+    return record
+
+
+def store_cluster_passwords(splunk, cluster_config):
+    config_without_passwords = dict(cluster_config)
+    for field_name in cluster_password_fields:
+        if field_name in config_without_passwords:
+            password = config_without_passwords[field_name]
+            del config_without_passwords[field_name]
+        else:
+            password = ""
+        username = cluster_config.name + "." + field_name
+        realm = cluster_passwords_realm
+        storage_password_name = "%s:%s" % (
+            splunklib.binding.UrlEncoded(cluster_passwords_realm, encode_slash=True),
+            splunklib.binding.UrlEncoded(username, encode_slash=True),
+        )
+        if storage_password_name in splunk.storage_passwords:
+            storage_password = splunk.storage_passwords[storage_password_name]
+        else:
+            storage_password = None
+        if password:
+            if storage_password:
+                if storage_password.clear_password != password:
+                    splunk.storage_passwords.delete(username, realm)
+                    storage_password = splunk.storage_passwords.create(password, username, realm)
+            else:
+                storage_password = splunk.storage_passwords.create(password, username, realm)
+        else:
+            splunk.storage_passwords.delete(username, realm)
+    del config_without_passwords["name"]
+    return config_without_passwords
+
+
+def delete_cluster_passwords(splunk, cluster_name):
+    for field_name in cluster_password_fields:
+        username = cluster_name + "." + field_name
+        realm = cluster_passwords_realm
+        storage_password_name = "%s:%s" % (
+            splunklib.binding.UrlEncoded(cluster_passwords_realm, encode_slash=True),
+            splunklib.binding.UrlEncoded(username, encode_slash=True),
+        )
+        if storage_password_name in splunk.storage_passwords:
+            splunk.storage_passwords.delete(username, realm)
 
 
 def get_cluster_defaults(splunk):
@@ -74,7 +144,8 @@ def get_cluster_defaults(splunk):
 
 def create_client(splunk, cluster_name):
     from kubernetes import client
-    cluster = get_cluster_config(splunk, cluster_name)
+    stanza = get_cluster_conf()[cluster_name]
+    cluster = get_cluster(splunk, stanza)
     config = create_client_configuration(cluster)
     api_client = client.ApiClient(config)
     return api_client
@@ -83,11 +154,11 @@ def create_client(splunk, cluster_name):
 def validate_cluster(splunk, record):
     from kubernetes import client
     try:
-        connection_stanza = splunklib.client.Stanza(            splunk, "", skip_refresh=True)
+        connection_stanza = splunklib.client.Stanza(splunk, "", skip_refresh=True)
         connection_stanza.refresh(state=splunklib.data.record({
             "content": record
         }))
-        config = create_client_configuration(            connection_stanza)
+        config = create_client_configuration(connection_stanza)
         api_client = client.ApiClient(config)
         version_api = client.VersionApi(api_client)
         version_api.get_code()
@@ -140,11 +211,6 @@ def validate_cluster(splunk, record):
 
 class BaseClusterHandler(BaseRestHandler):
 
-    @property
-    def clusters(self):
-        return self.splunk.confs.create("clusters")
-        # return self.splunk.confs["clusters"]
-
     def create_cluster_record_from_payload(self):
         defaults = get_cluster_defaults(self.splunk)
         return splunklib.data.record({
@@ -152,36 +218,34 @@ class BaseClusterHandler(BaseRestHandler):
             for k in cluster_fields if k != name_cluster_field
         })
 
-    def get_cluster_record(self, name):
-        cluster = self.clusters[name]
-        return splunklib.data.record({
-            k: cluster[k] if k in cluster else ""
-            for k in cluster_fields
-        })
-
 
 class ClustersHandler(BaseClusterHandler):
 
     def handle_GET(self):
-        def map(d):
+        clusters = get_cluster_conf(self.splunk)
+
+        def map(stanza):
+            config = get_cluster(self.splunk, stanza)
             return {
-                "name": d.name,
-                "status": d["status"] if "status" in d else cluster_status_unknown,
-                "error": d["error"] if "error" in d else "",
+                "name": config.name,
+                "status": config["status"] if "status" in config else cluster_status_unknown,
+                "error": config["error"] if "error" in config else "",
             }
-        self.send_entries([map(c) for c in self.clusters])
+        self.send_entries([map(c) for c in clusters])
 
     def handle_POST(self):
+        clusters = get_cluster_conf(self.splunk)
         cluster_name = self.payload[name_cluster_field][0] if name_cluster_field in self.payload else ""
         if not cluster_name:
             raise Exception("Name missing")
-        if cluster_name in self.clusters:
+        if cluster_name in clusters:
             raise Exception("Cluster name already exists.")
         cluster_record = self.create_cluster_record_from_payload()
+        cluster_record["name"] = cluster_name
         validate_cluster(self.splunk, cluster_record)
-        cluster = self.clusters.create(cluster_name)
         cluster_record.status = cluster_status_connected
-        cluster.submit(cluster_record)
+        cluster_record = store_cluster_passwords(self.splunk, cluster_record)
+        clusters.create(cluster_name).submit(cluster_record)
 
 
 class ClusterHandler(BaseClusterHandler):
@@ -193,35 +257,42 @@ class ClusterHandler(BaseClusterHandler):
         return unquote(cluster_name)
 
     def handle_GET(self):
-        cluster = self.clusters[self.cluster_name]
+        stanza = get_cluster_conf(self.splunk)[self.cluster_name]
+        config = get_cluster(self.splunk, stanza)
         result = {
-            k: cluster[k] if k in cluster else ""
+            k: config[k] if k in config else ""
             for k in cluster_fields
         }
         result.update({
             "name": self.cluster_name,
-            "status": cluster["status"] if "status" in cluster else cluster_status_unknown,
+            "status": config["status"] if "status" in config else cluster_status_unknown,
         })
         self.send_json_response(result)
 
     def handle_POST(self):
         cluster_record = self.create_cluster_record_from_payload()
+        cluster_record["name"] = self.cluster_name
         validate_cluster(self.splunk, cluster_record)
-        cluster = self.clusters[self.cluster_name]
+        cluster = get_cluster_conf(self.splunk)[self.cluster_name]
         cluster_record.status = cluster_status_connected
         cluster_record.error = ""
+        cluster_record = store_cluster_passwords(self.splunk, cluster_record)
         cluster.submit(cluster_record)
 
     def handle_DELETE(self):
-        self.clusters.delete(self.cluster_name)
+        clusters = get_cluster_conf(self.splunk)
+        clusters.delete(self.cluster_name)
+        delete_cluster_passwords(self.splunk, self.cluster_name)
 
 
 class CheckClustersHandler(BaseClusterHandler):
     def handle_POST(self):
+        clusters = get_cluster_conf(self.splunk)
+
         def map(c):
-            cluster_record = self.get_cluster_record(c.name)
+            cluster_config = get_cluster(self.splunk, c)
             try:
-                validate_cluster(self.splunk, cluster_record)
+                validate_cluster(self.splunk, cluster_config)
                 error = ""
                 status = cluster_status_connected
             except Exception as e:
@@ -236,7 +307,7 @@ class CheckClustersHandler(BaseClusterHandler):
                 "status": status,
                 "error": error,
             }
-        self.send_entries([map(c) for c in self.clusters])
+        self.send_entries([map(c) for c in clusters])
 
 
 class ClusterDefaultsHandler(BaseClusterHandler):
@@ -266,7 +337,7 @@ def create_client_configuration(connection_stanza):
         aws_cluster_url = cluster_info['cluster']['endpoint']
 
         # get authentication token
-        from botocore.signers import RequestSigner # pylint: disable=import-error
+        from botocore.signers import RequestSigner  # pylint: disable=import-error
         STS_TOKEN_EXPIRES_IN = 60
         session = boto3.Session(
             region_name=connection_stanza.aws_region_name,

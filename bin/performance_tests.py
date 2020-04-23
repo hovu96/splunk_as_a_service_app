@@ -359,7 +359,7 @@ def run_cases(splunk, test_id, test):
             stack_config = stacks.get_stack_config(splunk, stack_id)
             kube_client = clusters.create_client(
                 splunk, stack_config["cluster"])
-            cluster_config = clusters.get_cluster_config(
+            cluster_config = clusters.get_cluster(
                 splunk, test["cluster"])
             node_selector_labels = cluster_config["node_selector"].split(",")
             node_selector_for_generators = {}

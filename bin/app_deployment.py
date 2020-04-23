@@ -467,7 +467,7 @@ def render_saas_app_data(path, app):
 def install_as_local_app(splunk, kubernetes, stack_id, pod, app):
     core_api = kuberneteslib.CoreV1Api(kubernetes)
     stack_config = stacks.get_stack_config(splunk, stack_id)
-    cluster_config = clusters.get_cluster_config(
+    cluster_config = clusters.get_cluster(
         splunk, stack_config["cluster"])
     pod_local_path = "/tmp/%s.tar" % (app.name)
     temp_dir = tempfile.mkdtemp()
@@ -506,7 +506,7 @@ def install_as_local_app(splunk, kubernetes, stack_id, pod, app):
 def copy_app_into_folder(splunk, kubernetes, stack_id, pod, app, target_parent_name):
     core_api = kuberneteslib.CoreV1Api(kubernetes)
     stack_config = stacks.get_stack_config(splunk, stack_id)
-    cluster_config = clusters.get_cluster_config(
+    cluster_config = clusters.get_cluster(
         splunk, stack_config["cluster"])
     temp_dir = tempfile.mkdtemp()
     try:

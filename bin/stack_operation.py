@@ -29,7 +29,7 @@ def up(splunk, stack_id):
     stack_config = stacks.get_stack_config(splunk, stack_id)
     cluster_name = stack_config["cluster"]
     kubernetes = clusters.create_client(splunk, cluster_name)
-    cluster_config = clusters.get_cluster_config(splunk, cluster_name)
+    cluster_config = clusters.get_cluster(splunk, cluster_name)
     status = stack_config["status"]
     if status == stacks.CREATING:
         stack_deployment.create_deployment(
@@ -52,7 +52,7 @@ def down(splunk, stack_id, force=False):
     })
     stack_config = stacks.get_stack_config(splunk, stack_id)
     cluster_name = stack_config["cluster"]
-    cluster_config = clusters.get_cluster_config(splunk, cluster_name)
+    cluster_config = clusters.get_cluster(splunk, cluster_name)
     api_client = clusters.create_client(splunk, cluster_name)
     core_api = kuberneteslib.CoreV1Api(api_client)
     custom_objects_api = kuberneteslib.CustomObjectsApi(api_client)

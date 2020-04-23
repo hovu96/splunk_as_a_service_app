@@ -123,7 +123,7 @@ class StacksHandler(BaseRestHandler):
 
         # apply missing fields from cluster config
         cluster_name = stack_record["cluster"]
-        cluster_config = clusters.get_cluster_config(
+        cluster_config = clusters.get_cluster(
             self.service, cluster_name)
         stack_record.update(
             {
