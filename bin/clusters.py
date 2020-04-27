@@ -68,6 +68,9 @@ def get_cluster_conf(splunk):
 
 
 def get_cluster(splunk, cluster_stanza):
+    if isinstance(cluster_stanza, str):
+        conf = get_cluster_conf(splunk)
+        cluster_stanza = conf[cluster_stanza]
     cluster_name = cluster_stanza.name
     record = splunklib.data.record(cluster_stanza.content)
     record["name"] = cluster_name
@@ -144,8 +147,7 @@ def get_cluster_defaults(splunk):
 
 def create_client(splunk, cluster_name):
     from kubernetes import client
-    stanza = get_cluster_conf()[cluster_name]
-    cluster = get_cluster(splunk, stanza)
+    cluster = get_cluster(splunk, cluster_name)
     config = create_client_configuration(cluster)
     api_client = client.ApiClient(config)
     return api_client
@@ -257,8 +259,7 @@ class ClusterHandler(BaseClusterHandler):
         return unquote(cluster_name)
 
     def handle_GET(self):
-        stanza = get_cluster_conf(self.splunk)[self.cluster_name]
-        config = get_cluster(self.splunk, stanza)
+        config = get_cluster(self.splunk, self.cluster_name)
         result = {
             k: config[k] if k in config else ""
             for k in cluster_fields

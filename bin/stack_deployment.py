@@ -13,6 +13,7 @@ import time
 import services
 import app_deployment
 import instances
+import ssl
 
 
 def create_deployment(splunk, kubernetes, stack_id, stack_config, cluster_config):
@@ -35,9 +36,9 @@ def create_deployment(splunk, kubernetes, stack_id, stack_config, cluster_config
             "Unknown deployment type: '%s'" % (stack_config["deployment_type"]))
     create_load_balancers(core_api, stack_id, stack_config)
     verify_pods_created(splunk, core_api, stack_id, stack_config)
-    verify_load_balancers_completed(core_api, stack_id, stack_config)
     verify_all_splunk_instance_completed_startup(
         core_api, stack_id, stack_config)
+    verify_load_balancers_completed(core_api, stack_id, stack_config)
     app_deployment.update_apps(splunk, kubernetes, stack_id)
 
 
@@ -124,7 +125,15 @@ def verify_load_balancer_completed(core_api, stack_id, stack_config, role):
             import socket
             socket.gethostbyname(host)
         except socket.error:
-            raise errors.RetryOperation("Waiting for %s service load balancer ingress hostname to become resolvable" % role)
+            raise errors.RetryOperation("Waiting for %s ingress connection (cannot resolve hostname)" % role)
+        pass
+    if role == services.standalone_role or role == services.deployer_role or role == services.search_head_role or role == services.cluster_master_role:
+        try:
+            instances.create_client(core_api, stack_id, stack_config, role)
+        except ssl.SSLEOFError:
+            raise errors.RetryOperation("Waiting for %s ingress connection (SSL protocol error)" % role)
+        except TimeoutError:
+            raise errors.RetryOperation("Waiting for %s ingress connection (timeout)" % role)
 
 
 def verify_load_balancers_completed(core_api, stack_id, stack_config):
