@@ -140,7 +140,7 @@ def get_cluster_defaults(splunk):
     defaults = clusters.create("__default__", disabled="1").content
     clusters.delete("__default__")
     return {
-        k: defaults[k] if k in defaults else ""
+        k: defaults[k] if k in defaults and defaults[k] is not None else ""
         for k in cluster_fields
     }
 
