@@ -34,13 +34,13 @@
           </splunk-control-group>
 
           <splunk-control-group label="Client Key" help="" class="auth_mode cert-key">
-            <splunk-text-area name="client_key" class="option">
-            </splunk-text-area>
+            <splunk-text-input name="client_key" class="option" type="password">
+            </splunk-text-input>
           </splunk-control-group>
 
           <splunk-control-group label="User Token" help="" style="display: none;" class="auth_mode user-token">
-            <splunk-text-area name="user_token" class="option">
-            </splunk-text-area>
+            <splunk-text-input name="user_token" class="option" type="password">
+            </splunk-text-input>
           </splunk-control-group>
 
           <splunk-control-group label="EKS Cluster Name" help="" style="display: none;" class="auth_mode aws-iam">
@@ -155,7 +155,7 @@
             </splunk-text-input>
           </splunk-control-group>
           <splunk-control-group label="Shared License Master Pass4SymmKey" help="">
-            <splunk-text-input name="license_master_pass4symmkey" class="option">
+            <splunk-text-input name="license_master_pass4symmkey" class="option" type="password">
             </splunk-text-input>
           </splunk-control-group>
           <splunk-control-group class="help" label="" help="">

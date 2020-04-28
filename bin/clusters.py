@@ -54,6 +54,9 @@ cluster_fields = set([
 
 cluster_password_fields = set([
     "aws_secret_access_key",
+    "license_master_pass4symmkey",
+    "user_token",
+    "client_key",
 ])
 
 cluster_status_connected = "connected"
@@ -67,6 +70,13 @@ def get_cluster_conf(splunk):
     return splunk.confs["clusters"]
 
 
+def format_cluster_password_key(cluster_name, field_name):
+    return splunklib.binding.UrlEncoded(
+        cluster_name + "." + field_name,
+        encode_slash=True
+    )
+
+
 def get_cluster(splunk, cluster_stanza):
     if isinstance(cluster_stanza, str):
         conf = get_cluster_conf(splunk)
@@ -75,12 +85,8 @@ def get_cluster(splunk, cluster_stanza):
     record = splunklib.data.record(cluster_stanza.content)
     record["name"] = cluster_name
     for field_name in cluster_password_fields:
-        username = cluster_name + "." + field_name
-        realm = cluster_passwords_realm
-        storage_password_name = "%s:%s" % (
-            splunklib.binding.UrlEncoded(cluster_passwords_realm, encode_slash=True),
-            splunklib.binding.UrlEncoded(username, encode_slash=True),
-        )
+        cluster_password_key = format_cluster_password_key(cluster_name, field_name)
+        storage_password_name = "%s:%s" % (cluster_passwords_realm, cluster_password_key)
         if storage_password_name in splunk.storage_passwords:
             storage_password = splunk.storage_passwords[storage_password_name]
         else:
@@ -88,7 +94,11 @@ def get_cluster(splunk, cluster_stanza):
         if storage_password:
             record[field_name] = storage_password.clear_password
         else:
-            record[field_name] = ""
+            if field_name in record and record[field_name]:
+                # if present, use stanza value (for backwards compatibility)
+                pass
+            else:
+                record[field_name] = ""
     return record
 
 
@@ -100,12 +110,8 @@ def store_cluster_passwords(splunk, cluster_config):
             del config_without_passwords[field_name]
         else:
             password = ""
-        username = cluster_config.name + "." + field_name
-        realm = cluster_passwords_realm
-        storage_password_name = "%s:%s" % (
-            splunklib.binding.UrlEncoded(cluster_passwords_realm, encode_slash=True),
-            splunklib.binding.UrlEncoded(username, encode_slash=True),
-        )
+        cluster_password_key = format_cluster_password_key(cluster_config.name, field_name)
+        storage_password_name = "%s:%s" % (cluster_passwords_realm, cluster_password_key)
         if storage_password_name in splunk.storage_passwords:
             storage_password = splunk.storage_passwords[storage_password_name]
         else:
@@ -113,26 +119,24 @@ def store_cluster_passwords(splunk, cluster_config):
         if password:
             if storage_password:
                 if storage_password.clear_password != password:
-                    splunk.storage_passwords.delete(username, realm)
-                    storage_password = splunk.storage_passwords.create(password, username, realm)
+                    storage_password.delete()
+                    storage_password = splunk.storage_passwords.create(password, cluster_password_key, cluster_passwords_realm)
             else:
-                storage_password = splunk.storage_passwords.create(password, username, realm)
+                storage_password = splunk.storage_passwords.create(password, cluster_password_key, cluster_passwords_realm)
         else:
-            splunk.storage_passwords.delete(username, realm)
+            if storage_password:
+                storage_password.delete()
     del config_without_passwords["name"]
     return config_without_passwords
 
 
 def delete_cluster_passwords(splunk, cluster_name):
     for field_name in cluster_password_fields:
-        username = cluster_name + "." + field_name
-        realm = cluster_passwords_realm
-        storage_password_name = "%s:%s" % (
-            splunklib.binding.UrlEncoded(cluster_passwords_realm, encode_slash=True),
-            splunklib.binding.UrlEncoded(username, encode_slash=True),
-        )
+        cluster_password_key = format_cluster_password_key(cluster_name, field_name)
+        storage_password_name = "%s:%s" % (cluster_passwords_realm, cluster_password_key)
         if storage_password_name in splunk.storage_passwords:
-            splunk.storage_passwords.delete(username, realm)
+            storage_password = splunk.storage_passwords[storage_password_name]
+            storage_password.delete()
 
 
 def get_cluster_defaults(splunk):
@@ -274,10 +278,14 @@ class ClusterHandler(BaseClusterHandler):
         cluster_record = self.create_cluster_record_from_payload()
         cluster_record["name"] = self.cluster_name
         validate_cluster(self.splunk, cluster_record)
-        cluster = get_cluster_conf(self.splunk)[self.cluster_name]
         cluster_record.status = cluster_status_connected
         cluster_record.error = ""
         cluster_record = store_cluster_passwords(self.splunk, cluster_record)
+        cluster = get_cluster_conf(self.splunk)[self.cluster_name]
+        # reset secrets in stanza (for backwards compatibility)
+        for field_name in cluster_password_fields:
+            if field_name in cluster.content:
+                cluster_record[field_name] = ""
         cluster.submit(cluster_record)
 
     def handle_DELETE(self):
