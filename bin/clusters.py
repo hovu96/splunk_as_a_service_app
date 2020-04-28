@@ -263,6 +263,12 @@ class ClusterHandler(BaseClusterHandler):
         return unquote(cluster_name)
 
     def handle_GET(self):
+        conf = get_cluster_conf(self.splunk)
+        if self.cluster_name not in conf:
+            self.response.setStatus(404)
+            self.response.write("Cluster does not exist")
+            return
+
         config = get_cluster(self.splunk, self.cluster_name)
         result = {
             k: config[k] if k in config else ""
@@ -289,6 +295,13 @@ class ClusterHandler(BaseClusterHandler):
         cluster.submit(cluster_record)
 
     def handle_DELETE(self):
+        defaults = self.splunk.confs["defaults"]["general"]
+        if "cluster" in defaults.content:
+            default_cluster = defaults.content["cluster"]
+            if default_cluster == self.cluster_name:
+                defaults.submit({
+                    "cluster": "",
+                })
         clusters = get_cluster_conf(self.splunk)
         clusters.delete(self.cluster_name)
         delete_cluster_passwords(self.splunk, self.cluster_name)
@@ -317,6 +330,14 @@ class CheckClustersHandler(BaseClusterHandler):
                 "error": error,
             }
         self.send_entries([map(c) for c in clusters])
+
+        defaults = self.splunk.confs["defaults"]["general"]
+        if "cluster" in defaults.content:
+            default_cluster = defaults.content["cluster"]
+            if default_cluster not in clusters:
+                defaults.submit({
+                    "cluster": "",
+                })
 
 
 class ClusterDefaultsHandler(BaseClusterHandler):

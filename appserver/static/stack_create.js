@@ -45,10 +45,16 @@ require([
                 label: "Cluster",
                 initialize: function () {
                     $(".option[name='cluster']").change(function () {
-                        const clusterName = $(this).attr('value');
+                        const clusterOption = $(this);
+                        const clusterName = clusterOption.attr('value');
                         if (!clusterName) return;
                         endpoint.get('cluster/' + clusterName, {}, function (err, response) {
                             if (err) {
+                                console.log(err);
+                                if (err.status == 404) {
+                                    clusterOption.attr('value', '');
+                                    return
+                                }
                                 Utils.showErrorDialog(null, err).footer.append($('<button>Retry</button>').attr({
                                     type: 'button',
                                     class: "btn btn-primary",
