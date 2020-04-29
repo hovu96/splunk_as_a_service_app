@@ -1,13 +1,13 @@
-const appName = window.location.pathname.match(/..-..\/app\/(?<app>[^\/]+)/).groups.app;
+const appName = Splunk.util.getPath().match(`\/app\/(.+)\/.+`)[1];
 
 require([
     'jquery',
     'underscore',
     'backbone',
     'splunkjs/mvc',
-    "/static/app/" + appName + "/utils.js",
-    "/static/app/" + appName + "/name_generator.js",
-    "/static/app/" + appName + "/utils/wizard.js",
+    Splunk.util.make_url(`/static/app/${appName}/utils.js`),
+    Splunk.util.make_url(`/static/app/${appName}/name_generator.js`),
+    Splunk.util.make_url(`/static/app/${appName}/utils/wizard.js`),
     'splunkjs/mvc/simplexml/ready!',
 ],
     function ($, _, Backbone, mvc, Utils, NameGenerator, Wizard) {

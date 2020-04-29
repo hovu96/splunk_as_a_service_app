@@ -1,9 +1,9 @@
-const appName = window.location.pathname.match(/..-..\/app\/(?<app>[^\/]+)/).groups.app;
+const appName = Splunk.util.getPath().match(`\/app\/(.+)\/.+`)[1];
 
 require([
     "jquery",
-    "/static/app/" + appName + "/modal.js",
-    "/static/app/" + appName + "/utils.js",
+    Splunk.util.make_url(`/static/app/${appName}/modal.js`),
+    Splunk.util.make_url(`/static/app/${appName}/utils.js`),
     "splunkjs/mvc",
     //"splunkjs/ready!",
     'splunkjs/mvc/simplexml/ready!',

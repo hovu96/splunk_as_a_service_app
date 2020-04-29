@@ -1,4 +1,4 @@
-const appName = window.location.pathname.match(/..-..\/app\/(?<app>[^\/]+)/).groups.app;
+const appName = Splunk.util.getPath().match(`\/app\/(.+)\/.+`)[1];
 
 require([
     'jquery',
