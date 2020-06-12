@@ -24,15 +24,13 @@
   </fieldset>
   <row>
     <panel>
-      <title>Searches Executions</title>
+      <title>Search Executions per Minute</title>
       <chart>
         <search>
-          <query>
-index=_introspection stack_id=* cluster="$cluster$" sourcetype=splunk_resource_usage component=PerProcess data.search_props.sid::* 
-| bin _time span=10s
-| stats dc(data.search_props.sid) AS distinct_search_count by _time stack
-| timechart minspan=10s avg(distinct_search_count) AS "Avg of search concurrency" by stack
-          </query>
+          <query>index=_audit action=search stack_id=* cluster="*" search_id=*
+| bin _time span=1m
+| stats dc(search_id) AS searches_per_minute by _time stack
+| timechart minspan=10s avg(searches_per_minute) AS searches_per_minute by stack</query>
           <earliest>$earliest$</earliest>
           <latest>$latest$</latest>
           <sampleRatio>1</sampleRatio>
@@ -129,12 +127,8 @@ index="_internal" user!="-" sourcetype=splunkd_ui_access "/app" stack_id=* clust
       <title>Data Thruput</title>
       <chart>
         <search>
-          <query>
-            index="_internal" source="*metrics.log" group=thruput stack_id=* cluster="$cluster$" 
-            | eval mbps=round(average_kbps/1024,2) 
-            | eval mbpm=mbps*60 
-            | timechart avg(mbpm) by stack
-                      </query>
+          <query>| tstats allow_old_summaries=1 prestats=1 sum(usage.gb) from datamodel=license_usage.usage where usage.stack=* by _time usage.stack
+| timechart span=1h sum(usage.gb) as gb by usage.stack</query>
           <earliest>$earliest$</earliest>
           <latest>$latest$</latest>
           <sampleRatio>1</sampleRatio>
