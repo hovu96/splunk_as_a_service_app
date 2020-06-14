@@ -70,6 +70,115 @@ require([
         }
     });
 
+    // scale
+    (function () {
+        const statusSearchManager = splunkjs.mvc.Components.getInstance('status_search');
+        const stackConfigSearchManager = splunkjs.mvc.Components.getInstance('stack_config_search');
+        const scaleButton = $('#scale-button');
+        // update button visivility
+        const searchResults = stackConfigSearchManager.data('results', {
+            output_mode: 'json',
+        });
+        searchResults.on("data", function () {
+            if (!searchResults.hasData()) {
+                return;
+            }
+            const settings = searchResults.data().results;
+            const deploymentType = settings.find(d =>
+                d.param == "deployment_type"
+            );
+            if (!deploymentType) {
+                return;
+            }
+            if (deploymentType.value == "distributed") {
+                scaleButton.show();
+            }
+            else {
+                scaleButton.hide();
+            }
+        })
+        // show dialog
+        scaleButton.click(async function () {
+            const progressIndicator = Utils.newLoadingIndicator({
+                title: "Loading Settings ...",
+                subtitle: "Please wait.",
+            });
+            try {
+                const stackConfigResponse = await endpoint.getAsync('stack/' + stackID);
+                const stackConfig = await Utils.getResponseContent(stackConfigResponse)
+                console.log(stackConfig);
+                progressIndicator.hide();
+                const dialogBody = $(`
+                <div class="form-horizontal">
+                    <splunk-control-group class="" label="Number of Search Heads" help="">
+                        <splunk-text-input class="option" name="search_head_count" value="${stackConfig.search_head_count}">
+                        </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group class="help" label="" help="">
+                        <p>
+                            Search Heads serve as a central resource for searching.
+                            They replicate configurations, apps, searches, search artifacts to promote high availability.
+                        </p>
+                    </splunk-control-group>
+                    <splunk-control-group class="" label="Number of Indexers" help="">
+                        <splunk-text-input class="option" name="indexer_count" value="${stackConfig.indexer_count}">
+                        </splunk-text-input>
+                    </splunk-control-group>
+                    <splunk-control-group class="help" label="" help="">
+                        <p>
+                            Indexers receive data and service search jobs coming from Search Heads.
+                            Indexers replicate data, so that they maintain multiple copies of the data
+                            to promote high availability and disaster recovery.
+                        </p>
+                    </splunk-control-group>
+                </div>
+                `);
+                const modal = new Modal("scale-dialog", {
+                    title: 'Scale Stack',
+                    backdrop: 'static',
+                    keyboard: false,
+                    destroyOnHide: true,
+                    type: 'normal',
+                });
+                modal.body.append(dialogBody);
+                const dialogFooter = $(`
+                <div class="footer">
+                    <button class="btn cancel" data-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary ok" data-dismiss="modal">Apply</button>
+                </div>
+                `)
+                modal.footer.append(dialogFooter);
+                // apply new settings
+                $('button.ok', dialogFooter).click(async function () {
+                    const indexerCount = parseInt($("splunk-text-input.option[name='indexer_count']", dialogBody).attr("value"));
+                    const searchHeadCount = parseInt($("splunk-text-input.option[name='search_head_count']", dialogBody).attr("value"));
+                    const progressIndicator = Utils.newLoadingIndicator({
+                        title: "Updating Stack ...",
+                        subtitle: "Please wait.",
+                    });
+                    try {
+                        await endpoint.postAsync('stack/' + stackID, {
+                            search_head_count: searchHeadCount,
+                            indexer_count: indexerCount,
+                        });
+                        progressIndicator.hide();
+                        statusSearchManager.startSearch();
+                        stackConfigSearchManager.startSearch();
+                    }
+                    catch (err) {
+                        progressIndicator.hide();
+                        await Utils.showErrorDialog(null, err, true).wait();
+                    }
+                });
+                modal.show();
+            }
+            catch (err) {
+                progressIndicator.hide();
+                await Utils.showErrorDialog(null, err, true).wait();
+            }
+        });
+    })();
+
     const backButton = $('<button class="btn action-button">Back</button>');
     backButton.click(async function () {
         window.location.href = 'stacks';

@@ -50,7 +50,7 @@
                             It can handle large volume of data, serve large number of users/searches and provides high availability.
                         </p>
                     </splunk-control-group>
-                    <splunk-control-group class="deployment_type distributed" label="Number of Indexers" help="">	
+                    <splunk-control-group class="deployment_type distributed" label="Number of Indexers" help="">
                         <splunk-text-input class="option" name="indexer_count">
                         </splunk-text-input>
                     </splunk-control-group>

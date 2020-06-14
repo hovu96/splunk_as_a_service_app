@@ -5,7 +5,7 @@
     <panel id="status_panel">
       <single>
         <title>Status</title>
-        <search>
+        <search id="status_search">
           <query>| rest splunk_server=local services/saas/stack/$id$ | table status</query>
           <refresh>10s</refresh>
           <refreshType>delay</refreshType>
@@ -31,7 +31,7 @@
       <table>
         <search id="stack_config_search">
           <query>| rest splunk_server=local services/saas/stack/$id$ 
-| table title cluster deployment_type
+| table title cluster deployment_type indexer_count search_head_count
 | untable _ param value
 | table param value</query>
           <earliest>-24h@h</earliest>
@@ -57,6 +57,7 @@
             <button class="btn btn-primary ok" data-dismiss="modal">Rename</button>
           </div>
         </div>
+        <button id="scale-button" class="btn" style="display: none">Scale</button>
       </html>
     </panel>
     <panel id="endpoints_panel">

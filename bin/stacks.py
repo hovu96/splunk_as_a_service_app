@@ -18,6 +18,7 @@ import instances
 
 CREATING = "Creating"
 CREATED = "Created"
+UPDATING = "Updating"
 DELETING = "Deleting"
 DELETED = "Deleted"
 
@@ -47,6 +48,18 @@ def update_config(splunk, stack_id, updates):
     config = stacks.query_by_id(stack_id)
     config.update(updates)
     stacks.update(stack_id, json.dumps(config))
+
+
+def trigger_updating_stack(splunk, stack_id, updates=None):
+    stack_config = get_stack_config(splunk, stack_id)
+    status = stack_config["status"]
+    if status != CREATED and status != UPDATING:
+        raise Exception("cannot update stack with status %s" % status)
+    if updates is None:
+        updates = {}
+    updates["status"] = UPDATING
+    update_config(splunk, stack_id, updates)
+    stack_operation.trigger(splunk, stack_id)
 
 
 class StacksHandler(BaseRestHandler):
@@ -169,6 +182,10 @@ class StackHandler(BaseRestHandler):
             "namespace": stack_config["namespace"],
         }
 
+        if stack_config["deployment_type"] == "distributed":
+            result["indexer_count"] = stack_config["indexer_count"]
+            result["search_head_count"] = stack_config["search_head_count"]
+
         api_client = clusters.create_client(
             self.service, stack_config["cluster"])
         from kubernetes import client as kubernetes
@@ -228,16 +245,17 @@ class StackHandler(BaseRestHandler):
     def handle_POST(self):
         path = self.request['path']
         _, stack_id = os.path.split(path)
-        get_stack_config(self.splunk, stack_id)
         fields_names = set([
             "title",
+            "search_head_count",
+            "indexer_count",
         ])
         request_params = parse_qs(self.request['payload'])
         stack_updates = {
             k: request_params[k][0]
             for k in fields_names if k in request_params
         }
-        update_config(self.splunk, stack_id, stack_updates)
+        trigger_updating_stack(self.splunk, stack_id, stack_updates)
 
     def handle_DELETE(self):
         path = self.request['path']

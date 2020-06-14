@@ -75,10 +75,12 @@ require([
             }
         };
 
-        $("splunk-radio-input").change(function () {
+        const changeHandler = function () {
             const input = $(this);
             const value = input.attr("value");
             const name = input.attr("name");
+
+            console.log(`value=${value} name=${name}`);
 
             $("." + name).each(function () {
                 removeShow(this, name);
@@ -91,6 +93,12 @@ require([
             $("." + name).each(function () {
                 showOrHide(this);
             });
-        }).change();
+        };
+
+        $.applySplunkRadioInputShowHide = function (root) {
+            $("splunk-radio-input", root).change(changeHandler).change();
+        };
+
+        $("splunk-radio-input").change(changeHandler).change();
     }
 );

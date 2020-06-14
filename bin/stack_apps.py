@@ -79,7 +79,7 @@ class AppsInStack(BaseRestHandler):
         self.send_json_response({
             "stack_app_id": stack_app_id,
         })
-        stack_operation.trigger(self.splunk, stack_id)
+        stacks.trigger_updating_stack(self.splunk, stack_id)
 
     def handle_GET(self):
         path = self.request['path']
@@ -115,7 +115,7 @@ class AppInStack(BaseRestHandler):
                 "app_name": app_name,
             }),
         )
-        stack_operation.trigger(self.splunk, stack_id)
+        stacks.trigger_updating_stack(self.splunk, stack_id)
 
     def handle_POST(self):
         path = self.request['path']
@@ -130,7 +130,7 @@ class AppInStack(BaseRestHandler):
         stack_app_id = stack_app["_key"]
         stack_app = {k: v for k, v in stack_app.items() if not k.startswith('_')}
         col.update(stack_app_id, json.dumps(stack_app))
-        stack_operation.trigger(self.splunk, stack_id)
+        stacks.trigger_updating_stack(self.splunk, stack_id)
 
 
 class StacksHavingApp(BaseRestHandler):

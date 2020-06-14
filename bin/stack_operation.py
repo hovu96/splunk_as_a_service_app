@@ -32,14 +32,20 @@ def up(splunk, stack_id):
     cluster_config = clusters.get_cluster(splunk, cluster_name)
     status = stack_config["status"]
     if status == stacks.CREATING:
-        stack_deployment.create_deployment(
-            splunk, kubernetes, stack_id, stack_config, cluster_config)
+        stack_deployment.create_deployment(splunk, kubernetes, stack_id, stack_config, cluster_config)
+        app_deployment.update_apps(splunk, kubernetes, stack_id)
         logging.info("created")
         stacks.update_config(splunk, stack_id, {
             "status": stacks.CREATED,
         })
-    elif status == stacks.CREATED:
+    elif status == stacks.UPDATING:
+        stack_deployment.update_deployment(splunk, kubernetes, stack_id)
         app_deployment.update_apps(splunk, kubernetes, stack_id)
+        logging.info("updated")
+        stacks.update_config(splunk, stack_id, {
+            "status": stacks.CREATED,
+        })
+    elif status == stacks.CREATED:
         logging.info("Everything is up-to-date")
     else:
         logging.warning("unexpected status: %s", status)
