@@ -34,7 +34,7 @@ def create_deployment(splunk, kubernetes, stack_id, stack_config, cluster_config
             licensemasters.deploy(splunk, kubernetes, stack_id, stack_config, cluster_config)
             deployed_license_master = True
         else:
-            deployed_license_master = True
+            deployed_license_master = False
         indexer_cluster.deploy(splunk, kubernetes, stack_id, stack_config, cluster_config)
         search_head_cluster.deploy(splunk, kubernetes, stack_id, stack_config, cluster_config)
         indexer_cluster.wait_until_ready(splunk, kubernetes, stack_id, stack_config)
@@ -44,8 +44,6 @@ def create_deployment(splunk, kubernetes, stack_id, stack_config, cluster_config
     else:
         raise errors.ApplicationError("Unknown deployment type: '%s'" % (stack_config["deployment_type"]))
     create_load_balancers(core_api, stack_id, stack_config)
-    verify_pods_created(splunk, core_api, stack_id, stack_config)
-    verify_all_splunk_instance_completed_startup(core_api, stack_id, stack_config)
     verify_load_balancers_completed(core_api, stack_id, stack_config)
 
 
@@ -59,30 +57,6 @@ def update_deployment(splunk, kubernetes, stack_id):
         search_head_cluster.update(splunk, kubernetes, stack_id, stack_config)
         indexer_cluster.wait_until_ready(splunk, kubernetes, stack_id, stack_config)
         search_head_cluster.wait_until_ready(splunk, kubernetes, stack_id, stack_config)
-
-
-def verify_pods_created(splunk, core_api, stack_id, stack_config):
-    expected_number_of_instances = 0
-    if stack_config["deployment_type"] == "standalone":
-        expected_number_of_instances += 1
-    elif stack_config["deployment_type"] == "distributed":
-        expected_number_of_instances += 1  # deployer
-        search_head_count = int(stack_config["search_head_count"])
-        expected_number_of_instances += search_head_count
-        expected_number_of_instances += 1  # cluster master
-        indexer_count = int(stack_config["indexer_count"])
-        expected_number_of_instances += indexer_count
-        if stack_config["license_master_mode"] == "local":
-            expected_number_of_instances += 1
-
-    pods = core_api.list_namespaced_pod(
-        namespace=stack_config["namespace"],
-        label_selector="app=saas,stack_id=%s" % stack_id,
-    ).items
-    if len(pods) == expected_number_of_instances:
-        return
-    raise errors.RetryOperation("still waiting for pods (expecting %s, found %d) ..." %
-                                (expected_number_of_instances, len(pods)))
 
 
 def create_load_balancers(core_api, stack_id, stack_config):
@@ -165,22 +139,6 @@ def verify_load_balancers_completed(core_api, stack_id, stack_config):
         if int(stack_config["indexer_count"]) > 0:
             verify_load_balancer_completed(core_api, stack_id, stack_config, services.cluster_master_role)
             verify_load_balancer_completed(core_api, stack_id, stack_config, services.indexer_role)
-
-
-def verify_all_splunk_instance_completed_startup(core_api, stack_id, stack_config):
-    pods = core_api.list_namespaced_pod(
-        namespace=stack_config["namespace"],
-        label_selector="app=splunk,for=%s" % stack_id,
-    ).items
-    number_of_pods_completed = 0
-    for p in pods:
-        if instances.check_instance_startup_complated(core_api, stack_config, p):
-            number_of_pods_completed += 1
-    if number_of_pods_completed != len(pods):
-        not_completed = len(pods) - number_of_pods_completed
-        raise errors.RetryOperation("waiting for %s (out of %s) pods to complete startup ..." %
-                                    (not_completed, len(pods)))
-    logging.debug("all pods completed startup")
 
 
 def delete_objects(kubernetes, stack_id, stack_config, cluster_config):

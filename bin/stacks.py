@@ -127,12 +127,10 @@ class StacksHandler(BaseRestHandler):
         })
 
         # apply missing fields from defaults
-        stack_record.update(
-            {
-                k: defaults[k]
-                for k in fields_names if k in defaults and k not in stack_record
-            }
-        )
+        stack_record.update({
+            k: defaults[k]
+            for k in fields_names if k in defaults and k not in stack_record
+        })
 
         # apply missing fields from cluster config
         cluster_name = stack_record["cluster"]
