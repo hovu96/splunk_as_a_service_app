@@ -1,13 +1,18 @@
 <form script="stack.js" stylesheet="stack.css">
   <label>Stack</label>
   <fieldset submitButton="false"></fieldset>
+  <search id="stack_search">
+    <query>| rest splunk_server=local "services/saas/stack/$id$"</query>
+    <refresh>5s</refresh>
+    <refreshType>delay</refreshType>
+  </search>
   <row>
     <panel id="status_panel">
       <single>
         <title>Status</title>
-        <search id="status_search">
-          <query>| rest splunk_server=local services/saas/stack/$id$ | table status</query>
-          <refresh>10s</refresh>
+        <search base="stack_search">
+          <query>| table status</query>
+          <refresh>5s</refresh>
           <refreshType>delay</refreshType>
         </search>
         <option name="colorBy">value</option>
@@ -29,8 +34,8 @@
         <option name="useThousandSeparators">1</option>
       </single>
       <table>
-        <search id="stack_config_search">
-          <query>| rest splunk_server=local services/saas/stack/$id$ 
+        <search base="stack_search">
+          <query> 
 | table title cluster deployment_type indexer_count search_head_count
 | untable _ param value
 | table param value</query>
@@ -63,8 +68,8 @@
     <panel id="endpoints_panel">
       <table>
         <title>Endpoints</title>
-        <search>
-          <query>| rest splunk_server=local services/saas/stack/$id$ 
+        <search base="stack_search">
+          <query>
 | fields *_endpoint *_password 
 | foreach *_* 
     [ eval &lt;&lt;MATCHSEG1&gt;&gt; = mvappend(&lt;&lt;MATCHSEG1&gt;&gt;,&lt;&lt;FIELD&gt;&gt;) ]
@@ -73,10 +78,6 @@
 | eval url = mvindex(data,0,mvcount(data)-2)
 | eval password = mvindex(data,mvcount(data)-1)
 | table name url password</query>
-          <earliest>$earliest$</earliest>
-          <latest>$latest$</latest>
-          <refresh>10s</refresh>
-          <refreshType>delay</refreshType>
         </search>
         <option name="count">20</option>
         <option name="dataOverlayMode">none</option>
