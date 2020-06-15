@@ -13,7 +13,11 @@ import logging
 from base_handler import BaseRestHandler
 import stacks
 import clusters
-from kubernetes import client as kubernetes
+from kubernetes import client as kuberneteslib
+import search_head_cluster
+import re
+import indexer_cluster
+import standalones
 
 
 def get_admin_password(core_api, stack_id, stack_config, role):
@@ -39,7 +43,7 @@ def create_client(core_api, stack_id, stack_config, role):
         raise Exception(
             "could not get hostname for load balancer for role %s " % (role))
     password = get_admin_password(core_api, stack_id, stack_config, role)
-    #logging.info("%s" % hosts[0])
+    # logging.info("%s" % hosts[0])
     splunk = splunklib.client.Service(
         port=8089,
         scheme="https",
@@ -76,15 +80,52 @@ class InstancesHandler(BaseRestHandler):
         path = self.request['path']
         _, stack_id = os.path.split(path)
 
-        stack = stacks.get_stack_config(self.splunk, stack_id)
-        client = clusters.create_client(stack["cluster"])
-        core_api = kubernetes.CoreV1Api(client)
+        stack_config = stacks.get_stack_config(self.splunk, stack_id)
+        kubernetes = clusters.create_client(self.splunk, stack_config["cluster"])
+        core_api = kuberneteslib.CoreV1Api(kubernetes)
 
-        # def map(d):
-        #    return {
-        #        "id": d["_key"],
-        #        "status": d["status"],
-        #        "title": d["title"] if "title" in d else "",
-        #        "cluster": d["cluster"],
-        #    }
-        #self.send_entries([map(d) for d in query])
+        instances = {}
+
+        pods = core_api.list_namespaced_pod(
+            namespace=stack_config["namespace"],
+            label_selector="app=saas,stack_id=%s" % stack_id,
+        ).items
+        for pod in pods:
+            name = pod.metadata.name
+            match = re.match('.*%s-(.+)-([0-9]+)$' % stack_id, name)
+            if match:
+                number = int(match.group(2)) + 1
+                role = match.group(1)
+            else:
+                number = None
+                match = re.match('.*%s-(.+)$' % stack_id, name)
+                if match:
+                    role = match.group(1)
+                else:
+                    role = None
+            reasons = set()
+            if pod.status:
+                status = pod.status.phase
+                is_ready = None
+                if pod.status.conditions:
+                    for condition in pod.status.conditions:
+                        if condition.status == "False":
+                            if condition.reason:
+                                reasons.add(condition.reason)
+                        if condition.type == "Ready":
+                            is_ready = condition.status == "True"
+                if status == "Running":
+                    if is_ready:
+                        status = "ready"
+                    else:
+                        status = "running"
+            else:
+                status = "unknown"
+            instances[name] = {
+                "role": role.lower(),
+                "number": number,
+                "status": status.lower(),
+                "reasons": list(reasons),
+            }
+
+        self.send_entries(instances.values())

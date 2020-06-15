@@ -99,10 +99,10 @@
       <table>
         <title>Instances</title>
         <search>
-          <query>index="em_meta" sourcetype="kube:objects:pods" "metadata.labels.app"="saas" "metadata.labels.stack_id"="$id$" | dedup metadata.name | rex field=metadata.name ".*-(?&lt;id&gt;.+)$" | rename metadata.labels.app.kubernetes.io/name as role status.phase as phase | eval last_seen=floor(((now()-_time)/60)%60) | eval last_seen=if(last_seen&gt;0,last_seen." mins ago","just now") | table role id phase last_seen | sort role id</query>
+          <query>| rest splunk_server=local services/saas/instances/$id$ | fields - splunk_server | table role number status *</query>
           <earliest>-15m</earliest>
           <latest>now</latest>
-          <refresh>10s</refresh>
+          <refresh>5s</refresh>
           <refreshType>delay</refreshType>
         </search>
         <option name="count">20</option>
@@ -113,8 +113,11 @@
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
-        <format type="color" field="phase">
-          <colorPalette type="map">{"Running":#53A051,"Pending":#F8BE34}</colorPalette>
+        <format type="color" field="status">
+          <colorPalette type="map">{ "ready":#53A051, "running":#ffff00}</colorPalette>
+        </format>
+        <format type="color" field="reasons">
+          <colorPalette type="map">{ "Unschedulable":#FF0000, "ContainersNotReady":#ffff00 }</colorPalette>
         </format>
       </table>
     </panel>

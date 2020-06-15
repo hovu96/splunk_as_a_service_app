@@ -14,18 +14,8 @@ def wait_until_ready(splunk, kubernetes, stack_id, stack_config):
     indexer_cluster = get(splunk, kubernetes, stack_id, stack_config)
     if not indexer_cluster:
         raise Exception("could not find indexer cluster")
-    # {
-    # 'clusterMasterPhase': 'Ready',
-    # 'indexing_ready_flag': True,
-    # 'initialized_flag': True,
-    # 'maintenance_mode': False,
-    # 'peers': [...],
-    # 'phase': 'Error',
-    # 'readyReplicas': 3,
-    # 'replicas': 2,
-    # 'selector': 'app.kubernetes.io/instance=splunk-5ee3910afe797e1d1d6e4898-indexer',
-    # 'service_ready_flag': True
-    # }
+    if not "status" in indexer_cluster:
+        raise errors.RetryOperation("waiting for cluster master status")
     status = indexer_cluster["status"]
     target_indexer_count = int(stack_config["indexer_count"])
     actualy_ready_replica = status["readyReplicas"]
