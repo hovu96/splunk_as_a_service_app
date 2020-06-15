@@ -72,7 +72,6 @@ require([
 
     // scale
     (function () {
-        const statusSearchManager = splunkjs.mvc.Components.getInstance('status_search');
         const stackConfigSearchManager = splunkjs.mvc.Components.getInstance('stack_config_search');
         const scaleButton = $('#scale-button');
         // update button visivility
@@ -162,7 +161,6 @@ require([
                             indexer_count: indexerCount,
                         });
                         progressIndicator.hide();
-                        statusSearchManager.startSearch();
                         stackConfigSearchManager.startSearch();
                     }
                     catch (err) {
