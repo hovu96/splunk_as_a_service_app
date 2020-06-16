@@ -1,5 +1,5 @@
 <form script="cluster.js" stylesheet="cluster.css">
-  <label>Cluster Settings</label>
+  <label>Kubernetes Cluster</label>
   <row>
     <panel>
       <title>Connection and Authentication</title>

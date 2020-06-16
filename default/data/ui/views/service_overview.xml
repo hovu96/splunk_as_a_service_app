@@ -186,7 +186,7 @@
     | bin _time minspan=2m 
     | stats latest(color) as color by stack_id host node_path _time 
     | stats count(eval(color="red")) as red_count count(eval(color="yellow")) as yellow_count count(eval(color="green")) as green_count count by stack_id _time 
-    | eval health = 100 - (yellow_count/count)*10 - (red_count/count)*90
+    | eval health = floor(100 - (yellow_count/count)*10 - (red_count/count)*90)
     | lookup stacks _key as stack_id OUTPUT title status
         | where status!="Deleted"
         | timechart avg(health) as health by title</query>

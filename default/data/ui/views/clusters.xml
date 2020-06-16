@@ -1,5 +1,5 @@
 <dashboard script="clusters.js">
-  <label>Clusters</label>
+  <label>Kubernetes Clusters</label>
   <row>
     <panel>
       <table>

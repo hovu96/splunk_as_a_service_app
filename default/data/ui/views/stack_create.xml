@@ -8,18 +8,18 @@
     </row>
     <row depends="$step-cluster$">
         <panel>
-            <title>Target Cluster</title>
+            <title>Deployment Target</title>
             <html>
                 <div class="deployment-options form-horizontal">
-                    <splunk-control-group class="fix-label" label="Select Cluster" help="">	
+                    <splunk-control-group class="fix-label" label="Kubernetes Cluster" help="">	
                         <splunk-search-dropdown class="option" name="cluster" search="| rest splunk_server=local services/saas/clusters" value-field="name" label-field="name">
                         </splunk-search-dropdown>
                     </splunk-control-group>
                     <splunk-control-group class="help" label="" help="">	
                         <p>
-                            Select the Cluster you want to deploy the Splunk Stack to. In case
-                            you cannot find the Cluster in the list above, simply
-                            <a href="cluster">add a Cluster</a>.
+                            Select the Kubernetes Cluster you want to deploy the Splunk Stack to. In case
+                            you cannot find it in the list above, simply
+                            <a href="cluster">Connect a Kubernetes Cluster</a>.
                         </p>
                     </splunk-control-group>
                 </div>
